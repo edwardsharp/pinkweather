@@ -87,38 +87,38 @@
             button:hover {
                 transform: translateY(-2px);
                 box-shadow: 0 6px 20px rgba(100, 255, 218, 0.4);
+                color: #ff11ff;
             }
             button:active {
                 transform: translateY(0);
             }
-            .preview-section {
-                margin-top: 30px;
-                text-align: center;
-                padding: 20px;
-                background: rgba(0, 0, 0, 0.2);
-                border-radius: 12px;
-                border: 1px solid rgba(255, 255, 255, 0.1);
-            }
-            .display-preview {
-                border: 3px solid #64ffda;
-                background-color: #fff;
-                display: inline-block;
-                margin: 15px;
-                border-radius: 8px;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            }
-            .preview-info {
-                color: #b0b0c0;
-                font-size: 14px;
-                margin: 15px 0;
-            }
-            .two-column {
+            .main-layout {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 25px;
+                gap: 30px;
+                align-items: start;
+                min-height: 300px;
+            }
+            .preview-section {
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                width: 100%;
+            }
+            .display-preview {
+                display: block;
+            }
+            #preview-container {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                width: 100%;
             }
             @media (max-width: 768px) {
-                .two-column {
+                .main-layout {
                     grid-template-columns: 1fr;
                 }
             }
@@ -172,56 +172,58 @@
     </head>
     <body>
         <div class="container">
-            <h1>🌦️ Weather Display Development Tool</h1>
+            <h1 style="color: #ff11ff">🌦️ pinkweather</h1>
             <p class="subtitle">
-                Preview your e-ink display layouts • 250×122 pixels • 3-color:
-                white, black, red
+                preview e-ink display layouts • 250×122 pixels • 3-color: white,
+                black, red
             </p>
 
-            <form id="display-form">
-                <input type="hidden" name="layout" value="text" />
+            <div class="main-layout">
+                <div class="form-section">
+                    <form id="display-form">
+                        <input type="hidden" name="layout" value="text" />
 
-                <div class="form-group">
-                    <label for="text">Display Text:</label>
-                    <textarea
-                        id="text"
-                        name="text"
-                        placeholder="Enter your display text here. This text will be wrapped to fit the display dimensions."
-                    >
+                        <div class="form-group">
+                            <label for="text">Display Text:</label>
+                            <textarea
+                                id="text"
+                                name="text"
+                                placeholder="Enter your display text here. This text will be wrapped to fit the display dimensions."
+                            >
 Hello! This is the default text. Change me to see if the form is working!</textarea
-                    >
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="font_size">Font Size:</label>
+                            <input
+                                type="number"
+                                id="font_size"
+                                name="font_size"
+                                value="12"
+                                min="8"
+                                max="24"
+                            />
+                        </div>
+
+                        <button type="submit">Generate Preview</button>
+                    </form>
+
+                    <div class="loading" id="loading">
+                        Generating preview...
+                    </div>
+
+                    <div class="error-message" id="error-message"></div>
                 </div>
 
-                <div class="form-group">
-                    <label for="font_size">Font Size:</label>
-                    <input
-                        type="number"
-                        id="font_size"
-                        name="font_size"
-                        value="12"
-                        min="8"
-                        max="24"
-                    />
-                </div>
-
-                <button type="submit">Generate Preview</button>
-            </form>
-
-            <div class="loading" id="loading">Generating preview...</div>
-
-            <div class="error-message" id="error-message"></div>
-
-            <div
-                class="preview-section"
-                id="preview-area"
-                style="display: none"
-            >
-                <h3>Display Preview</h3>
-                <div class="preview-info">
-                    250 × 122 pixels | 3-color e-ink display
-                </div>
-                <div class="display-preview" id="preview-container">
-                    <!-- Preview image will be inserted here -->
+                <div
+                    class="preview-section"
+                    id="preview-area"
+                    style="display: none"
+                >
+                    <div class="display-preview" id="preview-container">
+                        <!-- Preview image will be inserted here -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -273,7 +275,7 @@ Hello! This is the default text. Change me to see if the form is working!</texta
                                 "Updating image with timestamp:",
                                 timestamp,
                             );
-                            previewContainer.innerHTML = `<img src="/current_image.png?t=${timestamp}" alt="Display Preview" style="width: 250px; height: 122px; border-radius: 4px;">`;
+                            previewContainer.innerHTML = `<img src="/current_image.png?t=${timestamp}" alt="Display Preview" style="width: 250px; height: 122px;">`;
 
                             previewArea.style.display = "block";
                         } else {
