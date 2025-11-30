@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Weather Display Development</title>
+        <style>
+            body {
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                max-width: 1400px;
+                margin: 0 auto;
+                padding: 20px;
+                background: linear-gradient(135deg, #1e1e2e 0%, #2d2d42 100%);
+                color: #e0e0e0;
+                min-height: 100vh;
+            }
+            .container {
+                background: linear-gradient(145deg, #2a2a3e 0%, #3a3a54 100%);
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            h1 {
+                color: #64ffda;
+                text-align: center;
+                margin-bottom: 10px;
+                text-shadow: 0 2px 4px rgba(100, 255, 218, 0.3);
+            }
+            .subtitle {
+                text-align: center;
+                color: #b0b0c0;
+                margin-bottom: 30px;
+                font-size: 14px;
+            }
+            .form-group {
+                margin-bottom: 18px;
+            }
+            label {
+                display: block;
+                margin-bottom: 6px;
+                font-weight: 600;
+                color: #c0c0d0;
+                font-size: 14px;
+            }
+            input[type="text"],
+            input[type="number"],
+            textarea,
+            select {
+                width: 100%;
+                padding: 12px;
+                border: 2px solid #4a4a6a;
+                border-radius: 8px;
+                font-size: 14px;
+                box-sizing: border-box;
+                background-color: #1e1e2e;
+                color: #e0e0e0;
+                transition:
+                    border-color 0.3s ease,
+                    box-shadow 0.3s ease;
+            }
+            input[type="text"]:focus,
+            input[type="number"]:focus,
+            textarea:focus,
+            select:focus {
+                outline: none;
+                border-color: #64ffda;
+                box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.1);
+            }
+            textarea {
+                height: 120px;
+                resize: vertical;
+                font-family: "Courier New", monospace;
+            }
+            button {
+                background: linear-gradient(135deg, #64ffda 0%, #4fc3f7 100%);
+                color: #1e1e2e;
+                padding: 12px 24px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 12px rgba(100, 255, 218, 0.3);
+            }
+            button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(100, 255, 218, 0.4);
+            }
+            button:active {
+                transform: translateY(0);
+            }
+            .preview-section {
+                margin-top: 30px;
+                text-align: center;
+                padding: 20px;
+                background: rgba(0, 0, 0, 0.2);
+                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .display-preview {
+                border: 3px solid #64ffda;
+                background-color: #fff;
+                display: inline-block;
+                margin: 15px;
+                border-radius: 8px;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            }
+            .preview-info {
+                color: #b0b0c0;
+                font-size: 14px;
+                margin: 15px 0;
+            }
+            .two-column {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 25px;
+            }
+            @media (max-width: 768px) {
+                .two-column {
+                    grid-template-columns: 1fr;
+                }
+            }
+            .layout-tabs {
+                margin-bottom: 25px;
+                display: flex;
+                gap: 5px;
+            }
+            .tab-button {
+                background: rgba(255, 255, 255, 0.1);
+                border: 2px solid #4a4a6a;
+                padding: 12px 20px;
+                cursor: pointer;
+                border-radius: 8px;
+                color: #c0c0d0;
+                transition: all 0.3s ease;
+                font-weight: 500;
+            }
+            .tab-button:hover {
+                background: rgba(100, 255, 218, 0.1);
+                border-color: #64ffda;
+            }
+            .tab-button.active {
+                background: linear-gradient(135deg, #64ffda 0%, #4fc3f7 100%);
+                color: #1e1e2e;
+                border-color: #64ffda;
+                font-weight: 600;
+            }
+            .tab-content {
+                display: none;
+            }
+            .tab-content.active {
+                display: block;
+            }
+            .loading {
+                display: none;
+                color: #64ffda;
+                font-style: italic;
+                margin: 20px 0;
+            }
+            .error-message {
+                background: rgba(255, 99, 132, 0.1);
+                border: 1px solid #ff6384;
+                color: #ff6384;
+                padding: 15px;
+                border-radius: 8px;
+                margin: 20px 0;
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🌦️ Weather Display Development Tool</h1>
+            <p class="subtitle">
+                Preview your e-ink display layouts • 250×122 pixels • 3-color:
+                white, black, red
+            </p>
+
+            <form id="display-form">
+                <input type="hidden" name="layout" value="text" />
+
+                <div class="form-group">
+                    <label for="text">Display Text:</label>
+                    <textarea
+                        id="text"
+                        name="text"
+                        placeholder="Enter your display text here. This text will be wrapped to fit the display dimensions."
+                    >
+Hello! This is the default text. Change me to see if the form is working!</textarea
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="font_size">Font Size:</label>
+                    <input
+                        type="number"
+                        id="font_size"
+                        name="font_size"
+                        value="12"
+                        min="8"
+                        max="24"
+                    />
+                </div>
+
+                <button type="submit">Generate Preview</button>
+            </form>
+
+            <div class="loading" id="loading">Generating preview...</div>
+
+            <div class="error-message" id="error-message"></div>
+
+            <div
+                class="preview-section"
+                id="preview-area"
+                style="display: none"
+            >
+                <h3>Display Preview</h3>
+                <div class="preview-info">
+                    250 × 122 pixels | 3-color e-ink display
+                </div>
+                <div class="display-preview" id="preview-container">
+                    <!-- Preview image will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function submitForm(form) {
+                console.log("submitForm called");
+                const loading = document.getElementById("loading");
+                const errorMsg = document.getElementById("error-message");
+                const previewArea = document.getElementById("preview-area");
+
+                // Show loading, hide error and preview
+                loading.style.display = "block";
+                errorMsg.style.display = "none";
+                previewArea.style.display = "none";
+
+                // Get form data and convert to URL-encoded
+                const formData = new FormData(form);
+                const urlEncodedData = new URLSearchParams();
+                console.log("Form data entries:");
+                for (let [key, value] of formData.entries()) {
+                    console.log(`${key}: ${value}`);
+                    urlEncodedData.append(key, value);
+                }
+
+                // Send request
+                console.log("Sending fetch request to /preview");
+                fetch("/preview", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: urlEncodedData,
+                })
+                    .then((response) => {
+                        console.log("Response received:", response.status);
+                        return response.json();
+                    })
+                    .then((data) => {
+                        console.log("JSON response:", data);
+                        loading.style.display = "none";
+
+                        if (data.success) {
+                            // Update image with cache busting and fixed dimensions
+                            const previewContainer =
+                                document.getElementById("preview-container");
+                            const timestamp = new Date().getTime();
+                            console.log(
+                                "Updating image with timestamp:",
+                                timestamp,
+                            );
+                            previewContainer.innerHTML = `<img src="/current_image.png?t=${timestamp}" alt="Display Preview" style="width: 250px; height: 122px; border-radius: 4px;">`;
+
+                            previewArea.style.display = "block";
+                        } else {
+                            console.log("Server returned error:", data.error);
+                            // Show error
+                            errorMsg.textContent =
+                                data.error || "Failed to generate preview";
+                            errorMsg.style.display = "block";
+                        }
+                    })
+                    .catch((error) => {
+                        console.log("Fetch error:", error);
+                        loading.style.display = "none";
+                        errorMsg.textContent =
+                            "Network error: " + error.message;
+                        errorMsg.style.display = "block";
+                    });
+            }
+
+            // Add event listener to the form
+            document.addEventListener("DOMContentLoaded", function () {
+                console.log("DOM loaded, setting up form listener");
+                const form = document.getElementById("display-form");
+                if (form) {
+                    console.log("Form found, adding submit listener");
+                    form.addEventListener("submit", function (e) {
+                        console.log("Form submit event triggered");
+                        e.preventDefault();
+                        submitForm(this);
+                    });
+                } else {
+                    console.log("ERROR: Form not found!");
+                }
+            });
+        </script>
+    </body>
+</html>
