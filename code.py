@@ -1,80 +1,75 @@
-# SPDX-FileCopyrightText: 2019 Melissa LeBlanc-Williams for Adafruit Industries
-# SPDX-License-Identifier: MIT
-
-"""
-Weather Display for Pi Pico 2W with e-ink display.
-Uses modular rendering system compatible with development server.
-"""
-
 import board
 import busio
-import digitalio
-from adafruit_epd.ssd1680 import Adafruit_SSD1680
-from display_renderer import WeatherDisplayRenderer
+import displayio
+import terminalio
+import time
 
-def setup_display():
-    """Initialize the e-ink display hardware."""
-    # Create the SPI device and pins
-    spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
-    ecs = digitalio.DigitalInOut(board.CE0)
-    dc = digitalio.DigitalInOut(board.D22)
-    srcs = None
-    rst = digitalio.DigitalInOut(board.D27)
-    busy = digitalio.DigitalInOut(board.D17)
+import fourwire
+import adafruit_ssd1680
 
-    display = Adafruit_SSD1680(
-        122,
-        250,        # 2.13" Tri-color display
-        spi,
-        cs_pin=ecs,
-        dc_pin=dc,
-        sramcs_pin=srcs,
-        rst_pin=rst,
-        busy_pin=busy,
-    )
+from adafruit_display_text.label import Label
+from adafruit_display_shapes.rect import Rect
 
-    display.rotation = 1
-    return display
+# Release any previous display
+displayio.release_displays()
 
-def main():
-    """Main function to render and display content."""
-    # Initialize hardware
-    display = setup_display()
+# --- SPI + Pins (matches your wiring) ---
+spi = busio.SPI(board.GP18, MOSI=board.GP19, MISO=board.GP16)
 
-    # Create renderer with display dimensions
-    renderer = WeatherDisplayRenderer(
-        width=display.width,
-        height=display.height,
-        font_path="AndaleMono.ttf"
-    )
+display_bus = fourwire.FourWire(
+    spi,
+    command=board.GP20,     # DC
+    chip_select=board.GP17, # CS
+    reset=board.GP21,       # RST
+    baudrate=1_000_000
+)
 
-    # Example 1: Simple text display
-    sample_text = "Hello from your weather display! This is a test of the text wrapping functionality."
-    image = renderer.render_text_display(sample_text, "Weather Station")
+# Create the SSD1680 display object
+display = adafruit_ssd1680.SSD1680(
+    display_bus,
+    width=250,
+    height=122,
+    rotation=270,
+    busy_pin=board.GP22
+)
 
-    # Example 2: Weather layout (uncomment to use)
-    # image = renderer.render_weather_layout(
-    #     temperature="72°F",
-    #     condition="Sunny",
-    #     location="San Francisco, CA",
-    #     additional_info="Humidity: 65%\nWind: 5mph NW\nUV Index: 6"
-    # )
+# --- Create the main displayio Group ---
+g = displayio.Group()
 
-    # Example 3: Debug display (uncomment to use)
-    # debug_info = {
-    #     "Memory": "45%",
-    #     "CPU": "23%",
-    #     "WiFi": "Connected",
-    #     "Signal": "-42 dBm",
-    #     "Uptime": "2h 15m"
-    # }
-    # image = renderer.render_debug_display(debug_info)
+# tell the display to use this as the root layer
+display.root_group = g
 
-    # Display the rendered image
-    display.image(image)
-    display.display()
+# Colors
+BLACK = 0x000000
+WHITE = 0xFFFFFF
+RED   = 0xFF0000
 
-    print("Display updated successfully!")
+BORDER = 20
 
-if __name__ == '__main__':
-    main()
+# Background rectangle
+bg = Rect(0, 0, display.width, display.height, fill=BLACK)
+g.append(bg)
+
+# Inner rectangle
+inner = Rect(
+    BORDER,
+    BORDER,
+    display.width - 2 * BORDER,
+    display.height - 2 * BORDER,
+    fill=WHITE,
+)
+g.append(inner)
+
+# Text label
+text = "ZOMG HELLO WORLD!"
+label = Label(terminalio.FONT, text=text, color=RED)
+label.anchor_point = (0.5, 0.5)
+label.anchored_position = (display.width // 2, display.height // 2)
+g.append(label)
+
+# Refresh the e-ink panel
+display.refresh()
+
+# Wait while display is updating
+while display.busy:
+    time.sleep(0.1)
