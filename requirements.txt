@@ -1,0 +1,23 @@
+# Core dependencies for weather display system
+Pillow>=9.0.0
+
+# Microcontroller dependencies (CircuitPython)
+# These are only needed when running on Pi Pico 2W
+# adafruit-circuitpython-epd>=2.0.0
+# adafruit-circuitpython-busio>=5.0.0
+# adafruit-circuitpython-digitalio>=3.0.0
+
+# Optional: HTTP requests for weather API integration
+requests>=2.28.0
+
+# Development dependencies (optional)
+# For enhanced font handling and image processing
+# Pillow-SIMD>=9.0.0  # Alternative to Pillow for better performance
+
+# Note: CircuitPython libraries are automatically available on the microcontroller
+# and don't need to be installed via pip. The commented lines above are for reference.
+#
+# For development server only, install with:
+# pip install -r requirements.txt
+#
+# For microcontroller deployment, only copy the .py files and font file.
