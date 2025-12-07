@@ -22,8 +22,8 @@ displayio.release_displays()
 spi = board.SPI()
 epd_cs = board.D9
 epd_dc = board.D10
-epd_reset = None
-epd_busy = None
+epd_reset = None # adafruit feather wing doesn't connect this
+epd_busy = None # adafruit feather wing doesn't connect this
 
 display_bus = fourwire.FourWire(
     spi, command=epd_dc, chip_select=epd_cs, reset=epd_reset, baudrate=1000000
@@ -234,16 +234,16 @@ def create_line_graph(data_points, color, y_start, height):
     max_bg = Rect(0, y_start - 2, 16, 14, fill=color)
     group.append(max_bg)
     max_label = label.Label(terminalio.FONT, text=f"{int(max_val)}", color=WHITE)
-    max_label.x = 1
-    max_label.y = y_start + 6
+    max_label.x = 2
+    max_label.y = y_start + 5
     group.append(max_label)
 
     # Min label (bottom left)
     min_bg = Rect(0, y_start + height - 12, 16, 14, fill=color)
     group.append(min_bg)
     min_label = label.Label(terminalio.FONT, text=f"{int(min_val)}", color=WHITE)
-    min_label.x = 1
-    min_label.y = y_start + height - 4
+    min_label.x = 2
+    min_label.y = y_start + height - 5
     group.append(min_label)
 
     return group
