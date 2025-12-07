@@ -22,8 +22,8 @@ displayio.release_displays()
 spi = board.SPI()
 epd_cs = board.D9
 epd_dc = board.D10
-epd_reset = None
-epd_busy = None
+epd_reset = None # adafruit feather wing doesn't connect this
+epd_busy = None # adafruit feather wing doesn't connect this
 
 display_bus = fourwire.FourWire(
     spi, command=epd_dc, chip_select=epd_cs, reset=epd_reset, baudrate=1000000
@@ -234,16 +234,16 @@ def create_line_graph(data_points, color, y_start, height):
     max_bg = Rect(0, y_start - 2, 16, 14, fill=color)
     group.append(max_bg)
     max_label = label.Label(terminalio.FONT, text=f"{int(max_val)}", color=WHITE)
-    max_label.x = 1
-    max_label.y = y_start + 6
+    max_label.x = 2
+    max_label.y = y_start + 5
     group.append(max_label)
 
     # Min label (bottom left)
     min_bg = Rect(0, y_start + height - 12, 16, 14, fill=color)
     group.append(min_bg)
     min_label = label.Label(terminalio.FONT, text=f"{int(min_val)}", color=WHITE)
-    min_label.x = 1
-    min_label.y = y_start + height - 4
+    min_label.x = 2
+    min_label.y = y_start + height - 5
     group.append(min_label)
 
     return group
@@ -293,6 +293,52 @@ def get_graph_data(num_points=60):
 
     return temp_data[-num_points:], humidity_data[-num_points:]
 
+def format_time_short(seconds):
+    """Format time in very short format: 30s, 9d, 25m, etc."""
+    if seconds < 60:
+        return f"{int(seconds)}s"
+    elif seconds < 3600:  # < 1 hour
+        return f"{int(seconds/60)}m"
+    elif seconds < 86400:  # < 1 day
+        return f"{int(seconds/3600)}h"
+    elif seconds < 2592000:  # < 30 days
+        return f"{int(seconds/86400)}d"
+    elif seconds < 31536000:  # < 365 days
+        return f"{int(seconds/2592000)}M"
+    else:
+        return f"{int(seconds/31536000)}y"
+
+def get_sd_total_time():
+    """Get total time span of data stored on SD card"""
+    if not sd_available:
+        return "0s"
+
+    try:
+        min_time = None
+        max_time = None
+
+        # Check recent.csv for time range
+        with open("/sd/recent.csv", "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("uptime_ms"):
+                    try:
+                        timestamp = int(line.split(",")[0])
+                        if min_time is None or timestamp < min_time:
+                            min_time = timestamp
+                        if max_time is None or timestamp > max_time:
+                            max_time = timestamp
+                    except (ValueError, IndexError):
+                        continue
+
+        if min_time and max_time:
+            total_seconds = (max_time - min_time) / 1000
+            return format_time_short(total_seconds)
+    except OSError:
+        pass
+
+    return "0s"
+
 
 def update_display(temp_c, humidity):
     """Update display with sensor readings and historical data"""
@@ -316,8 +362,8 @@ def update_display(temp_c, humidity):
     # Temperature averages (day, week, month, year)
     temp_avg_text = f"D:{averages['temp']['day']} W:{averages['temp']['week']} M:{averages['temp']['month']} Y:{averages['temp']['year']}"
     temp_avg_label = label.Label(terminalio.FONT, text=temp_avg_text, color=BLACK)
-    temp_avg_label.x = 4
-    temp_avg_label.y = 75
+    temp_avg_label.anchor_point = (0.5, 0.5)
+    temp_avg_label.anchored_position = (DISPLAY_WIDTH // 2, 75)
     g.append(temp_avg_label)
 
     # Line graphs with real historical data
@@ -342,8 +388,8 @@ def update_display(temp_c, humidity):
     # Humidity averages (right under the graph)
     humidity_avg_text = f"D:{averages['humidity']['day']} W:{averages['humidity']['week']} M:{averages['humidity']['month']} Y:{averages['humidity']['year']}"
     humidity_avg_label = label.Label(terminalio.FONT, text=humidity_avg_text, color=RED)
-    humidity_avg_label.x = 5
-    humidity_avg_label.y = humidity_y_start + humidity_height + 10
+    humidity_avg_label.anchor_point = (0.5, 0.5)
+    humidity_avg_label.anchored_position = (DISPLAY_WIDTH // 2, humidity_y_start + humidity_height + 10)
     g.append(humidity_avg_label)
 
     # Current humidity (bottom area)
@@ -351,6 +397,28 @@ def update_display(temp_c, humidity):
     humidity_group.x = 20
     humidity_group.y = humidity_y_start + humidity_height + 38
     g.append(humidity_group)
+
+    # Status bar at bottom
+    status_bar_height = 12
+    status_bar_y = DISPLAY_HEIGHT - status_bar_height
+    status_bar = Rect(0, status_bar_y, DISPLAY_WIDTH, status_bar_height, fill=BLACK)
+    g.append(status_bar)
+
+    # Create status text string with all info
+    sd_status = "SD" if sd_available else "SDx"
+    sd_time = get_sd_total_time()
+    uptime = format_time_short(time.monotonic())
+    power_status = "P"  # Will update when we detect power source
+    battery_status = "B--"  # Will update when battery monitoring is added
+
+    # Combine all status info
+    status_text = f"{sd_status} {sd_time} {uptime} {power_status} {battery_status}"
+
+    # Center the status text
+    status_label = label.Label(terminalio.FONT, text=status_text, color=WHITE)
+    status_label.anchor_point = (0.5, 0.5)
+    status_label.anchored_position = (DISPLAY_WIDTH // 2, status_bar_y + 6)
+    g.append(status_label)
 
     # Refresh display
     display.refresh()
