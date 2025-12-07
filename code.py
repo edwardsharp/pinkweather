@@ -316,8 +316,8 @@ def update_display(temp_c, humidity):
     # Temperature averages (day, week, month, year)
     temp_avg_text = f"D:{averages['temp']['day']} W:{averages['temp']['week']} M:{averages['temp']['month']} Y:{averages['temp']['year']}"
     temp_avg_label = label.Label(terminalio.FONT, text=temp_avg_text, color=BLACK)
-    temp_avg_label.x = 4
-    temp_avg_label.y = 75
+    temp_avg_label.anchor_point = (0.5, 0.5)
+    temp_avg_label.anchored_position = (DISPLAY_WIDTH // 2, 75)
     g.append(temp_avg_label)
 
     # Line graphs with real historical data
@@ -342,8 +342,8 @@ def update_display(temp_c, humidity):
     # Humidity averages (right under the graph)
     humidity_avg_text = f"D:{averages['humidity']['day']} W:{averages['humidity']['week']} M:{averages['humidity']['month']} Y:{averages['humidity']['year']}"
     humidity_avg_label = label.Label(terminalio.FONT, text=humidity_avg_text, color=RED)
-    humidity_avg_label.x = 5
-    humidity_avg_label.y = humidity_y_start + humidity_height + 10
+    humidity_avg_label.anchor_point = (0.5, 0.5)
+    humidity_avg_label.anchored_position = (DISPLAY_WIDTH // 2, humidity_y_start + humidity_height + 10)
     g.append(humidity_avg_label)
 
     # Current humidity (bottom area)
