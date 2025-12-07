@@ -133,12 +133,12 @@ def get_historical_averages():
 
 
 def create_line_graph(data_points, color, y_start, height):
-    """Create a simple line graph from data points with thick lines"""
+    """Create a simple line graph from data points with thick lines and min/max labels"""
     if len(data_points) < 2:
         return displayio.Group()
 
     group = displayio.Group()
-    graph_width = DISPLAY_WIDTH # - 20  # Leave some margin
+    graph_width = DISPLAY_WIDTH  # Full width
     x_step = graph_width // (len(data_points) - 1) if len(data_points) > 1 else 0
 
     # Normalize data to fit in height
@@ -159,6 +159,23 @@ def create_line_graph(data_points, color, y_start, height):
         line2 = Line(x1, y1 + 1, x2, y2 + 1, color)
         group.append(line1)
         group.append(line2)
+
+    # Add min/max labels with colored backgrounds
+    # Max label (top left)
+    max_bg = Rect(0, y_start - 2, 16, 14, fill=color)
+    group.append(max_bg)
+    max_label = label.Label(terminalio.FONT, text=f"{int(max_val)}", color=WHITE)
+    max_label.x = 1
+    max_label.y = y_start + 6
+    group.append(max_label)
+
+    # Min label (bottom left)
+    min_bg = Rect(0, y_start + height - 12, 16, 14, fill=color)
+    group.append(min_bg)
+    min_label = label.Label(terminalio.FONT, text=f"{int(min_val)}", color=WHITE)
+    min_label.x = 1
+    min_label.y = y_start + height - 4
+    group.append(min_label)
 
     return group
 
@@ -209,18 +226,18 @@ def update_display(temp_c, humidity):
     humidity_graph = create_line_graph(humidity_data, RED, humidity_y_start, humidity_height)
     g.append(humidity_graph)
 
+    # Humidity averages (right under the graph)
+    humidity_avg_text = f"D:{averages['humidity']['day']} W:{averages['humidity']['week']} M:{averages['humidity']['month']} Y:{averages['humidity']['year']}"
+    humidity_avg_label = label.Label(terminalio.FONT, text=humidity_avg_text, color=RED)
+    humidity_avg_label.x = 5
+    humidity_avg_label.y = humidity_y_start + humidity_height + 10
+    g.append(humidity_avg_label)
+
     # Current humidity (bottom area)
     humidity_group = create_humidity_display(humidity)
     humidity_group.x = 20
-    humidity_group.y = 180
+    humidity_group.y = humidity_y_start + humidity_height + 38
     g.append(humidity_group)
-
-    # Humidity averages
-    humidity_avg_text = f"D:{averages['humidity']['day']} W:{averages['humidity']['week']} M:{averages['humidity']['month']} Y:{averages['humidity']['year']}"
-    humidity_avg_label = label.Label(terminalio.FONT, text=humidity_avg_text, color=RED)
-    humidity_avg_label.x = 4
-    humidity_avg_label.y = 230
-    g.append(humidity_avg_label)
 
     # Refresh display
     display.refresh()
