@@ -11,7 +11,16 @@ import base64
 import io
 import os
 import json
-from display_renderer import WeatherDisplayRenderer
+import sys
+
+# Add parent directory to path to import shared modules
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from display_logic import create_display_layout, format_time_short
+from web_adapter import (
+    get_mock_sensor_data, get_mock_csv_data, get_mock_system_status,
+    get_mock_historical_data, create_pil_image_from_elements, get_scenario_list
+)
 
 class DisplayHandler(BaseHTTPRequestHandler):
     # Store current image data in memory
@@ -29,7 +38,7 @@ class DisplayHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Handle POST requests - process form data and generate preview."""
         if self.path == '/preview':
-            self.handle_preview_post_inline()
+            self.handle_preview_post()
         else:
             self.send_error(404, "File not found")
 
@@ -38,7 +47,7 @@ class DisplayHandler(BaseHTTPRequestHandler):
         try:
             # Get the directory where this script is located
             script_dir = os.path.dirname(os.path.abspath(__file__))
-            template_path = os.path.join(script_dir, 'templates', 'index.html')
+            template_path = os.path.join(script_dir, 'templates', 'display.html')
 
             with open(template_path, 'r', encoding='utf-8') as f:
                 html = f.read()
@@ -55,9 +64,15 @@ class DisplayHandler(BaseHTTPRequestHandler):
     def serve_current_image(self):
         """Serve the current generated image as PNG."""
         if DisplayHandler.current_image_data is None:
-            # Generate default image if none exists
-            renderer = WeatherDisplayRenderer()
-            image = renderer.render_text_display("No preview generated yet", title=None)
+            # Generate default display with mock data
+            sensor_data = get_mock_sensor_data()
+            csv_data = get_mock_csv_data('normal')
+            historical_data = get_mock_historical_data(csv_data)
+            system_status = get_mock_system_status('normal')
+
+            elements = create_display_layout(sensor_data, historical_data, system_status)
+            image = create_pil_image_from_elements(elements)
+
             img_buffer = io.BytesIO()
             image.save(img_buffer, format='PNG')
             DisplayHandler.current_image_data = img_buffer.getvalue()
@@ -70,48 +85,58 @@ class DisplayHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(DisplayHandler.current_image_data)
 
-    def handle_preview_post_inline(self):
-        """Handle POST request to generate display preview and return JSON."""
+    def handle_preview_post(self):
+        """Handle POST request to generate weather display preview and return JSON."""
         try:
             # Parse URL-encoded form data
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             form_data = urllib.parse.parse_qs(post_data.decode('utf-8'))
 
-            # Debug: print received form data
             print(f"Server received form data: {form_data}")
 
+            # Get scenario from form data
+            csv_scenario = form_data.get('csv_scenario', ['normal'])[0]
+            status_scenario = form_data.get('status_scenario', ['normal'])[0]
 
-            # Create renderer
-            renderer = WeatherDisplayRenderer()
-
-            # Configure renderer based on form data
-            if 'font_size' in form_data and form_data['font_size']:
+            # Override sensor data if provided
+            sensor_data = get_mock_sensor_data()
+            if 'temp_c' in form_data and form_data['temp_c'][0]:
                 try:
-                    renderer.font_size = int(form_data['font_size'][0])
-                    print(f"Set font size to: {renderer.font_size}")
-                except (ValueError, IndexError):
-                    print("Error parsing font_size, using default")
+                    sensor_data['temp_c'] = float(form_data['temp_c'][0])
+                except ValueError:
+                    pass
 
-            # Get text from form (this is the main text display)
-            text = form_data.get('text', ['Enter some text in the form above'])[0]
-            print(f"Extracted text: '{text}' (length: {len(text)})")
+            if 'humidity' in form_data and form_data['humidity'][0]:
+                try:
+                    sensor_data['humidity'] = float(form_data['humidity'][0])
+                except ValueError:
+                    pass
 
+            # Get mock data based on scenarios
+            csv_data = get_mock_csv_data(csv_scenario)
+            historical_data = get_mock_historical_data(csv_data)
+            system_status = get_mock_system_status(status_scenario)
 
-            # Generate text display image
-            image = renderer.render_text_display(text, title=None)
+            # Generate display elements using shared logic
+            elements = create_display_layout(sensor_data, historical_data, system_status)
+
+            # Render PIL image
+            image = create_pil_image_from_elements(elements)
 
             # Store image data in memory for serving
             img_buffer = io.BytesIO()
             image.save(img_buffer, format='PNG')
             DisplayHandler.current_image_data = img_buffer.getvalue()
-            print(f"Image generated and stored, size: {len(DisplayHandler.current_image_data)} bytes")
 
+            print(f"Weather display generated, size: {len(DisplayHandler.current_image_data)} bytes")
 
             # Send JSON response indicating success
             response_data = {
                 'success': True,
-                'image_url': '/current_image.png'
+                'image_url': '/current_image.png',
+                'sensor_data': sensor_data,
+                'system_status': system_status
             }
 
             self.send_response(200)
@@ -123,6 +148,7 @@ class DisplayHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(response_data).encode('utf-8'))
 
         except Exception as e:
+            print(f"Error generating preview: {e}")
             response_data = {
                 'success': False,
                 'error': str(e)
