@@ -293,6 +293,52 @@ def get_graph_data(num_points=60):
 
     return temp_data[-num_points:], humidity_data[-num_points:]
 
+def format_time_short(seconds):
+    """Format time in very short format: 30s, 9d, 25m, etc."""
+    if seconds < 60:
+        return f"{int(seconds)}s"
+    elif seconds < 3600:  # < 1 hour
+        return f"{int(seconds/60)}m"
+    elif seconds < 86400:  # < 1 day
+        return f"{int(seconds/3600)}h"
+    elif seconds < 2592000:  # < 30 days
+        return f"{int(seconds/86400)}d"
+    elif seconds < 31536000:  # < 365 days
+        return f"{int(seconds/2592000)}M"
+    else:
+        return f"{int(seconds/31536000)}y"
+
+def get_sd_total_time():
+    """Get total time span of data stored on SD card"""
+    if not sd_available:
+        return "0s"
+
+    try:
+        min_time = None
+        max_time = None
+
+        # Check recent.csv for time range
+        with open("/sd/recent.csv", "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("uptime_ms"):
+                    try:
+                        timestamp = int(line.split(",")[0])
+                        if min_time is None or timestamp < min_time:
+                            min_time = timestamp
+                        if max_time is None or timestamp > max_time:
+                            max_time = timestamp
+                    except (ValueError, IndexError):
+                        continue
+
+        if min_time and max_time:
+            total_seconds = (max_time - min_time) / 1000
+            return format_time_short(total_seconds)
+    except OSError:
+        pass
+
+    return "0s"
+
 
 def update_display(temp_c, humidity):
     """Update display with sensor readings and historical data"""
@@ -358,26 +404,21 @@ def update_display(temp_c, humidity):
     status_bar = Rect(0, status_bar_y, DISPLAY_WIDTH, status_bar_height, fill=BLACK)
     g.append(status_bar)
 
-    # Status text - SD card status
-    sd_status = "SD" if sd_available else "NOSD"
-    sd_label = label.Label(terminalio.FONT, text=sd_status, color=WHITE)
-    sd_label.x = 5
-    sd_label.y = status_bar_y + 6
-    g.append(sd_label)
+    # Create status text string with all info
+    sd_status = "SD" if sd_available else "SDx"
+    sd_time = get_sd_total_time()
+    uptime = format_time_short(time.monotonic())
+    power_status = "P"  # Will update when we detect power source
+    battery_status = "B--"  # Will update when battery monitoring is added
 
-    # Power status (placeholder)
-    power_status = "PWR"  # Will update when we detect power source
-    power_label = label.Label(terminalio.FONT, text=power_status, color=WHITE)
-    power_label.x = 35
-    power_label.y = status_bar_y + 6
-    g.append(power_label)
+    # Combine all status info
+    status_text = f"{sd_status} {sd_time} {uptime} {power_status} {battery_status}"
 
-    # Battery level (placeholder)
-    battery_status = "B:--"  # Will update when battery monitoring is added
-    battery_label = label.Label(terminalio.FONT, text=battery_status, color=WHITE)
-    battery_label.x = 65
-    battery_label.y = status_bar_y + 6
-    g.append(battery_label)
+    # Center the status text
+    status_label = label.Label(terminalio.FONT, text=status_text, color=WHITE)
+    status_label.anchor_point = (0.5, 0.5)
+    status_label.anchored_position = (DISPLAY_WIDTH // 2, status_bar_y + 6)
+    g.append(status_label)
 
     # Refresh display
     display.refresh()
