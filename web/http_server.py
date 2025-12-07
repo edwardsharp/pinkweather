@@ -16,11 +16,10 @@ import sys
 # Add parent directory to path to import shared modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from display_logic import create_display_layout, format_time_short
 from web_adapter import (
-    get_mock_sensor_data, get_mock_csv_data, get_mock_system_status,
-    get_mock_historical_data, create_pil_image_from_elements, get_scenario_list
+    get_mock_sensor_data, get_mock_csv_data, get_mock_system_status
 )
+from hardware_exact_renderer import HardwareExactRenderer
 
 class DisplayHandler(BaseHTTPRequestHandler):
     # Store current image data in memory
@@ -65,13 +64,12 @@ class DisplayHandler(BaseHTTPRequestHandler):
         """Serve the current generated image as PNG."""
         if DisplayHandler.current_image_data is None:
             # Generate default display with mock data
+            renderer = HardwareExactRenderer()
             sensor_data = get_mock_sensor_data()
             csv_data = get_mock_csv_data('normal')
-            historical_data = get_mock_historical_data(csv_data)
             system_status = get_mock_system_status('normal')
 
-            elements = create_display_layout(sensor_data, historical_data, system_status)
-            image = create_pil_image_from_elements(elements)
+            image = renderer.render_display(sensor_data, csv_data, system_status)
 
             img_buffer = io.BytesIO()
             image.save(img_buffer, format='PNG')
@@ -115,14 +113,11 @@ class DisplayHandler(BaseHTTPRequestHandler):
 
             # Get mock data based on scenarios
             csv_data = get_mock_csv_data(csv_scenario)
-            historical_data = get_mock_historical_data(csv_data)
             system_status = get_mock_system_status(status_scenario)
 
-            # Generate display elements using shared logic
-            elements = create_display_layout(sensor_data, historical_data, system_status)
-
-            # Render PIL image
-            image = create_pil_image_from_elements(elements)
+            # Generate display using hardware-exact renderer
+            renderer = HardwareExactRenderer()
+            image = renderer.render_display(sensor_data, csv_data, system_status)
 
             # Store image data in memory for serving
             img_buffer = io.BytesIO()

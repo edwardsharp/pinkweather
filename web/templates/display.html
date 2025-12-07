@@ -14,7 +14,8 @@
             body {
                 font-family: Arial, sans-serif;
                 margin: 20px;
-                background-color: #f5f5f5;
+                background-color: #000000;
+                color: #ffffff;
             }
             .container {
                 max-width: 1200px;
@@ -24,17 +25,17 @@
                 gap: 20px;
             }
             .display-panel {
-                background: white;
+                background: #000000;
+                border: 1px solid #333333;
                 padding: 20px;
                 border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
                 text-align: center;
             }
             .controls-panel {
-                background: white;
+                background: #000000;
+                border: 1px solid #333333;
                 padding: 20px;
                 border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             }
             .eink-display {
                 border: 3px solid #333;
@@ -56,45 +57,52 @@
                 display: block;
                 margin-bottom: 5px;
                 font-weight: bold;
-                color: #333;
+                color: #ffffff;
+            }
+            .form-group label input[type="checkbox"] {
+                margin-right: 8px;
+                width: auto;
             }
             .form-group input,
             .form-group select {
                 width: 100%;
                 padding: 8px;
-                border: 1px solid #ddd;
+                border: 1px solid #333333;
                 border-radius: 4px;
                 font-size: 14px;
+                background-color: #111111;
+                color: #ffffff;
             }
             .form-group input[type="number"] {
                 text-align: right;
             }
             .button {
-                background: #007cba;
-                color: white;
+                background: #ff00ff;
+                color: #000000;
                 border: none;
                 padding: 10px 20px;
                 border-radius: 4px;
                 cursor: pointer;
                 font-size: 14px;
                 width: 100%;
+                font-weight: bold;
             }
             .button:hover {
-                background: #005a87;
+                background: #cc00cc;
             }
             .scenario-group {
-                border: 1px solid #ddd;
+                border: 1px solid #333333;
                 border-radius: 4px;
                 padding: 10px;
                 margin-bottom: 15px;
             }
             .scenario-group h4 {
                 margin: 0 0 10px 0;
-                color: #555;
+                color: #ff00ff;
             }
             .status-info {
-                background: #f8f9fa;
-                border: 1px solid #e9ecef;
+                background: #111111;
+                border: 1px solid #333333;
                 border-radius: 4px;
                 padding: 10px;
                 margin-top: 15px;
@@ -102,23 +110,23 @@
             }
             .status-info h4 {
                 margin: 0 0 8px 0;
-                color: #495057;
+                color: #ff00ff;
             }
             .loading {
                 opacity: 0.6;
                 pointer-events: none;
             }
             .error {
-                color: #dc3545;
-                background: #f8d7da;
-                border: 1px solid #f5c6cb;
+                color: #ff6666;
+                background: #220000;
+                border: 1px solid #660000;
                 border-radius: 4px;
                 padding: 10px;
                 margin: 10px 0;
             }
             .specs {
                 font-size: 12px;
-                color: #666;
+                color: #cccccc;
                 margin-top: 10px;
             }
         </style>
@@ -136,12 +144,16 @@
                         alt="Weather Display"
                         width="244"
                         height="500"
+                        style="
+                            image-rendering: pixelated;
+                            image-rendering: -moz-crisp-edges;
+                            image-rendering: crisp-edges;
+                        "
                     />
                 </div>
 
-                <div class="specs">
-                    Display: 122×250 pixels | Tri-color E-ink | 2× scaled for
-                    visibility<br />
+                <div class="specs" id="display-specs">
+                    Display: 122×250 pixels | Tri-color E-ink | 2× scale<br />
                     Fonts: Barlow Condensed 60px/30px + Terminal 8px (matching
                     hardware)
                 </div>
@@ -162,6 +174,21 @@
                 <h2>Display Controls</h2>
 
                 <form id="display-form">
+                    <div class="scenario-group">
+                        <h4>Display Settings</h4>
+                        <div class="form-group">
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    id="scale2x"
+                                    checked
+                                    onchange="toggleScale()"
+                                />
+                                2× Scale (244×500px)
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="scenario-group">
                         <h4>Test Scenarios</h4>
                         <div class="form-group">
@@ -325,6 +352,24 @@
                     document.getElementById("status_scenario").value =
                         config.status_scenario;
                     updateDisplay();
+                }
+            }
+
+            function toggleScale() {
+                const img = document.getElementById("display-image");
+                const specs = document.getElementById("display-specs");
+                const scale2x = document.getElementById("scale2x");
+
+                if (scale2x.checked) {
+                    img.width = 244;
+                    img.height = 500;
+                    specs.innerHTML =
+                        "Display: 122×250 pixels | Tri-color E-ink | 2× scale<br />Fonts: Barlow Condensed 60px/30px + Terminal 8px (matching hardware)";
+                } else {
+                    img.width = 122;
+                    img.height = 250;
+                    specs.innerHTML =
+                        "Display: 122×250 pixels | Tri-color E-ink | 1:1 scale<br />Fonts: Barlow Condensed 60px/30px + Terminal 8px (matching hardware)";
                 }
             }
 
