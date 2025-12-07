@@ -352,6 +352,33 @@ def update_display(temp_c, humidity):
     humidity_group.y = humidity_y_start + humidity_height + 38
     g.append(humidity_group)
 
+    # Status bar at bottom
+    status_bar_height = 12
+    status_bar_y = DISPLAY_HEIGHT - status_bar_height
+    status_bar = Rect(0, status_bar_y, DISPLAY_WIDTH, status_bar_height, fill=BLACK)
+    g.append(status_bar)
+
+    # Status text - SD card status
+    sd_status = "SD" if sd_available else "NOSD"
+    sd_label = label.Label(terminalio.FONT, text=sd_status, color=WHITE)
+    sd_label.x = 5
+    sd_label.y = status_bar_y + 6
+    g.append(sd_label)
+
+    # Power status (placeholder)
+    power_status = "PWR"  # Will update when we detect power source
+    power_label = label.Label(terminalio.FONT, text=power_status, color=WHITE)
+    power_label.x = 35
+    power_label.y = status_bar_y + 6
+    g.append(power_label)
+
+    # Battery level (placeholder)
+    battery_status = "B:--"  # Will update when battery monitoring is added
+    battery_label = label.Label(terminalio.FONT, text=battery_status, color=WHITE)
+    battery_label.x = 65
+    battery_label.y = status_bar_y + 6
+    g.append(battery_label)
+
     # Refresh display
     display.refresh()
 
