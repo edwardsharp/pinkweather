@@ -18,9 +18,10 @@ class HardwareExactRenderer:
     def __init__(self):
         """Initialize with hardware-matching fonts"""
         # Load fonts with fallbacks
-        self.large_font = self._load_font("googz/Barlow_Condensed/BarlowCondensed-Regular.ttf", 60, 32)
+        self.large_font = self._load_font("googz/Barlow_Condensed/BarlowCondensed-Regular.ttf", 70, 40)
         self.small_font = self._load_font("googz/Barlow_Condensed/BarlowCondensed-Regular.ttf", 30, 12)
-        self.tiny_font = self._load_font("DejaVuSansMono.ttf", 8, 8)
+        # Use a more consistent monospace font for tiny text (larger size, wider spacing)
+        self.tiny_font = self._load_font("DejaVuSansMono.ttf", 10, 10)
 
     def _load_font(self, preferred_path, preferred_size, fallback_size):
         """Load font with fallback options"""
@@ -46,7 +47,7 @@ class HardwareExactRenderer:
             current_x += 15
 
         # Number (using large font) - adjust for PIL baseline difference
-        draw.text((current_x, y - 35), temp_str, font=self.large_font, fill=BLACK)
+        draw.text((current_x, y - 33), temp_str, font=self.large_font, fill=BLACK)
         current_x += len(temp_str) * 30  # rough width estimate
 
         # Degree symbol (superscript, using small font)
@@ -57,19 +58,26 @@ class HardwareExactRenderer:
         humidity_str = str(int(round(humidity)))
 
         # Number (using large font) - adjust for PIL baseline difference
-        draw.text((x, y - 35), humidity_str, font=self.large_font, fill=RED)
+        draw.text((x, y - 30), humidity_str, font=self.large_font, fill=RED)
 
-        # Percent symbol (baseline, using small font)
-        percent_x = x + len(humidity_str) * 30  # rough width estimate
-        draw.text((percent_x, y + 5), "%", font=self.small_font, fill=RED)
+        # Percent symbol (baseline aligned with humidity number, using small font)
+        percent_x = x + len(humidity_str) * 35  # rough width estimate for larger font
+        draw.text((percent_x, y + 7), "%", font=self.small_font, fill=RED)
 
     def draw_centered_text(self, draw, text, font, color, y, width=DISPLAY_WIDTH):
         """Draw centered text exactly like hardware anchor_point implementation"""
-        bbox = draw.textbbox((0, 0), text, font=font)
-        text_width = bbox[2] - bbox[0]
-        x = (width - text_width) // 2
-        # Adjust y for tiny font baseline
-        adjusted_y = y - 6 if font == self.tiny_font else y
+        if font == self.tiny_font:
+            # Use wider monospace spacing calculation (6px per char)
+            text_width = len(text) * 6
+            x = (width - text_width) // 2
+            # Adjust status bar text position
+            adjusted_y = y - 6
+        else:
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = bbox[2] - bbox[0]
+            x = (width - text_width) // 2
+            adjusted_y = y - 6
+
         draw.text((x, adjusted_y), text, font=font, fill=color)
 
     def create_line_graph(self, draw, data_points, color, y_start, height):
@@ -101,11 +109,11 @@ class HardwareExactRenderer:
         # Add min/max labels with colored backgrounds
         # Max label (top left)
         draw.rectangle([0, y_start - 2, 16, y_start + 12], fill=color)
-        draw.text((2, y_start + 3), f"{int(max_val)}", font=self.tiny_font, fill=WHITE)
+        draw.text((2, y_start - 1), f"{int(max_val)}", font=self.tiny_font, fill=WHITE)
 
         # Min label (bottom left)
         draw.rectangle([0, y_start + height - 12, 16, y_start + height + 2], fill=color)
-        draw.text((2, y_start + height - 7), f"{int(min_val)}", font=self.tiny_font, fill=WHITE)
+        draw.text((2, y_start + height - 11), f"{int(min_val)}", font=self.tiny_font, fill=WHITE)
 
     def get_historical_averages(self, csv_data, current_time_ms):
         """Calculate averages exactly like hardware"""
@@ -237,6 +245,6 @@ class HardwareExactRenderer:
         # Status text - exactly like hardware: centered at y=244
         sd_status = "SD" if system_status['sd_available'] else "NOD"
         status_text = f"{sd_status} {system_status['sd_total_time']} {system_status['uptime']} {system_status['power_status']} {system_status['battery_status']}"
-        self.draw_centered_text(draw, status_text, self.tiny_font, WHITE, status_bar_y + 12)
+        self.draw_centered_text(draw, status_text, self.tiny_font, WHITE, status_bar_y + 6)
 
         return image
