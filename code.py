@@ -124,12 +124,81 @@ def create_humidity_display(humidity):
 
 
 def get_historical_averages():
-    """Calculate day, week, month, year averages from CSV data"""
-    # For now, return dummy data - we'll implement real calculation later
-    return {
-        "temp": {"day": 22, "week": 20, "month": 23, "year": 24},
-        "humidity": {"day": 27, "week": 28, "month": 30, "year": 30},
+    """Calculate day, week, month, year averages from all CSV data sources"""
+    if not sd_available:
+        return {
+            'temp': {'day': 0, 'week': 0, 'month': 0, 'year': 0},
+            'humidity': {'day': 0, 'week': 0, 'month': 0, 'year': 0}
+        }
+
+    current_time = time.monotonic() * 1000
+
+    # Time periods in milliseconds
+    day_ms = 24 * 60 * 60 * 1000
+    week_ms = 7 * day_ms
+    month_ms = 30 * day_ms
+    year_ms = 365 * day_ms
+
+    averages = {
+        'temp': {'day': 0, 'week': 0, 'month': 0, 'year': 0},
+        'humidity': {'day': 0, 'week': 0, 'month': 0, 'year': 0}
     }
+
+    # Calculate averages using appropriate data sources for each period
+    for period in ['day', 'week', 'month', 'year']:
+        temp_sum = humidity_sum = count = 0
+
+        if period == 'day':
+            # Use recent.csv for last 24 hours
+            cutoff_time = current_time - day_ms
+            temp_sum, humidity_sum, count = read_csv_data("/sd/recent.csv", cutoff_time)
+        elif period == 'week':
+            # Use recent.csv + hourly.csv for last 7 days
+            cutoff_time = current_time - week_ms
+            temp_sum1, humidity_sum1, count1 = read_csv_data("/sd/recent.csv", cutoff_time)
+            temp_sum2, humidity_sum2, count2 = read_csv_data("/sd/hourly.csv", cutoff_time)
+            temp_sum, humidity_sum, count = temp_sum1 + temp_sum2, humidity_sum1 + humidity_sum2, count1 + count2
+        elif period == 'month':
+            # Use hourly.csv + daily.csv for last 30 days
+            cutoff_time = current_time - month_ms
+            temp_sum1, humidity_sum1, count1 = read_csv_data("/sd/hourly.csv", cutoff_time)
+            temp_sum2, humidity_sum2, count2 = read_csv_data("/sd/daily.csv", cutoff_time)
+            temp_sum, humidity_sum, count = temp_sum1 + temp_sum2, humidity_sum1 + humidity_sum2, count1 + count2
+        else:  # year
+            # Use daily.csv for last 365 days
+            cutoff_time = current_time - year_ms
+            temp_sum, humidity_sum, count = read_csv_data("/sd/daily.csv", cutoff_time)
+
+        if count > 0:
+            averages['temp'][period] = int(temp_sum / count)
+            averages['humidity'][period] = int(humidity_sum / count)
+
+    return averages
+
+def read_csv_data(filepath, cutoff_time):
+    """Helper to read CSV data after cutoff time"""
+    temp_sum = humidity_sum = count = 0
+    try:
+        with open(filepath, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("uptime_ms"):  # Skip header
+                    try:
+                        parts = line.split(",")
+                        timestamp = int(parts[0])
+                        temp = float(parts[1])
+                        humidity = float(parts[2])
+
+                        if timestamp >= cutoff_time:
+                            temp_sum += temp
+                            humidity_sum += humidity
+                            count += 1
+                    except (ValueError, IndexError):
+                        continue
+    except OSError:
+        pass  # File doesn't exist
+
+    return temp_sum, humidity_sum, count
 
 
 def create_line_graph(data_points, color, y_start, height):
@@ -179,6 +248,51 @@ def create_line_graph(data_points, color, y_start, height):
 
     return group
 
+def get_graph_data(num_points=60):
+    """Get recent temperature and humidity data for line graphs"""
+    if not sd_available:
+        return [22] * num_points, [45] * num_points  # Fallback dummy data
+
+    temp_data = []
+    humidity_data = []
+
+    try:
+        with open("/sd/recent.csv", "r") as f:
+            lines = []
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("uptime_ms"):  # Skip header
+                    lines.append(line)
+
+            # Get the last num_points entries, or all if we have fewer
+            recent_lines = lines[-num_points:] if len(lines) >= num_points else lines
+
+            for line in recent_lines:
+                try:
+                    parts = line.split(",")
+                    temp = float(parts[1])
+                    humidity = float(parts[2])
+                    temp_data.append(temp)
+                    humidity_data.append(humidity)
+                except (ValueError, IndexError):
+                    continue
+    except OSError:
+        pass  # File doesn't exist
+
+    # Fill with current values if we don't have enough points
+    if len(temp_data) < num_points and temp_data:
+        first_temp = temp_data[0]
+        first_humidity = humidity_data[0]
+        while len(temp_data) < num_points:
+            temp_data.insert(0, first_temp)
+            humidity_data.insert(0, first_humidity)
+    elif len(temp_data) == 0:
+        # No data at all, use dummy data
+        temp_data = [22] * num_points
+        humidity_data = [45] * num_points
+
+    return temp_data[-num_points:], humidity_data[-num_points:]
+
 
 def update_display(temp_c, humidity):
     """Update display with sensor readings and historical data"""
@@ -206,9 +320,8 @@ def update_display(temp_c, humidity):
     temp_avg_label.y = 75
     g.append(temp_avg_label)
 
-    # Line graphs in middle (dummy data for now)
-    temp_data = [20, 21, 22, 23, 22, 21, 20, 22, 23, 24]  # Dummy temp data
-    humidity_data = [45, 46, 47, 45, 46, 48, 47, 46, 45, 44]  # Dummy humidity data
+    # Line graphs with real historical data
+    temp_data, humidity_data = get_graph_data()
 
     # Temperature graph with border
     temp_y_start = 84
@@ -244,7 +357,7 @@ def update_display(temp_c, humidity):
 
 
 def log_sensor_data(temp_c, humidity):
-    """Log sensor data to CSV files"""
+    """Log sensor data to CSV files with rotation"""
     if not sd_available:
         return False
 
@@ -255,10 +368,97 @@ def log_sensor_data(temp_c, humidity):
         with open("/sd/recent.csv", "a") as f:
             f.write(f"{uptime_ms},{temp_c:.1f},{humidity:.1f}\n")
 
+        # Aggregate data to longer-term files
+        aggregate_data_files()
+
         return True
     except Exception as e:
         print(f"Log failed: {e}")
         return False
+
+def aggregate_data_files():
+    """Aggregate data from recent.csv to hourly.csv and daily.csv when needed"""
+    try:
+        # Check if we should create hourly aggregates (every ~100 recent entries)
+        recent_count = count_csv_lines("/sd/recent.csv")
+        if recent_count > 0 and recent_count % 100 == 0:
+            create_hourly_aggregate()
+
+        # Check if we should create daily aggregates (every ~48 hourly entries)
+        hourly_count = count_csv_lines("/sd/hourly.csv")
+        if hourly_count > 0 and hourly_count % 48 == 0:
+            create_daily_aggregate()
+
+        # Keep recent.csv manageable (last 2000 entries for ~1 week at 3min intervals)
+        if recent_count > 2000:
+            trim_csv_file("/sd/recent.csv", 2000)
+
+        # Keep hourly.csv manageable (last 1000 entries for ~6 weeks)
+        if hourly_count > 1000:
+            trim_csv_file("/sd/hourly.csv", 1000)
+
+    except:
+        pass  # Ignore errors in aggregation
+
+def count_csv_lines(filepath):
+    """Count non-header lines in CSV file"""
+    try:
+        count = 0
+        with open(filepath, "r") as f:
+            for line in f:
+                if not line.strip().startswith("uptime_ms"):
+                    count += 1
+        return count
+    except:
+        return 0
+
+def trim_csv_file(filepath, keep_lines):
+    """Keep only the last keep_lines entries in CSV file"""
+    try:
+        lines = []
+        with open(filepath, "r") as f:
+            lines = f.readlines()
+
+        if len(lines) > keep_lines + 1:  # +1 for header
+            with open(filepath, "w") as f:
+                f.write(lines[0])  # Write header
+                f.writelines(lines[-(keep_lines):])  # Write last keep_lines entries
+    except:
+        pass
+
+def create_hourly_aggregate():
+    """Create hourly averages from recent data"""
+    try:
+        current_time = time.monotonic() * 1000
+        hour_ago = current_time - (60 * 60 * 1000)  # 1 hour ago
+
+        temp_sum, humidity_sum, count = read_csv_data("/sd/recent.csv", hour_ago)
+
+        if count > 0:
+            avg_temp = temp_sum / count
+            avg_humidity = humidity_sum / count
+
+            with open("/sd/hourly.csv", "a") as f:
+                f.write(f"{int(current_time)},{avg_temp:.1f},{avg_humidity:.1f}\n")
+    except:
+        pass
+
+def create_daily_aggregate():
+    """Create daily averages from hourly data"""
+    try:
+        current_time = time.monotonic() * 1000
+        day_ago = current_time - (24 * 60 * 60 * 1000)  # 1 day ago
+
+        temp_sum, humidity_sum, count = read_csv_data("/sd/hourly.csv", day_ago)
+
+        if count > 0:
+            avg_temp = temp_sum / count
+            avg_humidity = humidity_sum / count
+
+            with open("/sd/daily.csv", "a") as f:
+                f.write(f"{int(current_time)},{avg_temp:.1f},{avg_humidity:.1f}\n")
+    except:
+        pass
 
 
 def initialize_csv_files():
