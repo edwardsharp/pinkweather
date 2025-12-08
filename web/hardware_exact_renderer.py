@@ -14,24 +14,183 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 
+
+class AdafruitBitmapFontWrapper:
+    """Wrapper to use adafruit_bitmap_font with PIL rendering for hardware-exact fonts"""
+
+    def __init__(self, font_path):
+        """Load font using adafruit_bitmap_font (same as hardware)"""
+        try:
+            from adafruit_bitmap_font import bitmap_font
+            self.adafruit_font = bitmap_font.load_font(font_path)
+            self.font_path = font_path
+            self._glyph_cache = {}
+            print(f"Loaded hardware-exact font: {font_path}")
+        except ImportError:
+            print("Warning: adafruit_bitmap_font not available, falling back to PIL")
+            # Fallback to PIL if adafruit library not available
+            self.adafruit_font = None
+            if font_path.endswith('.pcf'):
+                # Try to use corresponding .bdf file
+                bdf_path = font_path.replace('.pcf', '.bdf')
+                if os.path.exists(bdf_path):
+                    self.pil_font = ImageFont.load(bdf_path)
+                else:
+                    self.pil_font = ImageFont.load_default()
+            else:
+                self.pil_font = ImageFont.load(font_path)
+        except Exception as e:
+            print(f"Error loading font {font_path}: {e}")
+            # Ultimate fallback
+            self.adafruit_font = None
+            self.pil_font = ImageFont.load_default()
+
+    def _bitmap_to_pil_image(self, bitmap):
+        """Convert displayio.Bitmap to PIL Image"""
+        width, height = bitmap.width, bitmap.height
+
+        # Create PIL image (1-bit bitmap)
+        pil_image = Image.new('1', (width, height), 0)
+
+        # Copy pixel data - don't invert, use as-is
+        for y in range(height):
+            for x in range(width):
+                pixel = bitmap[x, y]
+                # Use pixel as-is (1=foreground, 0=background)
+                pil_image.putpixel((x, y), pixel)
+
+        return pil_image
+
+    def _get_glyph_image(self, char):
+        """Get PIL image for a character glyph"""
+        if char in self._glyph_cache:
+            return self._glyph_cache[char]
+
+        if self.adafruit_font:
+            try:
+                glyph = self.adafruit_font.get_glyph(ord(char))
+                glyph_image = self._bitmap_to_pil_image(glyph.bitmap)
+                glyph_data = {
+                    'image': glyph_image,
+                    'width': glyph.width,
+                    'height': glyph.height,
+                    'dx': glyph.dx,
+                    'dy': glyph.dy,
+                    'shift_x': glyph.shift_x,
+                    'shift_y': glyph.shift_y
+                }
+                self._glyph_cache[char] = glyph_data
+                return glyph_data
+            except Exception as e:
+                print(f"Error getting glyph for '{char}': {e}")
+                return None
+        return None
+
+    def draw_text(self, draw, text, xy, fill=BLACK):
+        """Draw text using hardware-exact glyph positioning"""
+        if not self.adafruit_font:
+            # Fallback to PIL font
+            draw.text(xy, text, font=self.pil_font, fill=fill)
+            return
+
+        x, y = xy
+        current_x = x
+
+        for char in text:
+            glyph_data = self._get_glyph_image(char)
+            if glyph_data:
+                # Position glyph exactly as hardware would
+                glyph_x = current_x + glyph_data['dx']
+                glyph_y = y + glyph_data['dy']
+
+                # Create a temporary image for the glyph
+                glyph_img = Image.new('RGBA', (glyph_data['width'], glyph_data['height']), (0, 0, 0, 0))
+                glyph_draw = ImageDraw.Draw(glyph_img)
+
+                # Draw the glyph pixels in the specified color
+                for gy in range(glyph_data['height']):
+                    for gx in range(glyph_data['width']):
+                        if glyph_data['image'].getpixel((gx, gy)) == 1:
+                            glyph_img.putpixel((gx, gy), fill + (255,))
+
+                # Paste the glyph onto the main image
+                draw._image.paste(glyph_img, (glyph_x, glyph_y), glyph_img)
+
+                # Advance to next character position
+                current_x += glyph_data['shift_x']
+            else:
+                # Fallback for missing glyphs
+                current_x += 10  # Approximate character width
+
+    def textbbox(self, text):
+        """Get text bounding box for layout calculations"""
+        if not self.adafruit_font:
+            # Fallback to PIL font estimation
+            return (0, 0, len(text) * 8, 12)
+
+        if not text:
+            return (0, 0, 0, 0)
+
+        total_width = 0
+        max_height = 0
+        min_dy = 0
+        max_height_with_dy = 0
+
+        for char in text:
+            glyph_data = self._get_glyph_image(char)
+            if glyph_data:
+                total_width += glyph_data['shift_x']
+                max_height = max(max_height, glyph_data['height'])
+                min_dy = min(min_dy, glyph_data['dy'])
+                max_height_with_dy = max(max_height_with_dy, glyph_data['height'] + glyph_data['dy'])
+
+        return (0, min_dy, total_width, max_height_with_dy)
+
+class PILFontWrapper:
+    """Wrapper for PIL fonts to match AdafruitBitmapFontWrapper interface"""
+    def __init__(self, font):
+        self.pil_font = font
+
+    def draw_text(self, draw, text, xy, fill=BLACK):
+        draw.text(xy, text, font=self.pil_font, fill=fill)
+
+    def textbbox(self, text):
+        return (0, 0, len(text) * 6, 8)  # Approximate for monospace
+
 class HardwareExactRenderer:
     def __init__(self):
         """Initialize with hardware-matching fonts"""
-        # Load fonts with fallbacks
-        self.large_font = self._load_font("googz/Barlow_Condensed/BarlowCondensed-Regular.ttf", 70, 40)
-        self.small_font = self._load_font("googz/Barlow_Condensed/BarlowCondensed-Regular.ttf", 30, 12)
-        # Use a more consistent monospace font for tiny text (larger size, wider spacing)
-        self.tiny_font = self._load_font("DejaVuSansMono.ttf", 10, 10)
+        # Change to web directory to find font files
+        current_dir = os.getcwd()
+        web_dir = os.path.join(os.path.dirname(__file__))
+        if web_dir:
+            os.chdir(web_dir)
 
-    def _load_font(self, preferred_path, preferred_size, fallback_size):
-        """Load font with fallback options"""
         try:
-            return ImageFont.truetype(preferred_path, preferred_size)
-        except:
+            # Load exact hardware fonts using same method as CircuitPython
+            # Try PCF files first (same as hardware), fallback to BDF
             try:
-                return ImageFont.truetype("Arial.ttf", fallback_size)
+                self.large_font = AdafruitBitmapFontWrapper("barlowcond60.pcf")
+                self.small_font = AdafruitBitmapFontWrapper("barlowcond30.pcf")
             except:
-                return ImageFont.load_default()
+                # Fallback to BDF files
+                self.large_font = AdafruitBitmapFontWrapper("barlowcond60.bdf")
+                self.small_font = AdafruitBitmapFontWrapper("barlowcond30.bdf")
+
+            # Tiny font - use PIL wrapper for compatibility
+            try:
+                pil_tiny_font = ImageFont.load("font5x8.bin")
+                self.tiny_font = PILFontWrapper(pil_tiny_font)
+            except:
+                pil_default_font = ImageFont.load_default()
+                self.tiny_font = PILFontWrapper(pil_default_font)
+
+            print("Loaded hardware-exact fonts using adafruit_bitmap_font")
+        finally:
+            # Restore original directory
+            os.chdir(current_dir)
+
+
 
     def create_temp_display(self, draw, temp_c, x, y):
         """Create temperature display exactly like hardware"""
@@ -43,42 +202,34 @@ class HardwareExactRenderer:
 
         # Minus sign if negative (using small font)
         if is_negative:
-            draw.text((current_x, y - 12), "-", font=self.small_font, fill=BLACK)
+            self.small_font.draw_text(draw, "-", (current_x, y), fill=BLACK)
             current_x += 15
 
-        # Number (using large font) - adjust for PIL baseline difference
-        draw.text((current_x, y - 33), temp_str, font=self.large_font, fill=BLACK)
-        current_x += len(temp_str) * 30  # rough width estimate
+        # Number (using large font) - hardware uses y=0 as baseline
+        self.large_font.draw_text(draw, temp_str, (current_x, y), fill=BLACK)
+        current_x += len(temp_str) * 30  # rough width estimate like hardware
 
-        # Degree symbol (superscript, using small font)
-        draw.text((current_x, y - 20), "°", font=self.small_font, fill=BLACK)
+        # Degree symbol (superscript, using small font) - hardware uses y=-10
+        self.small_font.draw_text(draw, "°", (current_x + 4, y - 10), fill=BLACK)
 
     def create_humidity_display(self, draw, humidity, x, y):
         """Create humidity display exactly like hardware"""
         humidity_str = str(int(round(humidity)))
 
-        # Number (using large font) - adjust for PIL baseline difference
-        draw.text((x, y - 30), humidity_str, font=self.large_font, fill=RED)
+        # Number (using large font) - hardware uses y=0 as baseline
+        self.large_font.draw_text(draw, humidity_str, (x, y), fill=RED)
 
-        # Percent symbol (baseline aligned with humidity number, using small font)
-        percent_x = x + len(humidity_str) * 35  # rough width estimate for larger font
-        draw.text((percent_x, y + 7), "%", font=self.small_font, fill=RED)
+        # Percent symbol - hardware uses len * 30 + 4 spacing and y=15
+        percent_x = x + len(humidity_str) * 30 + 4
+        self.small_font.draw_text(draw, "%", (percent_x, y + 15), fill=RED)
 
     def draw_centered_text(self, draw, text, font, color, y, width=DISPLAY_WIDTH):
         """Draw centered text exactly like hardware anchor_point implementation"""
-        if font == self.tiny_font:
-            # Use wider monospace spacing calculation (6px per char)
-            text_width = len(text) * 6
-            x = (width - text_width) // 2
-            # Adjust status bar text position
-            adjusted_y = y - 6
-        else:
-            bbox = draw.textbbox((0, 0), text, font=font)
-            text_width = bbox[2] - bbox[0]
-            x = (width - text_width) // 2
-            adjusted_y = y - 6
-
-        draw.text((x, adjusted_y), text, font=font, fill=color)
+        bbox = font.textbbox(text)
+        text_width = bbox[2] - bbox[0]
+        x = (width - text_width) // 2
+        adjusted_y = y - 6
+        font.draw_text(draw, text, (x, adjusted_y), fill=color)
 
     def create_line_graph(self, draw, data_points, color, y_start, height):
         """Create line graph with thick lines and min/max labels exactly like hardware"""
@@ -109,11 +260,11 @@ class HardwareExactRenderer:
         # Add min/max labels with colored backgrounds
         # Max label (top left)
         draw.rectangle([0, y_start - 2, 16, y_start + 12], fill=color)
-        draw.text((2, y_start - 1), f"{int(max_val)}", font=self.tiny_font, fill=WHITE)
+        self.tiny_font.draw_text(draw, f"{int(max_val)}", (2, y_start - 1), fill=WHITE)
 
         # Min label (bottom left)
         draw.rectangle([0, y_start + height - 12, 16, y_start + height + 2], fill=color)
-        draw.text((2, y_start + height - 11), f"{int(min_val)}", font=self.tiny_font, fill=WHITE)
+        self.tiny_font.draw_text(draw, f"{int(min_val)}", (2, y_start + height - 11), fill=WHITE)
 
     def get_historical_averages(self, csv_data, current_time_ms):
         """Calculate averages exactly like hardware"""

@@ -1,6 +1,9 @@
 # Core dependencies for weather display system
 Pillow>=9.0.0
 
+# Hardware-exact font rendering
+adafruit-circuitpython-bitmap_font>=2.3.0
+
 # Microcontroller dependencies (CircuitPython)
 # These are only needed when running on Pi Pico 2W
 # adafruit-circuitpython-epd>=2.0.0
