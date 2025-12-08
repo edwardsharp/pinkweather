@@ -10,13 +10,8 @@ import adafruit_ssd1680
 import adafruit_hdc302x
 import adafruit_sdcard
 import storage
-import os
-import terminalio
 from digitalio import DigitalInOut
-from adafruit_display_text import label
 from adafruit_bitmap_font import bitmap_font
-from adafruit_display_shapes.rect import Rect
-from adafruit_display_shapes.line import Line
 
 # Import shared display functions
 from display import format_time_short, create_complete_display
@@ -74,12 +69,13 @@ RED = 0xFF0000
 DISPLAY_WIDTH = 122
 DISPLAY_HEIGHT = 250
 
+
 def get_historical_averages():
     """Calculate day, week, month, year averages from CSV data"""
     if not sd_available:
         return {
-            'temp': {'day': 0, 'week': 0, 'month': 0, 'year': 0},
-            'humidity': {'day': 0, 'week': 0, 'month': 0, 'year': 0}
+            "temp": {"day": 0, "week": 0, "month": 0, "year": 0},
+            "humidity": {"day": 0, "week": 0, "month": 0, "year": 0},
         }
 
     current_time = time.monotonic() * 1000
@@ -91,15 +87,15 @@ def get_historical_averages():
     year_ms = 365 * day_ms
 
     periods = {
-        'day': current_time - day_ms,
-        'week': current_time - week_ms,
-        'month': current_time - month_ms,
-        'year': current_time - year_ms
+        "day": current_time - day_ms,
+        "week": current_time - week_ms,
+        "month": current_time - month_ms,
+        "year": current_time - year_ms,
     }
 
     averages = {
-        'temp': {'day': 0, 'week': 0, 'month': 0, 'year': 0},
-        'humidity': {'day': 0, 'week': 0, 'month': 0, 'year': 0}
+        "temp": {"day": 0, "week": 0, "month": 0, "year": 0},
+        "humidity": {"day": 0, "week": 0, "month": 0, "year": 0},
     }
 
     # Calculate averages from recent.csv
@@ -127,10 +123,11 @@ def get_historical_averages():
             pass  # File doesn't exist
 
         if count > 0:
-            averages['temp'][period_name] = int(temp_sum / count)
-            averages['humidity'][period_name] = int(humidity_sum / count)
+            averages["temp"][period_name] = int(temp_sum / count)
+            averages["humidity"][period_name] = int(humidity_sum / count)
 
     return averages
+
 
 def get_graph_data(num_points=60):
     """Get recent temperature and humidity data for line graphs"""
@@ -177,6 +174,7 @@ def get_graph_data(num_points=60):
 
     return temp_data[-num_points:], humidity_data[-num_points:]
 
+
 def get_sd_total_time():
     """Get total time span of data stored on SD card"""
     if not sd_available:
@@ -207,6 +205,7 @@ def get_sd_total_time():
 
     return "0s"
 
+
 def update_display(temp_c, humidity):
     """Update display with sensor readings and historical data"""
     # Get data for display
@@ -222,13 +221,22 @@ def update_display(temp_c, humidity):
 
     # Create display using shared function
     g = create_complete_display(
-        temp_c, humidity, averages, temp_data, humidity_data,
-        sd_status, sd_time, uptime, power_status, battery_status
+        temp_c,
+        humidity,
+        averages,
+        temp_data,
+        humidity_data,
+        sd_status,
+        sd_time,
+        uptime,
+        power_status,
+        battery_status,
     )
 
     # Set as display root and refresh
     display.root_group = g
     display.refresh()
+
 
 def log_sensor_data(temp_c, humidity):
     """Log sensor data to CSV files"""
@@ -244,6 +252,7 @@ def log_sensor_data(temp_c, humidity):
         print(f"Log failed: {e}")
         return False
 
+
 def initialize_csv_files():
     """Create CSV files with headers if they don't exist"""
     if not sd_available:
@@ -252,7 +261,7 @@ def initialize_csv_files():
     csv_files = [
         ("/sd/recent.csv", "uptime_ms,temp_c,humidity_pct"),
         ("/sd/hourly.csv", "uptime_ms,temp_c,humidity_pct"),
-        ("/sd/daily.csv", "uptime_ms,temp_c,humidity_pct")
+        ("/sd/daily.csv", "uptime_ms,temp_c,humidity_pct"),
     ]
 
     for filepath, header in csv_files:
@@ -267,6 +276,7 @@ def initialize_csv_files():
             except Exception as e:
                 print(f"Failed to create {filepath}: {e}")
 
+
 # Initialize CSV files
 if sd_available:
     initialize_csv_files()
@@ -275,7 +285,9 @@ if sd_available:
 current_temp = int(round(sensor.temperature))
 current_humidity = int(round(sensor.relative_humidity))
 update_display(sensor.temperature, sensor.relative_humidity)
-print(f"Initial: {current_temp}°C, {current_humidity}% | SD: {'OK' if sd_available else 'FAIL'}")
+print(
+    f"Initial: {current_temp}°C, {current_humidity}% | SD: {'OK' if sd_available else 'FAIL'}"
+)
 
 # Track last values and update time
 last_temp = current_temp
@@ -300,8 +312,8 @@ while True:
         current_time = time.monotonic()
 
         # Check if values changed and enough time has passed (3 minutes = 180 seconds)
-        values_changed = (current_temp != last_temp or current_humidity != last_humidity)
-        time_elapsed = (current_time - last_update_time >= 180)
+        values_changed = current_temp != last_temp or current_humidity != last_humidity
+        time_elapsed = current_time - last_update_time >= 180
 
         if values_changed and time_elapsed:
             print(f"Update: {current_temp}°C, {current_humidity}%")

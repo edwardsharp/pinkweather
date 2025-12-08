@@ -20,6 +20,7 @@ BLACK = 0x000000
 WHITE = 0xFFFFFF
 RED = 0xFF0000
 
+
 def format_time_short(seconds):
     """Format time in very short format: 30s, 9d, 25m, etc."""
     if seconds < 60:
@@ -34,6 +35,7 @@ def format_time_short(seconds):
         return f"{int(seconds/2592000)}M"
     else:
         return f"{int(seconds/31536000)}y"
+
 
 def create_temp_display(temp_c, font, small_font):
     """Create temperature display"""
@@ -67,6 +69,7 @@ def create_temp_display(temp_c, font, small_font):
 
     return group
 
+
 def create_humidity_display(humidity, font, small_font):
     """Create humidity display"""
     humidity_str = str(int(round(humidity)))
@@ -86,6 +89,7 @@ def create_humidity_display(humidity, font, small_font):
     group.append(percent)
 
     return group
+
 
 def create_line_graph(data_points, color, y_start, height):
     """Create line graph with thick lines and min/max labels"""
@@ -107,7 +111,11 @@ def create_line_graph(data_points, color, y_start, height):
 
         # Scale y values
         y1 = y_start + height - int(((data_points[i] - min_val) / val_range) * height)
-        y2 = y_start + height - int(((data_points[i + 1] - min_val) / val_range) * height)
+        y2 = (
+            y_start
+            + height
+            - int(((data_points[i + 1] - min_val) / val_range) * height)
+        )
 
         # Draw thick lines (2px thick)
         line1 = Line(x1, y1, x2, y2, color)
@@ -134,7 +142,19 @@ def create_line_graph(data_points, color, y_start, height):
 
     return group
 
-def create_complete_display(temp_c, humidity, averages, temp_data, humidity_data, sd_status, sd_time, uptime, power_status, battery_status):
+
+def create_complete_display(
+    temp_c,
+    humidity,
+    averages,
+    temp_data,
+    humidity_data,
+    sd_status,
+    sd_time,
+    uptime,
+    power_status,
+    battery_status,
+):
     """Create complete display layout - shared between hardware and web"""
 
     # Load fonts
@@ -165,7 +185,15 @@ def create_complete_display(temp_c, humidity, averages, temp_data, humidity_data
     # Temperature graph with border
     temp_y_start = 84
     temp_height = 32
-    temp_border = Rect(0, temp_y_start - 2, DISPLAY_WIDTH, temp_height + 4, outline=BLACK, stroke=2, fill=WHITE)
+    temp_border = Rect(
+        0,
+        temp_y_start - 2,
+        DISPLAY_WIDTH,
+        temp_height + 4,
+        outline=BLACK,
+        stroke=2,
+        fill=WHITE,
+    )
     g.append(temp_border)
     temp_graph = create_line_graph(temp_data, BLACK, temp_y_start, temp_height)
     g.append(temp_graph)
@@ -173,16 +201,29 @@ def create_complete_display(temp_c, humidity, averages, temp_data, humidity_data
     # Humidity graph with border
     humidity_y_start = 124
     humidity_height = 32
-    humidity_border = Rect(0, humidity_y_start - 2, DISPLAY_WIDTH, humidity_height + 4, outline=RED, stroke=2, fill=WHITE)
+    humidity_border = Rect(
+        0,
+        humidity_y_start - 2,
+        DISPLAY_WIDTH,
+        humidity_height + 4,
+        outline=RED,
+        stroke=2,
+        fill=WHITE,
+    )
     g.append(humidity_border)
-    humidity_graph = create_line_graph(humidity_data, RED, humidity_y_start, humidity_height)
+    humidity_graph = create_line_graph(
+        humidity_data, RED, humidity_y_start, humidity_height
+    )
     g.append(humidity_graph)
 
     # Humidity averages (using terminalio.FONT)
     humidity_avg_text = f"D:{averages['humidity']['day']} W:{averages['humidity']['week']} M:{averages['humidity']['month']} Y:{averages['humidity']['year']}"
     humidity_avg_label = label.Label(terminalio.FONT, text=humidity_avg_text, color=RED)
     humidity_avg_label.anchor_point = (0.5, 0.5)
-    humidity_avg_label.anchored_position = (DISPLAY_WIDTH // 2, humidity_y_start + humidity_height + 10)
+    humidity_avg_label.anchored_position = (
+        DISPLAY_WIDTH // 2,
+        humidity_y_start + humidity_height + 10,
+    )
     g.append(humidity_avg_label)
 
     # Current humidity (bottom area)
