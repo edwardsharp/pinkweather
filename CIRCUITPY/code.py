@@ -234,6 +234,10 @@ def update_display(temp_c, humidity):
     """Update display with sensor readings and historical data"""
     print(f"Memory before update: {check_memory()}")
 
+    # Clear previous display to free memory
+    display.root_group = displayio.Group()
+    check_memory()
+
     # Get data for display
     averages = get_historical_averages()
     check_memory()
@@ -249,24 +253,37 @@ def update_display(temp_c, humidity):
     battery_status = "B--"
 
     # Create display using shared function
-    g = create_complete_display(
-        temp_c,
-        humidity,
-        averages,
-        temp_data,
-        humidity_data,
-        sd_status,
-        sd_time,
-        uptime,
-        power_status,
-        battery_status,
-    )
+    try:
+        g = create_complete_display(
+            temp_c,
+            humidity,
+            averages,
+            temp_data,
+            humidity_data,
+            sd_status,
+            sd_time,
+            uptime,
+            power_status,
+            battery_status,
+        )
+        check_memory()
 
-    # Set as display root and refresh
-    display.root_group = g
-    check_memory()
+        # Set as display root and refresh
+        display.root_group = g
+        display.refresh()
 
-    display.refresh()
+    except MemoryError as e:
+        print(f"Memory error in display update: {e}")
+        # Try emergency cleanup
+        display.root_group = displayio.Group()
+        check_memory()
+        # Try again with minimal display
+        g = displayio.Group()
+        from adafruit_display_shapes.rect import Rect
+        bg = Rect(0, 0, 122, 250, fill=0xFFFFFF)
+        g.append(bg)
+        display.root_group = g
+        display.refresh()
 
     # Clean up after display refresh
     print(f"Memory after update: {check_memory()}")
@@ -342,14 +359,18 @@ while True:
         display_busy_printed = False
         time.sleep(30)  # Check every 30 seconds
 
+        # Periodic memory cleanup
+        if time.monotonic() % 300 < 30:  # Every 5 minutes
+            check_memory()
+
         # Get current readings
         current_temp = int(round(sensor.temperature))
         current_humidity = int(round(sensor.relative_humidity))
         current_time = time.monotonic()
 
         # Check if values changed and enough time has passed (3 minutes = 180 seconds)
-        values_changed = current_temp != last_temp or current_humidity != last_humidity
-        time_elapsed = current_time - last_update_time >= 180
+        values_changed = (current_temp != last_temp or current_humidity != last_humidity)
+        time_elapsed = (current_time - last_update_time >= 180)
 
         if values_changed and time_elapsed:
             print(f"Update: {current_temp}°C, {current_humidity}%")

@@ -92,7 +92,7 @@ def create_humidity_display(humidity, font, small_font):
 
 
 def create_line_graph(data_points, color, y_start, height):
-    """Create line graph with thick lines and min/max labels"""
+    """Create line graph with thick lines and min/max labels - memory optimized"""
     if len(data_points) < 2:
         return displayio.Group()
 
@@ -111,17 +111,11 @@ def create_line_graph(data_points, color, y_start, height):
 
         # Scale y values
         y1 = y_start + height - int(((data_points[i] - min_val) / val_range) * height)
-        y2 = (
-            y_start
-            + height
-            - int(((data_points[i + 1] - min_val) / val_range) * height)
-        )
+        y2 = y_start + height - int(((data_points[i + 1] - min_val) / val_range) * height)
 
-        # Draw thick lines (2px thick)
-        line1 = Line(x1, y1, x2, y2, color)
-        line2 = Line(x1, y1 + 1, x2, y2 + 1, color)
-        group.append(line1)
-        group.append(line2)
+        # Draw single line to save memory (not thick)
+        line = Line(x1, y1, x2, y2, color)
+        group.append(line)
 
     # Add min/max labels with colored backgrounds
     # Max label (top left)
