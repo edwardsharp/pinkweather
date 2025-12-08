@@ -19,7 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from web_adapter import (
     get_mock_sensor_data, get_mock_csv_data, get_mock_system_status
 )
-from hardware_exact_renderer import HardwareExactRenderer
+from simple_web_render import render_web_display
 
 class DisplayHandler(BaseHTTPRequestHandler):
     # Store current image data in memory
@@ -115,9 +115,13 @@ class DisplayHandler(BaseHTTPRequestHandler):
             csv_data = get_mock_csv_data(csv_scenario)
             system_status = get_mock_system_status(status_scenario)
 
-            # Generate display using hardware-exact renderer
-            renderer = HardwareExactRenderer()
-            image = renderer.render_display(sensor_data, csv_data, system_status)
+            # Generate display using shared renderer (same as hardware)
+            image = render_web_display(
+                sensor_data['temp_c'],
+                sensor_data['humidity'],
+                csv_data,
+                system_status
+            )
 
             # Store image data in memory for serving
             img_buffer = io.BytesIO()
