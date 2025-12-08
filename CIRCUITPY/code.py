@@ -70,6 +70,14 @@ RED = 0xFF0000
 DISPLAY_WIDTH = 122
 DISPLAY_HEIGHT = 250
 
+def check_memory():
+    """Check available memory and force collection if low"""
+    gc.collect()
+    free_mem = gc.mem_free()
+    if free_mem < 2048:  # If less than 2KB free, we're in trouble
+        print(f"LOW MEMORY: {free_mem} bytes free")
+        gc.collect()  # Force another collection
+    return free_mem
 
 def get_historical_averages():
     """Calculate day, week, month, year averages from CSV data"""
@@ -100,13 +108,19 @@ def get_historical_averages():
         "humidity": {"day": 0, "week": 0, "month": 0, "year": 0},
     }
 
-    # Calculate averages from recent.csv
+    # Calculate averages from recent.csv (limit processing to save memory)
     for period_name, cutoff_time in periods.items():
         temp_sum = humidity_sum = count = 0
+        lines_processed = 0
+        max_lines = 1000  # Limit processing to prevent memory issues
 
         try:
             with open("/sd/recent.csv", "r") as f:
                 for line in f:
+                    lines_processed += 1
+                    if lines_processed > max_lines:
+                        break  # Stop processing to save memory
+
                     line = line.strip()
                     if line and not line.startswith("uptime_ms"):  # Skip header
                         try:
@@ -133,52 +147,56 @@ def get_historical_averages():
 
 
 def get_graph_data(num_points=60):
-    """Get recent temperature and humidity data for line graphs"""
+    """Get recent temperature and humidity data for line graphs - memory efficient"""
     if not sd_available:
         return [22] * num_points, [45] * num_points  # Fallback dummy data
 
-    gc.collect()  # Free memory before processing
+    check_memory()  # Monitor memory before processing
     temp_data = []
     humidity_data = []
 
+    # Limit num_points to conserve memory
+    num_points = min(num_points, 30)  # Reduce from 60 to 30 points
+
     try:
         with open("/sd/recent.csv", "r") as f:
-            lines = []
+            # Use circular buffer to only keep last num_points entries
             for line in f:
                 line = line.strip()
                 if line and not line.startswith("uptime_ms"):  # Skip header
-                    lines.append(line)
+                    try:
+                        parts = line.split(",")
+                        temp = float(parts[1])
+                        humidity = float(parts[2])
 
-            # Get the last num_points entries
-            recent_lines = lines[-num_points:] if len(lines) >= num_points else lines
+                        # Add to circular buffer
+                        temp_data.append(temp)
+                        humidity_data.append(humidity)
 
-            for line in recent_lines:
-                try:
-                    parts = line.split(",")
-                    temp = float(parts[1])
-                    humidity = float(parts[2])
-                    temp_data.append(temp)
-                    humidity_data.append(humidity)
-                except (ValueError, IndexError):
-                    continue
+                        # Keep only last num_points entries
+                        if len(temp_data) > num_points:
+                            temp_data.pop(0)
+                            humidity_data.pop(0)
+
+                    except (ValueError, IndexError):
+                        continue
     except OSError:
         pass  # File doesn't exist
 
-    # Fill with current values if we don't have enough points
-    if len(temp_data) < num_points and temp_data:
+    # Fill with fallback data if not enough points
+    if len(temp_data) == 0:
+        temp_data = [22] * num_points
+        humidity_data = [45] * num_points
+    elif len(temp_data) < num_points:
+        # Pad with first value to reach num_points
         first_temp = temp_data[0]
         first_humidity = humidity_data[0]
         while len(temp_data) < num_points:
             temp_data.insert(0, first_temp)
             humidity_data.insert(0, first_humidity)
-    elif len(temp_data) == 0:
-        # No data at all, use dummy data
-        temp_data = [22] * num_points
-        humidity_data = [45] * num_points
 
-    result = temp_data[-num_points:], humidity_data[-num_points:]
-    gc.collect()  # Clean up after processing
-    return result
+    check_memory()  # Monitor memory after processing
+    return temp_data, humidity_data
 
 
 def get_sd_total_time():
@@ -214,15 +232,14 @@ def get_sd_total_time():
 
 def update_display(temp_c, humidity):
     """Update display with sensor readings and historical data"""
-    # Force garbage collection before heavy operations
-    gc.collect()
+    print(f"Memory before update: {check_memory()}")
 
     # Get data for display
     averages = get_historical_averages()
-    temp_data, humidity_data = get_graph_data()
+    check_memory()
 
-    # Collect garbage after data processing
-    gc.collect()
+    temp_data, humidity_data = get_graph_data()
+    check_memory()
 
     # Get status information
     sd_status = "SD" if sd_available else "NOD"
@@ -247,10 +264,12 @@ def update_display(temp_c, humidity):
 
     # Set as display root and refresh
     display.root_group = g
+    check_memory()
+
     display.refresh()
 
     # Clean up after display refresh
-    gc.collect()
+    print(f"Memory after update: {check_memory()}")
 
 
 def log_sensor_data(temp_c, humidity):
@@ -339,9 +358,7 @@ while True:
             # Log sensor data
             if sd_available:
                 log_sensor_data(sensor.temperature, sensor.relative_humidity)
-
-            # Clean up after operations
-            gc.collect()
+                check_memory()
 
             last_temp = current_temp
             last_humidity = current_humidity
