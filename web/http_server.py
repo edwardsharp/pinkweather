@@ -64,12 +64,16 @@ class DisplayHandler(BaseHTTPRequestHandler):
         """Serve the current generated image as PNG."""
         if DisplayHandler.current_image_data is None:
             # Generate default display with mock data
-            renderer = HardwareExactRenderer()
             sensor_data = get_mock_sensor_data()
             csv_data = get_mock_csv_data('normal')
             system_status = get_mock_system_status('normal')
 
-            image = renderer.render_display(sensor_data, csv_data, system_status)
+            image = render_web_display(
+                sensor_data['temp_c'],
+                sensor_data['humidity'],
+                csv_data,
+                system_status
+            )
 
             img_buffer = io.BytesIO()
             image.save(img_buffer, format='PNG')
