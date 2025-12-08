@@ -84,8 +84,8 @@ def create_humidity_display(humidity, font, small_font):
 
     # Percent symbol (baseline, using small font)
     percent = label.Label(small_font, text="%", color=RED)
-    percent.x = len(humidity_str) * 30 + 4  # rough width estimate + 4px spacing
-    percent.y = 15
+    percent.x = len(humidity_str) * 30 + 6  # rough width estimate + 6px spacing (moved right 2px from original)
+    percent.y = 20  # moved down 5px
     group.append(percent)
 
     return group
