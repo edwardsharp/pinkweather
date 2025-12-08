@@ -112,7 +112,7 @@ def create_temp_display(temp_c):
 
     # Degree symbol (superscript, using small font)
     degree = label.Label(small_font, text="°", color=BLACK)
-    degree.x = x
+    degree.x = x + 4  # Add 4px spacing
     degree.y = -10
     group.append(degree)
 
@@ -132,7 +132,7 @@ def create_humidity_display(humidity):
 
     # Percent symbol (baseline, using small font)
     percent = label.Label(small_font, text="%", color=RED)
-    percent.x = len(humidity_str) * 30  # rough width estimate
+    percent.x = len(humidity_str) * 30 + 4  # rough width estimate + 4px spacing
     percent.y = 15
     group.append(percent)
 
