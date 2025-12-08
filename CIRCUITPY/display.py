@@ -117,7 +117,7 @@ def create_line_graph(data_points, color, y_start, height):
 
     # Add min/max labels with colored backgrounds
     # Max label (top left)
-    max_bg = Rect(0, y_start - 2, 16, 14, fill=color)
+    max_bg = Rect(0, y_start - 2, 16, 14, fill=color, outline=color)
     group.append(max_bg)
     max_label = label.Label(terminalio.FONT, text=f"{int(max_val)}", color=WHITE)
     max_label.x = 2
@@ -125,7 +125,7 @@ def create_line_graph(data_points, color, y_start, height):
     group.append(max_label)
 
     # Min label (bottom left)
-    min_bg = Rect(0, y_start + height - 12, 16, 14, fill=color)
+    min_bg = Rect(0, y_start + height - 12, 16, 14, fill=color, outline=color)
     group.append(min_bg)
     min_label = label.Label(terminalio.FONT, text=f"{int(min_val)}", color=WHITE)
     min_label.x = 2
@@ -165,7 +165,7 @@ def create_complete_display(temp_c, humidity, averages, temp_data, humidity_data
     # Temperature graph with border
     temp_y_start = 84
     temp_height = 32
-    temp_border = Rect(0, temp_y_start - 2, DISPLAY_WIDTH, temp_height + 4, outline=BLACK, stroke=2)
+    temp_border = Rect(0, temp_y_start - 2, DISPLAY_WIDTH, temp_height + 4, outline=BLACK, stroke=2, fill=WHITE)
     g.append(temp_border)
     temp_graph = create_line_graph(temp_data, BLACK, temp_y_start, temp_height)
     g.append(temp_graph)
@@ -173,7 +173,7 @@ def create_complete_display(temp_c, humidity, averages, temp_data, humidity_data
     # Humidity graph with border
     humidity_y_start = 124
     humidity_height = 32
-    humidity_border = Rect(0, humidity_y_start - 2, DISPLAY_WIDTH, humidity_height + 4, outline=RED, stroke=2)
+    humidity_border = Rect(0, humidity_y_start - 2, DISPLAY_WIDTH, humidity_height + 4, outline=RED, stroke=2, fill=WHITE)
     g.append(humidity_border)
     humidity_graph = create_line_graph(humidity_data, RED, humidity_y_start, humidity_height)
     g.append(humidity_graph)
