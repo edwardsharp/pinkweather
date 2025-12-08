@@ -25,7 +25,8 @@ class AdafruitBitmapFontWrapper:
             self.adafruit_font = bitmap_font.load_font(font_path)
             self.font_path = font_path
             self._glyph_cache = {}
-            print(f"Loaded hardware-exact font: {font_path}")
+            self._baseline_offset = self._calculate_baseline_offset()
+            print(f"Loaded hardware-exact font: {font_path} (baseline offset: {self._baseline_offset})")
         except ImportError:
             print("Warning: adafruit_bitmap_font not available, falling back to PIL")
             # Fallback to PIL if adafruit library not available
@@ -44,6 +45,22 @@ class AdafruitBitmapFontWrapper:
             # Ultimate fallback
             self.adafruit_font = None
             self.pil_font = ImageFont.load_default()
+
+    def _calculate_baseline_offset(self):
+        """Calculate offset needed to convert CircuitPython baseline to PIL top-left positioning"""
+        if not self.adafruit_font:
+            return 0
+
+        # Simple approach: use empirical values that match hardware positioning
+        # Start with small offsets and adjust based on visual comparison
+        if "60" in self.font_path:
+            return 10  # Large font: small offset to move text down slightly
+        elif "30" in self.font_path:
+            return 5   # Small font: minimal offset for symbols
+        else:
+            return 3   # Default fallback
+
+        return 0
 
     def _bitmap_to_pil_image(self, bitmap):
         """Convert displayio.Bitmap to PIL Image"""
@@ -86,7 +103,7 @@ class AdafruitBitmapFontWrapper:
                 return None
         return None
 
-    def draw_text(self, draw, text, xy, fill=BLACK):
+    def draw_text(self, draw, text, xy, fill=BLACK, baseline_y=None, special_symbol=None):
         """Draw text using hardware-exact glyph positioning"""
         if not self.adafruit_font:
             # Fallback to PIL font
@@ -96,12 +113,29 @@ class AdafruitBitmapFontWrapper:
         x, y = xy
         current_x = x
 
+        # Special handling for degree and percent symbols
+        if special_symbol == "degree":
+            # Degree symbol: hardware y=-10, should appear as superscript
+            # Place it at the top of the temperature number
+            actual_y = baseline_y - 40  # Position higher for proper superscript
+        elif special_symbol == "percent":
+            # Percent symbol: hardware y=15, should be baseline aligned
+            # Revert to original baseline calculation for correct alignment
+            actual_y = baseline_y - self._baseline_offset + 15
+        else:
+            # Normal text positioning - move numbers up by 13px
+            if baseline_y is not None:
+                # For main numbers, move up from previous position
+                actual_y = baseline_y - 18  # Was -15, now -18 (3px higher)
+            else:
+                actual_y = y
+
         for char in text:
             glyph_data = self._get_glyph_image(char)
             if glyph_data:
-                # Position glyph exactly as hardware would
+                # Position glyph
                 glyph_x = current_x + glyph_data['dx']
-                glyph_y = y + glyph_data['dy']
+                glyph_y = actual_y + glyph_data['dy']
 
                 # Create a temporary image for the glyph
                 glyph_img = Image.new('RGBA', (glyph_data['width'], glyph_data['height']), (0, 0, 0, 0))
@@ -151,7 +185,8 @@ class PILFontWrapper:
     def __init__(self, font):
         self.pil_font = font
 
-    def draw_text(self, draw, text, xy, fill=BLACK):
+    def draw_text(self, draw, text, xy, fill=BLACK, baseline_y=None, special_symbol=None):
+        # For PIL fonts, ignore baseline_y since we can't control it precisely
         draw.text(xy, text, font=self.pil_font, fill=fill)
 
     def textbbox(self, text):
@@ -199,29 +234,32 @@ class HardwareExactRenderer:
         temp_str = str(abs(temp_int))
 
         current_x = x
+        # y is the group position, we need to use it as baseline reference
+        baseline = y
 
-        # Minus sign if negative (using small font)
+        # Minus sign if negative (using small font) - positioned at y=0 relative to group
         if is_negative:
-            self.small_font.draw_text(draw, "-", (current_x, y), fill=BLACK)
+            self.small_font.draw_text(draw, "-", (current_x, 0), fill=BLACK, baseline_y=baseline)
             current_x += 15
 
-        # Number (using large font) - hardware uses y=0 as baseline
-        self.large_font.draw_text(draw, temp_str, (current_x, y), fill=BLACK)
+        # Number (using large font) - positioned at y=0 relative to group (baseline)
+        self.large_font.draw_text(draw, temp_str, (current_x, 0), fill=BLACK, baseline_y=baseline)
         current_x += len(temp_str) * 30  # rough width estimate like hardware
 
-        # Degree symbol (superscript, using small font) - hardware uses y=-10
-        self.small_font.draw_text(draw, "°", (current_x + 4, y - 10), fill=BLACK)
+        # Degree symbol (superscript, using small font) - positioned at y=-10 relative to group
+        self.small_font.draw_text(draw, "°", (current_x + 6, -10), fill=BLACK, baseline_y=baseline, special_symbol="degree")
 
     def create_humidity_display(self, draw, humidity, x, y):
         """Create humidity display exactly like hardware"""
         humidity_str = str(int(round(humidity)))
+        baseline = y
 
-        # Number (using large font) - hardware uses y=0 as baseline
-        self.large_font.draw_text(draw, humidity_str, (x, y), fill=RED)
+        # Number (using large font) - positioned at y=0 relative to group (baseline)
+        self.large_font.draw_text(draw, humidity_str, (x, 0), fill=RED, baseline_y=baseline)
 
-        # Percent symbol - hardware uses len * 30 + 4 spacing and y=15
+        # Percent symbol - positioned at y=15 relative to group
         percent_x = x + len(humidity_str) * 30 + 4
-        self.small_font.draw_text(draw, "%", (percent_x, y + 15), fill=RED)
+        self.small_font.draw_text(draw, "%", (percent_x, 15), fill=RED, baseline_y=baseline, special_symbol="percent")
 
     def draw_centered_text(self, draw, text, font, color, y, width=DISPLAY_WIDTH):
         """Draw centered text exactly like hardware anchor_point implementation"""
