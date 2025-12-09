@@ -12,10 +12,10 @@
                 color: #ffffff;
             }
             .container {
-                max-width: 1200px;
+                max-width: 1400px;
                 margin: 0 auto;
                 display: grid;
-                grid-template-columns: 1fr 300px;
+                grid-template-columns: 1fr 250px 250px;
                 gap: 20px;
             }
             .display-panel {
@@ -26,6 +26,12 @@
                 text-align: center;
             }
             .controls-panel {
+                background: #000000;
+                border: 1px solid #333333;
+                padding: 20px;
+                border-radius: 8px;
+            }
+            .info-panel {
                 background: #000000;
                 border: 1px solid #333333;
                 padding: 20px;
@@ -94,6 +100,9 @@
                 margin: 0 0 10px 0;
                 color: #ff00ff;
             }
+            .scenario-group button {
+                margin-bottom: 1em;
+            }
             .status-info {
                 background: #111111;
                 border: 1px solid #333333;
@@ -133,7 +142,6 @@
                         ><b style="color: magenta">p</b>ink</b
                     >weather
                 </h1>
-                <p>preview the display layout</p>
 
                 <div class="eink-display">
                     <img
@@ -181,6 +189,16 @@
                                     onchange="toggleScale()"
                                 />
                                 2× Scale (244×500px)
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    id="auto-update"
+                                    onchange="toggleAutoUpdate()"
+                                />
+                                Auto-update (5s)
                             </label>
                         </div>
                     </div>
@@ -245,43 +263,42 @@
                         </div>
                     </div>
 
-                    <div class="scenario-group">
-                        <h4>Quick Tests</h4>
-                        <button
-                            type="button"
-                            class="button"
-                            onclick="loadScenario('extreme_cold')"
-                        >
-                            Extreme Cold
-                        </button>
-                        <button
-                            type="button"
-                            class="button"
-                            onclick="loadScenario('extreme_hot')"
-                            style="margin-top: 5px"
-                        >
-                            Extreme Hot
-                        </button>
-                        <button
-                            type="button"
-                            class="button"
-                            onclick="loadScenario('high_humidity')"
-                            style="margin-top: 5px"
-                        >
-                            High Humidity
-                        </button>
-                        <button
-                            type="button"
-                            class="button"
-                            onclick="loadScenario('low_humidity')"
-                            style="margin-top: 5px"
-                        >
-                            Low Humidity
-                        </button>
-                    </div>
-
                     <button type="submit" class="button">Update Display</button>
                 </form>
+            </div>
+
+            <div class="info-panel">
+                <div class="scenario-group">
+                    <h4>Quick Tests</h4>
+                    <button
+                        type="button"
+                        class="button"
+                        onclick="loadScenario('extreme_cold')"
+                    >
+                        Extreme Cold
+                    </button>
+                    <button
+                        type="button"
+                        class="button"
+                        onclick="loadScenario('extreme_hot')"
+                    >
+                        Extreme Hot
+                    </button>
+                    <button
+                        type="button"
+                        class="button"
+                        onclick="loadScenario('high_humidity')"
+                    >
+                        High Humidity
+                    </button>
+                    <button
+                        type="button"
+                        class="button"
+                        onclick="loadScenario('low_humidity')"
+                    >
+                        Low Humidity
+                    </button>
+                </div>
 
                 <div class="status-info">
                     <h4>About</h4>
@@ -412,13 +429,30 @@
                     });
             }
 
-            // Auto-update every 5 seconds if no manual changes
-            let autoUpdateTimer = setInterval(updateDisplay, 5000);
+            // Auto-update timer (off by default)
+            let autoUpdateTimer = null;
 
-            // Reset auto-update timer when user interacts
+            function toggleAutoUpdate() {
+                const checkbox = document.getElementById("auto-update");
+                if (checkbox.checked) {
+                    // Start auto-update
+                    autoUpdateTimer = setInterval(updateDisplay, 5000);
+                } else {
+                    // Stop auto-update
+                    if (autoUpdateTimer) {
+                        clearInterval(autoUpdateTimer);
+                        autoUpdateTimer = null;
+                    }
+                }
+            }
+
+            // Reset auto-update timer when user interacts (only if enabled)
             form.addEventListener("change", function () {
-                clearInterval(autoUpdateTimer);
-                autoUpdateTimer = setInterval(updateDisplay, 5000);
+                const checkbox = document.getElementById("auto-update");
+                if (checkbox.checked && autoUpdateTimer) {
+                    clearInterval(autoUpdateTimer);
+                    autoUpdateTimer = setInterval(updateDisplay, 5000);
+                }
             });
         </script>
     </body>
