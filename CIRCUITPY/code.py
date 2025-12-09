@@ -246,7 +246,7 @@ def update_display(temp_c, humidity):
     check_memory()
 
     # Get status information
-    sd_status = "SD" if sd_available else "NOD"
+    sd_status = "SD" if sd_available else "SDx"
     sd_time = get_sd_total_time()
     uptime = format_time_short(time.monotonic())
     power_status = "P"
