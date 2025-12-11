@@ -59,10 +59,10 @@ RED = 0xFF0000
 
 # Load custom fonts
 try:
-    font_regular = bitmap_font.load_font("vollkorn30reg.pcf")
-    font_bold = bitmap_font.load_font("vollkorn30black.pcf")
-    font_italic = bitmap_font.load_font("vollkorn30italic.pcf")
-    font_bold_italic = bitmap_font.load_font("vollkorn30blackitalic.pcf")
+    font_regular = bitmap_font.load_font("vollkorn20reg.pcf")
+    font_bold = bitmap_font.load_font("vollkorn20black.pcf")
+    font_italic = bitmap_font.load_font("vollkorn20italic.pcf")
+    font_bold_italic = bitmap_font.load_font("vollkorn20blackitalic.pcf")
     print("Custom fonts loaded successfully")
 except Exception as e:
     print(f"Error loading fonts: {e}")
@@ -83,11 +83,11 @@ class TextRenderer:
 
         # Get approximate character dimensions from regular font
         test_label = label.Label(self.font_regular, text="M", color=BLACK)
-        self.char_width = test_label.bounding_box[2] if test_label.bounding_box else 12
-        self.char_height = test_label.bounding_box[3] if test_label.bounding_box else 20
+        self.char_width = test_label.bounding_box[2] if test_label.bounding_box else 10
+        self.char_height = test_label.bounding_box[3] if test_label.bounding_box else 16
 
         # Calculate proper line height (font height + some spacing)
-        self.line_height = int(self.char_height + 4)  # or: * 1.2 for 20% spacing between lines
+        self.line_height = int(self.char_height * 1.5)  # 50% spacing between lines for better readability
 
         # Calculate rough capacity
         self.chars_per_line = self.width // self.char_width
@@ -324,11 +324,11 @@ class TextRenderer:
 renderer = TextRenderer(DISPLAY_WIDTH, DISPLAY_HEIGHT)
 
 # Weather forecast sample text with markup
-sample_text = """<b>Today:</b> <red>Sunny</red> and warm with temperatures reaching <b>75°F</b>. Light winds from the <i>southwest</i> at 5-10 mph.
+sample_text = """<red>Cloudy</red> conditions with <i>rain</i> expected around <b>2am</b>. Wind gusts up to <b>25mph</b> making it feel like <red>-2°C</red>.
 
-<b>Tomorrow:</b> Partly <red>cloudy</red> with a <i>chance</i> of afternoon thunderstorms. High <b>73°F</b>, low <b>58°F</b>.
+<b>Tmrrw:</b> <red>Sunny</red> and <b>4°C</b> with light winds from the <i>west</i> at 10 k/ph.
 
-<b>Weekend:</b> <bi>Mostly sunny</bi> conditions return with comfortable temperatures in the <red>mid-70s</red>."""
+<b>Weekend:</b> <bi>Partly cloudy</bi> with temperatures reaching <b>6°C</b>."""
 
 # Render the text
 print("Rendering text...")
