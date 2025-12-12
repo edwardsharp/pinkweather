@@ -247,6 +247,18 @@ def update_display_with_weather_layout():
     current_phase = calculate_moon_phase()
     moon_icon_name = phase_to_icon_name(current_phase)
 
+    # Create mock forecast data for testing
+    import time
+    current_timestamp = int(time.time())
+    mock_forecast = []
+    test_icons = ['01d', '202d', '02d', '521d', '03n', '701d', '04d', '09n']
+    for i in range(8):
+        mock_forecast.append({
+            'dt': current_timestamp + (i * 3600 * 3),  # 3-hour intervals
+            'temp': -1 - i,  # Decreasing temps
+            'icon': test_icons[i]
+        })
+
     # Create weather layout using display.py
     main_group = create_weather_layout(
         day_name=day_name,
@@ -260,7 +272,8 @@ def update_display_with_weather_layout():
         sunset_time=sunset_time,
         weather_desc=weather_desc,
         weather_icon_name="01n.bmp",
-        moon_icon_name=f"{moon_icon_name}.bmp"
+        moon_icon_name=f"{moon_icon_name}.bmp",
+        forecast_data=mock_forecast
     )
 
     # Load and position icons if SD card is available
@@ -280,6 +293,21 @@ def update_display_with_weather_layout():
             main_group.append(moon_icon)
             print(f"Moon phase: {moon_icon_name}")
 
+        # Add forecast icons
+        from forecast_row import get_forecast_icon_positions
+        from weather_header import get_header_height
+        header_height = get_header_height()
+        forecast_y = header_height + 15
+        forecast_positions = get_forecast_icon_positions(mock_forecast, forecast_y)
+
+        for x, y, icon_code in forecast_positions:
+            forecast_icon = load_bmp_icon(f"{icon_code}.bmp")
+            if forecast_icon:
+                forecast_icon.x = x
+                forecast_icon.y = y
+                main_group.append(forecast_icon)
+
+        print("Display updated successfully")
     # Update display
     display.root_group = main_group
     display.refresh()

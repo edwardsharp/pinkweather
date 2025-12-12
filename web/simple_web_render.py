@@ -68,12 +68,17 @@ def render_250x122_display(temp_c, humidity, csv_data=None, system_status=None):
 
 def render_400x300_display(text_content):
     """
-    Render 400x300 text display for web using the text renderer
+    Render 400x300 weather display for web using the weather layout
     Returns PIL Image
     """
     current_dir = os.getcwd()
 
     try:
+        # Add CIRCUITPY directory to Python path for imports
+        import sys
+        if circuitpy_400x300_path not in sys.path:
+            sys.path.insert(0, circuitpy_400x300_path)
+
         # Change to 400x300 CIRCUITPY directory for font loading
         os.chdir(circuitpy_400x300_path)
 
@@ -83,16 +88,192 @@ def render_400x300_display(text_content):
         text_display = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(text_display)
 
-        create_text_display = text_display.create_text_display
+        create_weather_layout = text_display.create_weather_layout
+        get_forecast_icon_positions_from_layout = text_display.get_forecast_icon_positions_from_layout
+        get_header_height = text_display.get_header_height
+        # Import icon position constants
+        WEATHER_ICON_X = text_display.WEATHER_ICON_X
+        WEATHER_ICON_Y = text_display.WEATHER_ICON_Y
+        MOON_ICON_X = text_display.MOON_ICON_X
+        MOON_ICON_Y = text_display.MOON_ICON_Y
 
-        # Create display using the text renderer
-        display_group = create_text_display(text_content)
+        # Get current moon phase
+        moon_phase = calculate_web_moon_phase()
+        moon_icon_name = web_phase_to_icon_name(moon_phase)
+
+        # Create weather layout with sample data
+        import time
+        current_time = time.localtime()
+        days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+        day_name = days[current_time.tm_wday]
+        day_num = current_time.tm_mday
+        month_name = months[current_time.tm_mon - 1]
+
+        # Sample forecast data for testing (3-hour intervals)
+        import time
+        current_timestamp = int(time.time())
+        sample_forecast = []
+        # Use more varied icons including taller ones for testing
+        varied_icons = ['01d', '202d', '02d', '521d', '03n', '701d', '04d', '09n']
+        for i in range(8):  # 8 forecast periods (24 hours)
+            sample_forecast.append({
+                'dt': current_timestamp + (i * 3600 * 3),  # 3-hour intervals
+                'temp': -1 - i,  # Decreasing temps
+                'icon': varied_icons[i]  # Different icons including tall ones
+            })
+
+        main_group = create_weather_layout(
+            day_name=day_name,
+            day_num=day_num,
+            month_name=month_name,
+            current_temp=-1,
+            feels_like=-7,
+            high_temp=-4,
+            low_temp=-10,
+            sunrise_time="7:30a",
+            sunset_time="4:28p",
+            weather_desc="Cloudy. 40 percent chance of flurries this evening. Periods of snow beginning near midnight. Amount 2 to 4 cm. Wind up to 15 km/h. Low minus 5. Wind chill near -9.",
+            weather_icon_name="01n.bmp",
+            moon_icon_name=f"{moon_icon_name}.bmp",
+            forecast_data=sample_forecast
+        )
+
+        # Add weather icon (09d.bmp)
+        weather_icon = load_web_bmp_icon("09d.bmp", WEATHER_ICON_X, WEATHER_ICON_Y)
+        if weather_icon:
+            main_group.append(weather_icon)
+
+        # Add moon phase icon
+        moon_icon = load_web_bmp_icon(f"{moon_icon_name}.bmp", MOON_ICON_X, MOON_ICON_Y)
+        if moon_icon:
+            main_group.append(moon_icon)
+
+        # Add forecast icons (scale 202d.bmp for testing)
+        if sample_forecast:
+            # Calculate forecast_y position (same logic as in display.py)
+            header_height = get_header_height()
+            forecast_y = header_height + 15
+            forecast_positions = get_forecast_icon_positions_from_layout(main_group, sample_forecast, forecast_y)
+        else:
+            forecast_positions = []
+        for x, y, icon_code in forecast_positions:
+            forecast_icon = load_web_bmp_icon(f"{icon_code}.bmp", x, y)
+            if forecast_icon:
+                main_group.append(forecast_icon)
 
     finally:
+        # Clean up: remove from path and restore directory
+        if circuitpy_400x300_path in sys.path:
+            sys.path.remove(circuitpy_400x300_path)
         os.chdir(current_dir)
 
     # Convert displayio group to PIL Image
-    return displayio_group_to_pil_image(display_group, width=400, height=300)
+    return displayio_group_to_pil_image(main_group, width=400, height=300)
+
+
+def load_web_bmp_icon(filename, x, y):
+    """Load BMP icon for web rendering"""
+    try:
+        # Look in iconz/bmp folder
+        icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'iconz', 'bmp', filename)
+        if os.path.exists(icon_path):
+            # Load image and convert to displayio-like structure
+            pil_image = Image.open(icon_path)
+
+
+
+            # Convert PIL image to bitmap-like structure for displayio emulation
+            width, height = pil_image.size
+            bitmap = displayio.Bitmap(width, height, 2)
+            palette = displayio.Palette(2)
+            palette[0] = 0xFFFFFF  # White
+            palette[1] = 0x000000  # Black
+
+            # Simple black/white conversion
+            for py in range(height):
+                for px in range(width):
+                    pixel = pil_image.getpixel((px, py))
+                    if isinstance(pixel, tuple):
+                        # RGB/RGBA
+                        gray = sum(pixel[:3]) / 3
+                    else:
+                        # Grayscale
+                        gray = pixel
+                    bitmap[px, py] = 0 if gray > 128 else 1
+
+            tilegrid = displayio.TileGrid(bitmap, pixel_shader=palette)
+            tilegrid.x = x
+            tilegrid.y = y
+            return tilegrid
+    except Exception as e:
+        print(f"Failed to load web icon {filename}: {e}")
+    return None
+
+
+def calculate_web_moon_phase():
+    """Calculate moon phase for web (simplified)"""
+    import time
+    current_time = time.localtime()
+    year = current_time.tm_year
+    month = current_time.tm_mon
+    day = current_time.tm_mday
+
+    # Calculate Julian day number
+    if month <= 2:
+        year -= 1
+        month += 12
+
+    a = year // 100
+    b = 2 - a + (a // 4)
+
+    julian_day = int(365.25 * (year + 4716)) + int(30.6001 * (month + 1)) + day + b - 1524.5
+
+    # Calculate days since known new moon (January 6, 2000)
+    days_since_new_moon = julian_day - 2451550.1
+
+    # Calculate number of lunar cycles
+    lunar_cycle_length = 29.53058867
+    cycles = days_since_new_moon / lunar_cycle_length
+
+    # Get fractional part (phase within current cycle)
+    phase = cycles - int(cycles)
+
+    # Ensure phase is between 0 and 1
+    if phase < 0:
+        phase += 1
+
+    return phase
+
+
+def web_phase_to_icon_name(phase):
+    """Convert numeric phase to BMP icon filename for web"""
+    if phase < 0.03 or phase > 0.97:
+        return "moon-new"
+    elif phase < 0.22:
+        crescent_num = int((phase - 0.03) / 0.038) + 1
+        crescent_num = max(1, min(5, crescent_num))
+        return f"moon-waxing-crescent-{crescent_num}"
+    elif phase < 0.28:
+        return "moon-first-quarter"
+    elif phase < 0.47:
+        gibbous_num = int((phase - 0.28) / 0.032) + 1
+        gibbous_num = max(1, min(6, gibbous_num))
+        return f"moon-waxing-gibbous-{gibbous_num}"
+    elif phase < 0.53:
+        return "moon-full"
+    elif phase < 0.72:
+        gibbous_num = 6 - int((phase - 0.53) / 0.032)
+        gibbous_num = max(1, min(6, gibbous_num))
+        return f"moon-waning-gibbous-{gibbous_num}"
+    elif phase < 0.78:
+        return "moon-third-quarter"
+    else:
+        crescent_num = 5 - int((phase - 0.78) / 0.038)
+        crescent_num = max(1, min(5, crescent_num))
+        return f"moon-waning-crescent-{crescent_num}"
 
 
 def get_averages_from_csv(csv_data):
