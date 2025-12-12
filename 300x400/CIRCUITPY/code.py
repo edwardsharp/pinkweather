@@ -16,7 +16,7 @@ import gc
 from digitalio import DigitalInOut
 
 # shared display functions
-from display import create_text_display, get_text_capacity
+from display import get_text_capacity, create_weather_layout, WEATHER_ICON_X, WEATHER_ICON_Y, MOON_ICON_X, MOON_ICON_Y
 
 # Release any previously used displays
 displayio.release_displays()
@@ -28,11 +28,11 @@ spi = busio.SPI(clock=board.GP18, MOSI=board.GP19, MISO=board.GP16)
 
 # Pin assignments for FourWire (use Pin objects directly)
 cs_pin = board.GP17
-dc_pin = board.GP20
+dc_pin = board.GP20  # You'll need to wire this DC pin!
 
 # Reset and Busy pins (optional but recommended)
 rst_pin = None  # board.GP21
-busy_pin = None  # digitalio.DigitalInOut(board.GP22) #TODO wire this!
+busy_pin = None  # digitalio.DigitalInOut(board.GP22) if you wire it
 
 # Create the display bus
 display_bus = fourwire.FourWire(
@@ -51,7 +51,7 @@ display = adafruit_ssd1683.SSD1683(
     display_bus,
     width=400,
     height=300,
-    highlight_color=0x000000,
+    highlight_color=0x000000,  # Black instead of red to prevent artifacts
     busy_pin=busy_pin
 )
 
@@ -157,6 +157,49 @@ def phase_to_icon_name(phase, use_detailed=True):
         crescent_num = max(1, min(5, crescent_num))
         return f"moon-waning-crescent-{crescent_num}"
 
+def format_date(unix_timestamp=None):
+    """Format date as 'Thu 11 Dec' (day of week, day, month)"""
+    if unix_timestamp is None:
+        time_struct = time.localtime()
+    else:
+        time_struct = time.localtime(unix_timestamp)
+
+    days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    day_name = days[time_struct.tm_wday]
+    day_num =  time_struct.tm_mday
+    month_name = months[time_struct.tm_mon - 1]
+
+    return day_name, day_num, month_name
+
+def format_time(unix_timestamp=None):
+    """Format time as '9:36p' (12-hour format with am/p suffix)"""
+    if unix_timestamp is None:
+        time_struct = time.localtime()
+    else:
+        time_struct = time.localtime(unix_timestamp)
+
+    hour = time_struct.tm_hour
+    minute = time_struct.tm_min
+
+    # Convert to 12-hour format
+    if hour == 0:
+        hour_12 = 12
+        suffix = 'a'
+    elif hour < 12:
+        hour_12 = hour
+        suffix = 'a'
+    elif hour == 12:
+        hour_12 = 12
+        suffix = 'p'
+    else:
+        hour_12 = hour - 12
+        suffix = 'p'
+
+    return f"{hour_12}:{minute:02d}{suffix}"
+
 def check_memory():
     """Check available memory and force collection if low"""
     gc.collect()
@@ -174,125 +217,95 @@ def load_bmp_icon(filename):
     try:
         file_path = f"/sd/bmp/{filename}"
         pic = displayio.OnDiskBitmap(file_path)
-
-        print(f"Loaded {filename}: {pic.width}x{pic.height} pixels")
-
-        # Debug bitmap properties
-        print(f"  Pixel shader type: {type(pic.pixel_shader)}")
-        if hasattr(pic.pixel_shader, '__len__'):
-            print(f"  Palette colors: {len(pic.pixel_shader)}")
-
-        # Use original ColorConverter - custom palette made icons invisible
-        tilegrid = displayio.TileGrid(pic, pixel_shader=pic.pixel_shader)
-        print(f"  Using ColorConverter")
-
-        return tilegrid
         return displayio.TileGrid(pic, pixel_shader=pic.pixel_shader)
     except Exception as e:
         print(f"Failed to load {filename}: {e}")
         return None
 
-def update_display_with_icons_and_text(text_content):
-    """Update display with weather icon, moon icon, and text"""
+def update_display_with_weather_layout():
+    """Create structured weather layout with icons using display.py"""
     check_memory()
 
-    # Create main display group
-    main_group = displayio.Group()
+    # Get current time for date/time display
+    day_name, day_num, month_name = format_date()
+    current_time = format_time()
 
-    # Create white background
-    background_bitmap = displayio.Bitmap(DISPLAY_WIDTH, DISPLAY_HEIGHT, 1)
-    background_palette = displayio.Palette(1)
-    background_palette[0] = WHITE
-    background_sprite = displayio.TileGrid(background_bitmap, pixel_shader=background_palette)
-    main_group.append(background_sprite)
+    # Sample sunrise/sunset times (you can replace with real data later)
+    sunrise_time = "7:31a"
+    sunset_time = "4:28p"
 
-    # Load three test icons to debug red artifacts
-    # Load icons if SD card is available
+    # Sample temperature data (you can replace with real data later)
+    current_temp = -1
+    feels_like = -7
+    high_temp = -4
+    low_temp = -10
+
+    # Weather description
+    weather_desc = "Cloudy. 40 percent chance of flurries this evening. Periods of snow beginning near midnight. Amount 2 to 4 cm. Wind up to 15 km/h. Low minus 5. Wind chill near -9."
+
+    # Get moon phase for icon
+    current_phase = calculate_moon_phase()
+    moon_icon_name = phase_to_icon_name(current_phase)
+
+    # Create weather layout using display.py
+    main_group = create_weather_layout(
+        day_name=day_name,
+        day_num=day_num,
+        month_name=month_name,
+        current_temp=current_temp,
+        feels_like=feels_like,
+        high_temp=high_temp,
+        low_temp=low_temp,
+        sunrise_time=sunrise_time,
+        sunset_time=sunset_time,
+        weather_desc=weather_desc,
+        weather_icon_name="01n.bmp",
+        moon_icon_name=f"{moon_icon_name}.bmp"
+    )
+
+    # Load and position icons if SD card is available
     if sd_available:
-        # Load night weather icon (01n.bmp)
-        weather_night_icon = load_bmp_icon("01n.bmp")
-        if weather_night_icon:
-            weather_night_icon.x = 10   # Left side
-            weather_night_icon.y = 10   # Top
-            main_group.append(weather_night_icon)
-            print(f"01n.bmp at ({weather_night_icon.x}, {weather_night_icon.y})")
-
-        # Load day weather icon (01d.bmp)
-        weather_day_icon = load_bmp_icon("01d.bmp")
-        if weather_day_icon:
-            weather_day_icon.x = 90   # Middle
-            weather_day_icon.y = 10   # Top
-            main_group.append(weather_day_icon)
-            print(f"01d.bmp at ({weather_day_icon.x}, {weather_day_icon.y})")
-
-        # Load moon phase icon
-        # Weather icon (night clear sky for now)
+        # Weather icon (between first line elements)
         weather_icon = load_bmp_icon("01n.bmp")
         if weather_icon:
-            weather_icon.x = 50
-            weather_icon.y = 20
+            weather_icon.x = WEATHER_ICON_X
+            weather_icon.y = WEATHER_ICON_Y
             main_group.append(weather_icon)
 
-        # Current moon phase icon
-        current_phase = calculate_moon_phase()
-        moon_icon_name = phase_to_icon_name(current_phase)
+        # Moon phase icon (between first line elements)
         moon_icon = load_bmp_icon(f"{moon_icon_name}.bmp")
         if moon_icon:
-            moon_icon.x = 170  # Right side
-            moon_icon.y = 10   # Top
-            moon_icon.x = 280
-            moon_icon.y = 20
+            moon_icon.x = MOON_ICON_X
+            moon_icon.y = MOON_ICON_Y
             main_group.append(moon_icon)
-            print(f"Moon icon at ({moon_icon.x}, {moon_icon.y}): {moon_icon_name}")
-    else:
-        print("SD card not available - no icons loaded")
-        print(f"Moon phase: {moon_icon_name}")
+            print(f"Moon phase: {moon_icon_name}")
 
-    # Create text display (moved down to make room for icons)
-    # Create text display (positioned below icons)
-    text_group = create_text_display(text_content)
-    # Offset the text group down by 80 pixels to make room for icons (64px + margin)
-    text_group.y = 80
-    text_group.y = 100
-    main_group.append(text_group)
-
-    # Clear display first to prevent red artifacts
-    display.root_group = displayio.Group()
-    time.sleep(0.1)
-
-    # Set the root group and refresh the display
     # Update display
     display.root_group = main_group
     display.refresh()
 
-    print("Display refreshed!")
+    print("Weather layout displayed!")
     check_memory()
 
-    # Wait for the refresh to complete
     # Wait for refresh to complete
     time.sleep(display.time_to_refresh + 2)
     print("Refresh complete")
 
-def update_display_with_text(text_content):
-    """Update display with formatted text content (legacy function)"""
-    update_display_with_icons_and_text(text_content)
-
-# Get and print text capacity information
 # Get text capacity information
 capacity = get_text_capacity()
 print(f"Display: {capacity['chars_per_line']} chars/line, {capacity['lines_per_screen']} lines, {capacity['total_capacity']} total")
 
-# Weather forecast text with markup
-weather_text = """<b>Now:</b> <red>Cloudy</red> with <i>rain</i> expected around <b>2am</b>. Wind gusts up to <b>25mph</b> making it feel like <red>-2°C</red>.
+# Display structured weather layout
+update_display_with_weather_layout()
 
-<b>Tomorrow:</b> <red>Sunny</red> and <b>4°C</b> with light winds from the <i>west</i> at 10mph.
-
-<b>Weekend:</b> <bi>Partly cloudy</bi> with temperatures reaching <b>6°C</b>."""
-
-# Display weather with icons
-update_display_with_icons_and_text(weather_text)
-# main loop
-print("hello pinkweather!")
+# Main loop
+print("PinkWeather ready!")
 while True:
+    # Add your main program logic here
+    # For example:
+    # - Fetch weather data from API
+    # - Update display with new information
+    # - Handle sensor readings
+    # - etc.
 
-    time.sleep(60)  # 😴
+    time.sleep(60)  # Sleep for 1 minute
