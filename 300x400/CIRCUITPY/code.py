@@ -13,7 +13,6 @@ import adafruit_ssd1683
 import adafruit_sdcard
 import storage
 import gc
-import os
 from digitalio import DigitalInOut
 
 # shared display functions
@@ -188,6 +187,7 @@ def load_bmp_icon(filename):
         print(f"  Using ColorConverter")
 
         return tilegrid
+        return displayio.TileGrid(pic, pixel_shader=pic.pixel_shader)
     except Exception as e:
         print(f"Failed to load {filename}: {e}")
         return None
@@ -207,6 +207,7 @@ def update_display_with_icons_and_text(text_content):
     main_group.append(background_sprite)
 
     # Load three test icons to debug red artifacts
+    # Load icons if SD card is available
     if sd_available:
         # Load night weather icon (01n.bmp)
         weather_night_icon = load_bmp_icon("01n.bmp")
@@ -225,21 +226,34 @@ def update_display_with_icons_and_text(text_content):
             print(f"01d.bmp at ({weather_day_icon.x}, {weather_day_icon.y})")
 
         # Load moon phase icon
+        # Weather icon (night clear sky for now)
+        weather_icon = load_bmp_icon("01n.bmp")
+        if weather_icon:
+            weather_icon.x = 50
+            weather_icon.y = 20
+            main_group.append(weather_icon)
+
+        # Current moon phase icon
         current_phase = calculate_moon_phase()
         moon_icon_name = phase_to_icon_name(current_phase)
         moon_icon = load_bmp_icon(f"{moon_icon_name}.bmp")
         if moon_icon:
             moon_icon.x = 170  # Right side
             moon_icon.y = 10   # Top
+            moon_icon.x = 280
+            moon_icon.y = 20
             main_group.append(moon_icon)
             print(f"Moon icon at ({moon_icon.x}, {moon_icon.y}): {moon_icon_name}")
     else:
         print("SD card not available - no icons loaded")
+        print(f"Moon phase: {moon_icon_name}")
 
     # Create text display (moved down to make room for icons)
+    # Create text display (positioned below icons)
     text_group = create_text_display(text_content)
     # Offset the text group down by 80 pixels to make room for icons (64px + margin)
     text_group.y = 80
+    text_group.y = 100
     main_group.append(text_group)
 
     # Clear display first to prevent red artifacts
@@ -247,6 +261,7 @@ def update_display_with_icons_and_text(text_content):
     time.sleep(0.1)
 
     # Set the root group and refresh the display
+    # Update display
     display.root_group = main_group
     display.refresh()
 
@@ -254,6 +269,7 @@ def update_display_with_icons_and_text(text_content):
     check_memory()
 
     # Wait for the refresh to complete
+    # Wait for refresh to complete
     time.sleep(display.time_to_refresh + 2)
     print("Refresh complete")
 
@@ -262,22 +278,19 @@ def update_display_with_text(text_content):
     update_display_with_icons_and_text(text_content)
 
 # Get and print text capacity information
+# Get text capacity information
 capacity = get_text_capacity()
-print(f"Display capacity: ~{capacity['chars_per_line']} chars/line, ~{capacity['lines_per_screen']} lines")
-print(f"Total capacity: ~{capacity['total_capacity']} characters")
-print(f"Font metrics: {capacity['char_width']}w x {capacity['char_height']}h, line height: {capacity['line_height']}")
+print(f"Display: {capacity['chars_per_line']} chars/line, {capacity['lines_per_screen']} lines, {capacity['total_capacity']} total")
 
-# Sample weather text with markup
-sample_text = """<b>Now:</b> <red>Cloudy</red> conditions with <i>rain</i> expected around <b>2am</b>. Wind gusts up to <b>25mph</b> making it feel like <red>-2°C</red>.
+# Weather forecast text with markup
+weather_text = """<b>Now:</b> <red>Cloudy</red> with <i>rain</i> expected around <b>2am</b>. Wind gusts up to <b>25mph</b> making it feel like <red>-2°C</red>.
 
 <b>Tomorrow:</b> <red>Sunny</red> and <b>4°C</b> with light winds from the <i>west</i> at 10mph.
 
 <b>Weekend:</b> <bi>Partly cloudy</bi> with temperatures reaching <b>6°C</b>."""
 
-# Initial display update
-print("Rendering initial text with icons...")
-update_display_with_icons_and_text(sample_text)
-
+# Display weather with icons
+update_display_with_icons_and_text(weather_text)
 # main loop
 print("hello pinkweather!")
 while True:
