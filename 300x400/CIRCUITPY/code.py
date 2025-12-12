@@ -6,16 +6,11 @@ Text display with markup support and hard word wrapping
 import time
 import board
 import busio
-import digitalio
 import displayio
 import fourwire
-import terminalio
-from adafruit_display_text import label
-from adafruit_bitmap_font import bitmap_font
 import adafruit_ssd1683
-import re
 
-# Import shared display functions
+# shared display functions
 from display import create_text_display, get_text_capacity
 
 # Release any previously used displays
@@ -28,11 +23,11 @@ spi = busio.SPI(clock=board.GP18, MOSI=board.GP19, MISO=board.GP16)
 
 # Pin assignments for FourWire (use Pin objects directly)
 cs_pin = board.GP17
-dc_pin = board.GP20  # You'll need to wire this DC pin!
+dc_pin = board.GP20
 
 # Reset and Busy pins (optional but recommended)
 rst_pin = None  # board.GP21
-busy_pin = None  # digitalio.DigitalInOut(board.GP22) if you wire it
+busy_pin = None  # digitalio.DigitalInOut(board.GP22) #TODO wire this!
 
 # Create the display bus
 display_bus = fourwire.FourWire(
@@ -99,22 +94,8 @@ sample_text = """<b>Now:</b> <red>Cloudy</red> conditions with <i>rain</i> expec
 print("Rendering initial text...")
 update_display_with_text(sample_text)
 
-# You can update with different text by calling:
-# update_display_with_text("Your new <b>formatted</b> text here!")
-
-# Main loop - keep the program running
-print("Display ready. Program running...")
+# main loop
+print("hello pinkweather!")
 while True:
-    # Add your main program logic here
-    # For example, you could:
-    # 1. Read sensor data
-    # 2. Format weather information
-    # 3. Update display periodically
-    # 4. Handle user input, etc.
 
-    time.sleep(60)  # Sleep for 1 minute
-
-    # Example of updating with time-based content:
-    # current_time = time.localtime()
-    # time_text = f"<b>Current time:</b> {current_time.tm_hour:02d}:{current_time.tm_min:02d}"
-    # update_display_with_text(time_text)
+    time.sleep(60)  # 😴
