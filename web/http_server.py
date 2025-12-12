@@ -19,7 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from web_adapter import (
     get_mock_sensor_data, get_mock_csv_data, get_mock_system_status
 )
-from simple_web_render import render_web_display
+from simple_web_render import render_250x122_display, render_400x300_display
 
 class DisplayHandler(BaseHTTPRequestHandler):
     # Store current image data in memory
@@ -63,12 +63,12 @@ class DisplayHandler(BaseHTTPRequestHandler):
     def serve_current_image(self):
         """Serve the current generated image as PNG."""
         if DisplayHandler.current_image_data is None:
-            # Generate default display with mock data
+            # Generate default display with mock data (250x122)
             sensor_data = get_mock_sensor_data()
             csv_data = get_mock_csv_data('normal')
             system_status = get_mock_system_status('normal')
 
-            image = render_web_display(
+            image = render_250x122_display(
                 sensor_data['temp_c'],
                 sensor_data['humidity'],
                 csv_data,
@@ -97,50 +97,68 @@ class DisplayHandler(BaseHTTPRequestHandler):
 
             print(f"Server received form data: {form_data}")
 
-            # Get scenario from form data
-            csv_scenario = form_data.get('csv_scenario', ['normal'])[0]
-            status_scenario = form_data.get('status_scenario', ['normal'])[0]
+            # Get display type
+            display_type = form_data.get('display_type', ['250x122'])[0]
 
-            # Override sensor data if provided
-            sensor_data = get_mock_sensor_data()
-            if 'temp_c' in form_data and form_data['temp_c'][0]:
-                try:
-                    sensor_data['temp_c'] = float(form_data['temp_c'][0])
-                except ValueError:
-                    pass
+            if display_type == '400x300':
+                # Handle 400x300 display
+                text_input = form_data.get('text_input', [''])[0]
+                if not text_input:
+                    text_input = '<b>Sample:</b> Enter text in the input box below to preview on the <red>400×300</red> display!'
 
-            if 'humidity' in form_data and form_data['humidity'][0]:
-                try:
-                    sensor_data['humidity'] = float(form_data['humidity'][0])
-                except ValueError:
-                    pass
+                image = render_400x300_display(text_input)
 
-            # Get mock data based on scenarios
-            csv_data = get_mock_csv_data(csv_scenario)
-            system_status = get_mock_system_status(status_scenario)
+                response_data = {
+                    'success': True,
+                    'image_url': '/current_image.png',
+                    'display_type': '400x300',
+                    'text_content': text_input
+                }
+            else:
+                # Handle 250x122 display (original logic)
+                csv_scenario = form_data.get('csv_scenario', ['normal'])[0]
+                status_scenario = form_data.get('status_scenario', ['normal'])[0]
 
-            # Generate display using shared renderer (same as hardware)
-            image = render_web_display(
-                sensor_data['temp_c'],
-                sensor_data['humidity'],
-                csv_data,
-                system_status
-            )
+                # Override sensor data if provided
+                sensor_data = get_mock_sensor_data()
+                if 'temp_c' in form_data and form_data['temp_c'][0]:
+                    try:
+                        sensor_data['temp_c'] = float(form_data['temp_c'][0])
+                    except ValueError:
+                        pass
+
+                if 'humidity' in form_data and form_data['humidity'][0]:
+                    try:
+                        sensor_data['humidity'] = float(form_data['humidity'][0])
+                    except ValueError:
+                        pass
+
+                # Get mock data based on scenarios
+                csv_data = get_mock_csv_data(csv_scenario)
+                system_status = get_mock_system_status(status_scenario)
+
+                # Generate display using shared renderer (same as hardware)
+                image = render_250x122_display(
+                    sensor_data['temp_c'],
+                    sensor_data['humidity'],
+                    csv_data,
+                    system_status
+                )
+
+                response_data = {
+                    'success': True,
+                    'image_url': '/current_image.png',
+                    'display_type': '250x122',
+                    'sensor_data': sensor_data,
+                    'system_status': system_status
+                }
 
             # Store image data in memory for serving
             img_buffer = io.BytesIO()
             image.save(img_buffer, format='PNG')
             DisplayHandler.current_image_data = img_buffer.getvalue()
 
-            print(f"Weather display generated, size: {len(DisplayHandler.current_image_data)} bytes")
-
-            # Send JSON response indicating success
-            response_data = {
-                'success': True,
-                'image_url': '/current_image.png',
-                'sensor_data': sensor_data,
-                'system_status': system_status
-            }
+            print(f"Display generated ({display_type}), size: {len(DisplayHandler.current_image_data)} bytes")
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')

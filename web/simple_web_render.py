@@ -4,17 +4,20 @@ Minimal web renderer using the exact shared display code from CIRCUITPY
 
 import sys
 import os
+import importlib.util
 from PIL import Image, ImageDraw, ImageFont
 import displayio
 
 # Add CIRCUITPY to path so we can use the shared display module
 circuitpy_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'CIRCUITPY')
-sys.path.insert(0, circuitpy_path)
+
+# Add 300x400/CIRCUITPY to path for the new display
+circuitpy_400x300_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '300x400', 'CIRCUITPY')
 
 
-def render_web_display(temp_c, humidity, csv_data=None, system_status=None):
+def render_250x122_display(temp_c, humidity, csv_data=None, system_status=None):
     """
-    Render display for web using exact same shared display module as hardware
+    Render 250x122 weather display for web using exact same shared display module as hardware
     Returns PIL Image
     """
     current_dir = os.getcwd()
@@ -23,8 +26,14 @@ def render_web_display(temp_c, humidity, csv_data=None, system_status=None):
         # Change to CIRCUITPY directory for font loading
         os.chdir(circuitpy_path)
 
-        # Import shared display function
-        from display import create_complete_display, format_time_short
+        # Load weather display module from specific path
+        weather_display_path = os.path.join(circuitpy_path, 'display.py')
+        spec = importlib.util.spec_from_file_location("weather_display", weather_display_path)
+        weather_display = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(weather_display)
+
+        create_complete_display = weather_display.create_complete_display
+        format_time_short = weather_display.format_time_short
 
         # Process CSV data for averages and graphs
         averages = get_averages_from_csv(csv_data) if csv_data else get_default_averages()
@@ -55,6 +64,35 @@ def render_web_display(temp_c, humidity, csv_data=None, system_status=None):
 
     # Convert displayio group to PIL Image
     return displayio_group_to_pil_image(display_group)
+
+
+def render_400x300_display(text_content):
+    """
+    Render 400x300 text display for web using the text renderer
+    Returns PIL Image
+    """
+    current_dir = os.getcwd()
+
+    try:
+        # Change to 400x300 CIRCUITPY directory for font loading
+        os.chdir(circuitpy_400x300_path)
+
+        # Load text display module from specific path
+        text_display_path = os.path.join(circuitpy_400x300_path, 'display.py')
+        spec = importlib.util.spec_from_file_location("text_display", text_display_path)
+        text_display = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(text_display)
+
+        create_text_display = text_display.create_text_display
+
+        # Create display using the text renderer
+        display_group = create_text_display(text_content)
+
+    finally:
+        os.chdir(current_dir)
+
+    # Convert displayio group to PIL Image
+    return displayio_group_to_pil_image(display_group, width=400, height=300)
 
 
 def get_averages_from_csv(csv_data):
