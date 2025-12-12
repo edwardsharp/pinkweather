@@ -40,8 +40,9 @@ class TextRenderer:
         self.char_height = test_label.bounding_box[3] if test_label.bounding_box else 16
         self.line_height = int(self.char_height * 1.3)  # 30% spacing between lines
 
-        # Calculate capacity
-        self.chars_per_line = self.width // self.char_width
+        # Calculate approximate capacity (for estimates only, since font is not monospaced)
+        avg_char_width = self.measure_text_width("abcdefghijklmnopqrstuvwxyz", 'regular') / 26
+        self.chars_per_line = int(self.width // avg_char_width)
         self.lines_per_screen = self.height // self.line_height
         self.total_char_capacity = self.chars_per_line * self.lines_per_screen
 
@@ -57,10 +58,42 @@ class TextRenderer:
             return self.font_regular
 
     def measure_text_width(self, text, style):
-        """Measure the width of text in pixels"""
+        """Measure the actual width of text in pixels by rendering it"""
+        if not text:
+            return 0
         font = self.get_font_for_style(style)
         test_label = label.Label(font, text=text, color=BLACK)
         return test_label.bounding_box[2] if test_label.bounding_box else len(text) * self.char_width
+
+    def should_break_word(self, word, remaining_width, style):
+        """Determine if a word should be broken based on smart rules"""
+        word_width = self.measure_text_width(word, style)
+
+        # Rule 1: If word is shorter than 5 characters, don't break it
+        if len(word) < 5:
+            return False
+
+        # Rule 2: If remaining space is very small (1-2 chars worth), don't break
+        min_break_width = self.measure_text_width('ab-', style)
+        if remaining_width < min_break_width:
+            return False
+
+        # Rule 3: If breaking would leave only 1-2 chars on next line, don't break
+        hyphen_width = self.measure_text_width('-', style)
+
+        # Find where we would break
+        for i in range(2, len(word) - 2):  # At least 2 chars before and after
+            test_part = word[:i] + '-'
+            test_width = self.measure_text_width(test_part, style)
+
+            if test_width <= remaining_width:
+                remaining_chars = len(word) - i
+                if remaining_chars >= 3:  # At least 3 chars left for next line
+                    return True
+
+        return False
+
+
 
     def parse_markup(self, text):
         """Parse markup tags and return list of (text, style, color) tuples"""
@@ -111,102 +144,85 @@ class TextRenderer:
         return segments
 
     def hard_wrap_text(self, segments):
-        """Hard wrap text segments with aggressive word breaking and hyphenation"""
+        """Hard wrap text segments with smart word breaking and hyphenation rules"""
         wrapped_lines = []
         current_line = []
         current_width = 0
 
         for text_content, style, color in segments:
-            i = 0
-            while i < len(text_content):
-                char = text_content[i]
+            # Handle newlines
+            text_parts = text_content.split('\n')
 
-                # Handle newlines
-                if char == '\n':
+            for part_idx, text_part in enumerate(text_parts):
+                if part_idx > 0:  # Start new line for newlines
                     if current_line:
                         wrapped_lines.append(current_line)
                     current_line = []
                     current_width = 0
-                    i += 1
+
+                if not text_part.strip():  # Skip empty parts
                     continue
 
-                # Skip multiple spaces at line start
-                if char == ' ' and current_width == 0:
-                    i += 1
-                    continue
+                words = text_part.split(' ')
 
-                # Build characters into words, but break aggressively
-                word = ""
-                word_start_i = i
+                for word_idx, word in enumerate(words):
+                    if not word:  # Skip empty words
+                        continue
 
-                # Collect non-space characters
-                while i < len(text_content) and text_content[i] not in [' ', '\n']:
-                    char = text_content[i]
-
-                    # Check if adding this character would exceed line width
-                    if current_width + self.measure_text_width(word + char, style) > self.width:
-                        # Need to break here
-                        if word:
-                            # Add current word with hyphen
-                            current_line.append((word + '-', style, color))
+                    # Add space before word (except at line start)
+                    if current_width > 0:
+                        space_width = self.measure_text_width(' ', style)
+                        if current_width + space_width <= self.width:
+                            current_line.append((' ', style, color))
+                            current_width += space_width
+                        else:
+                            # Start new line if space doesn't fit
                             wrapped_lines.append(current_line)
                             current_line = []
                             current_width = 0
-                            word = ""
-                        # Continue building from this character
 
-                    word += char
-                    i += 1
-
-                # Add the completed word if it fits
-                if word:
+                    # Process the word
                     word_width = self.measure_text_width(word, style)
+
+                    # If word fits on current line, add it
                     if current_width + word_width <= self.width:
                         current_line.append((word, style, color))
                         current_width += word_width
                     else:
-                        # Word still doesn't fit, force break it
-                        while word:
-                            if current_line:
-                                wrapped_lines.append(current_line)
-                                current_line = []
-                                current_width = 0
+                        # Word doesn't fit - decide whether to break or wrap
+                        should_break = self.should_break_word(word, self.width - current_width, style)
 
-                            # Find max chars that fit with hyphen
-                            max_chars = 1
+                        if should_break and current_line:  # Only break if line has content
+                            # Break the word
+                            remaining_width = self.width - current_width
                             hyphen_width = self.measure_text_width('-', style)
 
-                            for j in range(1, len(word) + 1):
-                                test_part = word[:j]
+                            best_break = 2
+                            for i in range(2, len(word) - 2):
+                                test_part = word[:i] + '-'
                                 test_width = self.measure_text_width(test_part, style)
-                                if j < len(word):
-                                    test_width += hyphen_width
-
-                                if test_width <= self.width:
-                                    max_chars = j
+                                if test_width <= remaining_width:
+                                    best_break = i
                                 else:
                                     break
 
-                            if max_chars < len(word):
-                                current_line.append((word[:max_chars] + '-', style, color))
+                            # Add first part with hyphen
+                            first_part = word[:best_break] + '-'
+                            current_line.append((first_part, style, color))
+                            wrapped_lines.append(current_line)
+
+                            # Continue with remaining part on new line
+                            remaining_word = word[best_break:]
+                            current_line = [(remaining_word, style, color)]
+                            current_width = self.measure_text_width(remaining_word, style)
+                        else:
+                            # Move word to next line
+                            if current_line:
                                 wrapped_lines.append(current_line)
-                                current_line = []
-                                current_width = 0
-                                word = word[max_chars:]
-                            else:
-                                current_line.append((word, style, color))
-                                current_width = self.measure_text_width(word, style)
-                                word = ""
+                            current_line = [(word, style, color)]
+                            current_width = word_width
 
-                # Handle space after word
-                if i < len(text_content) and text_content[i] == ' ':
-                    space_width = self.measure_text_width(' ', style)
-                    if current_width + space_width <= self.width:
-                        current_line.append((' ', style, color))
-                        current_width += space_width
-                    i += 1
-
-        # Add final line
+        # Add final line if not empty
         if current_line:
             wrapped_lines.append(current_line)
 
