@@ -92,11 +92,14 @@ def render_400x300_display(text_content):
         get_forecast_icon_positions_from_layout = text_display.get_forecast_icon_positions_from_layout
         get_header_height = text_display.get_header_height
 
-        # Import weather API module
+        # Import weather API module and cached version
         weather_api_path = os.path.join(circuitpy_400x300_path, 'weather_api.py')
         spec = importlib.util.spec_from_file_location("weather_api", weather_api_path)
         weather_api = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(weather_api)
+
+        # Import web-specific cached weather module
+        from cached_weather import fetch_weather_data_cached
 
         # Import moon phase module
         moon_phase_path = os.path.join(circuitpy_400x300_path, 'moon_phase.py')
@@ -155,8 +158,8 @@ def render_400x300_display(text_content):
 
         # Get weather data (real or fallback)
         if weather_config:
-            print("Using real weather data from .env configuration")
-            current_data, forecast_data = weather_api.fetch_weather_data(weather_config)
+            print("Using real weather data from .env configuration (with caching)")
+            current_data, forecast_data = fetch_weather_data_cached(weather_config)
             weather_data = weather_api.get_display_variables(current_data, forecast_data, timezone_offset)
         else:
             print("No .env configuration found, using fallback weather data")

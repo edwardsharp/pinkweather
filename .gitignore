@@ -4,3 +4,4 @@ AndaleMono.ttf
 fonts/
 iconz/*.svg
 web/.env
+web/.cache/

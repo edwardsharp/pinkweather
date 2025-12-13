@@ -382,6 +382,59 @@
             const errorMessage = document.getElementById("error-message");
             const statusContent = document.getElementById("status-content");
 
+            // LocalStorage key for settings
+            const SETTINGS_KEY = "pinkweather_settings";
+
+            // Save settings to localStorage
+            function saveSettings() {
+                const settings = {
+                    displayType: document.getElementById("display_type").value,
+                    scale2x: document.getElementById("scale2x").checked,
+                    autoUpdate: document.getElementById("auto-update").checked,
+                };
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            }
+
+            // Load settings from localStorage
+            function loadSettings() {
+                const savedSettings = localStorage.getItem(SETTINGS_KEY);
+                if (savedSettings) {
+                    try {
+                        const settings = JSON.parse(savedSettings);
+
+                        // Restore display type
+                        if (settings.displayType) {
+                            document.getElementById("display_type").value =
+                                settings.displayType;
+                        }
+
+                        // Restore scale setting
+                        if (settings.scale2x !== undefined) {
+                            document.getElementById("scale2x").checked =
+                                settings.scale2x;
+                        }
+
+                        // Restore auto-update setting
+                        if (settings.autoUpdate !== undefined) {
+                            document.getElementById("auto-update").checked =
+                                settings.autoUpdate;
+                        }
+
+                        console.log("Restored settings:", settings);
+                    } catch (e) {
+                        console.warn("Failed to parse saved settings:", e);
+                    }
+                }
+            }
+
+            // Initialize settings on page load
+            document.addEventListener("DOMContentLoaded", function () {
+                loadSettings();
+                switchDisplay(); // Apply display type
+                toggleScale(); // Apply scale setting
+                toggleAutoUpdate(); // Apply auto-update setting
+            });
+
             // Auto-refresh the display on page load
             window.addEventListener("load", function () {
                 updateDisplay();
@@ -435,6 +488,7 @@
             function switchDisplay() {
                 const displayType =
                     document.getElementById("display_type").value;
+                saveSettings(); // Save settings when changed
                 const img = document.getElementById("display-image");
                 const specs = document.getElementById("display-specs");
                 const scale2x = document.getElementById("scale2x");
@@ -475,6 +529,7 @@
             }
 
             function toggleScale() {
+                saveSettings(); // Save settings when changed
                 const img = document.getElementById("display-image");
                 const specs = document.getElementById("display-specs");
                 const scale2x = document.getElementById("scale2x");
@@ -560,6 +615,7 @@
             let autoUpdateTimer = null;
 
             function toggleAutoUpdate() {
+                saveSettings(); // Save settings when changed
                 const checkbox = document.getElementById("auto-update");
                 if (checkbox.checked) {
                     // Start auto-update
