@@ -91,6 +91,42 @@ def render_400x300_display(text_content):
         create_weather_layout = text_display.create_weather_layout
         get_forecast_icon_positions_from_layout = text_display.get_forecast_icon_positions_from_layout
         get_header_height = text_display.get_header_height
+
+        # Import weather API module
+        weather_api_path = os.path.join(circuitpy_400x300_path, 'weather_api.py')
+        spec = importlib.util.spec_from_file_location("weather_api", weather_api_path)
+        weather_api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(weather_api)
+
+        # Import moon phase module
+        moon_phase_path = os.path.join(circuitpy_400x300_path, 'moon_phase.py')
+        spec = importlib.util.spec_from_file_location("moon_phase_module", moon_phase_path)
+        moon_phase_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(moon_phase_module)
+
+        # Load .env file for web server configuration
+        env_config = {}
+        env_path = os.path.join(os.path.dirname(__file__), '.env')
+        if os.path.exists(env_path):
+            with open(env_path, 'r') as f:
+                for line in f:
+                    if '=' in line and not line.strip().startswith('#'):
+                        key, value = line.strip().split('=', 1)
+                        env_config[key.strip()] = value.strip()
+
+        # Configure weather API from environment
+        weather_config = None
+        if all(key in env_config for key in ['OPENWEATHER_API_KEY', 'LATITUDE', 'LONGITUDE']):
+            weather_config = {
+                'api_key': env_config['OPENWEATHER_API_KEY'],
+                'latitude': float(env_config['LATITUDE']),
+                'longitude': float(env_config['LONGITUDE']),
+                'units': 'metric'
+            }
+
+        # Get timezone offset for web server (same as hardware)
+        timezone_offset = int(env_config.get('TIMEZONE_OFFSET_HOURS', '-5'))
+
         # Import icon position constants
         WEATHER_ICON_X = text_display.WEATHER_ICON_X
         WEATHER_ICON_Y = text_display.WEATHER_ICON_Y
@@ -112,37 +148,38 @@ def render_400x300_display(text_content):
         day_num = current_time.tm_mday
         month_name = months[current_time.tm_mon - 1]
 
-        # Sample forecast data for testing (3-hour intervals)
-        import time
-        current_timestamp = int(time.time())
-        sample_forecast = []
-        # Use more varied icons including taller ones for testing
-        varied_icons = ['01d', '202d', '02d', '521d', '03n', '701d', '04d', '09n']
-        for i in range(8):  # 8 forecast periods (24 hours)
-            sample_forecast.append({
-                'dt': current_timestamp + (i * 3600 * 3),  # 3-hour intervals
-                'temp': -1 - i,  # Decreasing temps
-                'icon': varied_icons[i]  # Different icons including tall ones
-            })
+        # Calculate moon phase using shared module
+        current_phase = moon_phase_module.calculate_moon_phase()
+        moon_icon_name = moon_phase_module.phase_to_icon_name(current_phase)
+        print(f"Web server moon phase: {moon_icon_name}")
+
+        # Get weather data (real or fallback)
+        if weather_config:
+            print("Using real weather data from .env configuration")
+            current_data, forecast_data = weather_api.fetch_weather_data(weather_config)
+            weather_data = weather_api.get_display_variables(current_data, forecast_data, timezone_offset)
+        else:
+            print("No .env configuration found, using fallback weather data")
+            weather_data = weather_api.get_display_variables(None, None, timezone_offset)
 
         main_group = create_weather_layout(
-            day_name=day_name,
-            day_num=day_num,
-            month_name=month_name,
-            current_temp=-1,
-            feels_like=-7,
-            high_temp=-4,
-            low_temp=-10,
-            sunrise_time="7:30a",
-            sunset_time="4:28p",
-            weather_desc="Cloudy. 40 percent chance of flurries this evening. Periods of snow beginning near midnight. Amount 2 to 4 cm. Wind up to 15 km/h. Low minus 5. Wind chill near -9.",
-            weather_icon_name="01n.bmp",
+            day_name=weather_data['day_name'],
+            day_num=weather_data['day_num'],
+            month_name=weather_data['month_name'],
+            current_temp=weather_data['current_temp'],
+            feels_like=weather_data['feels_like'],
+            high_temp=weather_data['high_temp'],
+            low_temp=weather_data['low_temp'],
+            sunrise_time=weather_data['sunrise_time'],
+            sunset_time=weather_data['sunset_time'],
+            weather_desc=weather_data['weather_desc'],
+            weather_icon_name=weather_data['weather_icon_name'],
             moon_icon_name=f"{moon_icon_name}.bmp",
-            forecast_data=sample_forecast
+            forecast_data=weather_data['forecast_data']
         )
 
-        # Add weather icon (09d.bmp)
-        weather_icon = load_web_bmp_icon("09d.bmp", WEATHER_ICON_X, WEATHER_ICON_Y)
+        # Add weather icon from weather data
+        weather_icon = load_web_bmp_icon(weather_data['weather_icon_name'], WEATHER_ICON_X, WEATHER_ICON_Y)
         if weather_icon:
             main_group.append(weather_icon)
 
@@ -151,12 +188,12 @@ def render_400x300_display(text_content):
         if moon_icon:
             main_group.append(moon_icon)
 
-        # Add forecast icons (scale 202d.bmp for testing)
-        if sample_forecast:
+        # Add forecast icons
+        if weather_data['forecast_data']:
             # Calculate forecast_y position (same logic as in display.py)
             header_height = get_header_height()
             forecast_y = header_height + 15
-            forecast_positions = get_forecast_icon_positions_from_layout(main_group, sample_forecast, forecast_y)
+            forecast_positions = get_forecast_icon_positions_from_layout(main_group, weather_data['forecast_data'], forecast_y)
         else:
             forecast_positions = []
         for x, y, icon_code in forecast_positions:

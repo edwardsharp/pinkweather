@@ -8,9 +8,19 @@ import time
 from adafruit_display_text import label
 from text_renderer import BLACK
 
-def format_time_hhmm(timestamp):
-    """Format timestamp to HH:MM format for CircuitPython compatibility"""
-    time_struct = time.localtime(timestamp)
+def format_time_hhmm(timestamp, timezone_offset_hours=None):
+    """Format timestamp to HH:MM format with timezone offset"""
+    if timezone_offset_hours is None:
+        timezone_offset_hours = -5  # Default EST offset
+
+    local_timestamp = timestamp + (timezone_offset_hours * 3600)
+
+    # Use gmtime if available (standard Python), fallback to localtime (CircuitPython)
+    try:
+        time_struct = time.gmtime(local_timestamp)
+    except AttributeError:
+        time_struct = time.localtime(local_timestamp)
+
     hour = time_struct[3]  # tm_hour
     minute = time_struct[4]  # tm_min
     return f"{hour:02d}:{minute:02d}"
@@ -50,7 +60,13 @@ def create_forecast_row(forecast_data, y_position=50):
 
         # Convert timestamp to time string
         dt = forecast_item['dt']
-        time_str = format_time_hhmm(dt)
+        # Get timezone offset from config or use default
+        try:
+            import config
+            timezone_offset = config.TIMEZONE_OFFSET_HOURS
+        except (ImportError, AttributeError):
+            timezone_offset = -5  # Default EST offset
+        time_str = format_time_hhmm(dt, timezone_offset)
 
         # Create time label (moved down 10px from top)
         time_label = label.Label(terminalio.FONT, text=time_str, color=BLACK)

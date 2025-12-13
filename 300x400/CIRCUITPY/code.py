@@ -13,10 +13,28 @@ import adafruit_ssd1683
 import adafruit_sdcard
 import storage
 import gc
+import json
+import wifi
+import socketpool
+import ssl
+import adafruit_requests
 from digitalio import DigitalInOut
 
 # shared display functions
-from display import get_text_capacity, create_weather_layout, WEATHER_ICON_X, WEATHER_ICON_Y, MOON_ICON_X, MOON_ICON_Y
+from display import create_text_display, get_text_capacity, create_weather_layout, WEATHER_ICON_X, WEATHER_ICON_Y, MOON_ICON_X, MOON_ICON_Y
+
+# Import configuration and shared modules
+import config
+import weather_api
+from moon_phase import calculate_moon_phase, phase_to_icon_name
+
+# Create weather config from imported settings
+WEATHER_CONFIG = {
+    'api_key': config.OPENWEATHER_API_KEY,
+    'latitude': config.LATITUDE,
+    'longitude': config.LONGITUDE,
+    'units': 'metric'
+} if config.OPENWEATHER_API_KEY and config.LATITUDE and config.LONGITUDE else None
 
 # Release any previously used displays
 displayio.release_displays()
@@ -86,94 +104,6 @@ BLACK = 0x000000
 WHITE = 0xFFFFFF
 RED = 0xFF0000
 
-def calculate_moon_phase(unix_timestamp=None, year=None, month=None, day=None):
-    """Calculate moon phase for a given date (simplified version for CircuitPython)"""
-    # Use unix timestamp if provided, otherwise use current date
-    if unix_timestamp is not None:
-        time_struct = time.localtime(unix_timestamp)
-        year = time_struct.tm_year
-        month = time_struct.tm_mon
-        day = time_struct.tm_mday
-    elif year is None or month is None or day is None:
-        current_time = time.localtime()
-        year = year or current_time.tm_year
-        month = month or current_time.tm_mon
-        day = day or current_time.tm_mday
-
-    # Calculate Julian day number
-    if month <= 2:
-        year -= 1
-        month += 12
-
-    a = year // 100
-    b = 2 - a + (a // 4)
-
-    julian_day = int(365.25 * (year + 4716)) + int(30.6001 * (month + 1)) + day + b - 1524.5
-
-    # Calculate days since known new moon (January 6, 2000)
-    days_since_new_moon = julian_day - 2451550.1
-
-    # Calculate number of lunar cycles (29.53058867 days per cycle)
-    lunar_cycle_length = 29.53058867
-    cycles = days_since_new_moon / lunar_cycle_length
-
-    # Get fractional part (phase within current cycle)
-    phase = cycles - int(cycles)
-
-    # Ensure phase is between 0 and 1
-    if phase < 0:
-        phase += 1
-
-    return phase
-
-def phase_to_icon_name(phase, use_detailed=True):
-    """Convert numeric phase to BMP icon filename"""
-    if phase < 0.03 or phase > 0.97:
-        return "moon-new"
-    elif phase < 0.22:
-        # Waxing crescent (1-5, gets brighter)
-        crescent_num = int((phase - 0.03) / 0.038) + 1
-        crescent_num = max(1, min(5, crescent_num))
-        return f"moon-waxing-crescent-{crescent_num}"
-    elif phase < 0.28:
-        return "moon-first-quarter"
-    elif phase < 0.47:
-        # Waxing gibbous (1-6, gets brighter)
-        gibbous_num = int((phase - 0.28) / 0.032) + 1
-        gibbous_num = max(1, min(6, gibbous_num))
-        return f"moon-waxing-gibbous-{gibbous_num}"
-    elif phase < 0.53:
-        return "moon-full"
-    elif phase < 0.72:
-        # Waning gibbous (6-1, gets dimmer)
-        gibbous_num = 6 - int((phase - 0.53) / 0.032)
-        gibbous_num = max(1, min(6, gibbous_num))
-        return f"moon-waning-gibbous-{gibbous_num}"
-    elif phase < 0.78:
-        return "moon-third-quarter"
-    else:
-        # Waning crescent (5-1, gets dimmer)
-        crescent_num = 5 - int((phase - 0.78) / 0.038)
-        crescent_num = max(1, min(5, crescent_num))
-        return f"moon-waning-crescent-{crescent_num}"
-
-def format_date(unix_timestamp=None):
-    """Format date as 'Thu 11 Dec' (day of week, day, month)"""
-    if unix_timestamp is None:
-        time_struct = time.localtime()
-    else:
-        time_struct = time.localtime(unix_timestamp)
-
-    days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-    day_name = days[time_struct.tm_wday]
-    day_num =  time_struct.tm_mday
-    month_name = months[time_struct.tm_mon - 1]
-
-    return day_name, day_num, month_name
-
 def format_time(unix_timestamp=None):
     """Format time as '9:36p' (12-hour format with am/p suffix)"""
     if unix_timestamp is None:
@@ -226,60 +156,34 @@ def update_display_with_weather_layout():
     """Create structured weather layout with icons using display.py"""
     check_memory()
 
-    # Get current time for date/time display
-    day_name, day_num, month_name = format_date()
-    current_time = format_time()
-
-    # Sample sunrise/sunset times (you can replace with real data later)
-    sunrise_time = "7:31a"
-    sunset_time = "4:28p"
-
-    # Sample temperature data (you can replace with real data later)
-    current_temp = -1
-    feels_like = -7
-    high_temp = -4
-    low_temp = -10
-
-    # Weather description
-    weather_desc = "Cloudy. 40 percent chance of flurries this evening. Periods of snow beginning near midnight. Amount 2 to 4 cm. Wind up to 15 km/h. Low minus 5. Wind chill near -9."
+    # Get parsed weather data (real or fallback)
+    weather_data = get_weather_display_data()
 
     # Get moon phase for icon
     current_phase = calculate_moon_phase()
     moon_icon_name = phase_to_icon_name(current_phase)
 
-    # Create mock forecast data for testing
-    import time
-    current_timestamp = int(time.time())
-    mock_forecast = []
-    test_icons = ['01d', '202d', '02d', '521d', '03n', '701d', '04d', '09n']
-    for i in range(8):
-        mock_forecast.append({
-            'dt': current_timestamp + (i * 3600 * 3),  # 3-hour intervals
-            'temp': -1 - i,  # Decreasing temps
-            'icon': test_icons[i]
-        })
-
     # Create weather layout using display.py
     main_group = create_weather_layout(
-        day_name=day_name,
-        day_num=day_num,
-        month_name=month_name,
-        current_temp=current_temp,
-        feels_like=feels_like,
-        high_temp=high_temp,
-        low_temp=low_temp,
-        sunrise_time=sunrise_time,
-        sunset_time=sunset_time,
-        weather_desc=weather_desc,
-        weather_icon_name="01n.bmp",
+        day_name=weather_data['day_name'],
+        day_num=weather_data['day_num'],
+        month_name=weather_data['month_name'],
+        current_temp=weather_data['current_temp'],
+        feels_like=weather_data['feels_like'],
+        high_temp=weather_data['high_temp'],
+        low_temp=weather_data['low_temp'],
+        sunrise_time=weather_data['sunrise_time'],
+        sunset_time=weather_data['sunset_time'],
+        weather_desc=weather_data['weather_desc'],
+        weather_icon_name=weather_data['weather_icon_name'],
         moon_icon_name=f"{moon_icon_name}.bmp",
-        forecast_data=mock_forecast
+        forecast_data=weather_data['forecast_data']
     )
 
     # Load and position icons if SD card is available
     if sd_available:
-        # Weather icon (between first line elements)
-        weather_icon = load_bmp_icon("01n.bmp")
+        # Weather icon from weather data
+        weather_icon = load_bmp_icon(weather_data['weather_icon_name'])
         if weather_icon:
             weather_icon.x = WEATHER_ICON_X
             weather_icon.y = WEATHER_ICON_Y
@@ -298,7 +202,7 @@ def update_display_with_weather_layout():
         from weather_header import get_header_height
         header_height = get_header_height()
         forecast_y = header_height + 15
-        forecast_positions = get_forecast_icon_positions(mock_forecast, forecast_y)
+        forecast_positions = get_forecast_icon_positions(weather_data['forecast_data'], forecast_y)
 
         for x, y, icon_code in forecast_positions:
             forecast_icon = load_bmp_icon(f"{icon_code}.bmp")
@@ -323,8 +227,53 @@ def update_display_with_weather_layout():
 capacity = get_text_capacity()
 print(f"Display: {capacity['chars_per_line']} chars/line, {capacity['lines_per_screen']} lines, {capacity['total_capacity']} total")
 
-# Display structured weather layout
-update_display_with_weather_layout()
+def connect_wifi():
+    """Connect to WiFi network"""
+    if config.WIFI_SSID is None or config.WIFI_PASSWORD is None:
+        print("WiFi credentials not configured, skipping WiFi connection")
+        return False
+
+    print("Connecting to WiFi...")
+    try:
+        wifi.radio.connect(config.WIFI_SSID, config.WIFI_PASSWORD)
+        print(f"Connected to {config.WIFI_SSID}")
+        print(f"IP address: {wifi.radio.ipv4_address}")
+        return True
+    except Exception as e:
+        print(f"Failed to connect to WiFi: {e}")
+        return False
+
+def get_weather_display_data():
+    """Get parsed weather data ready for display"""
+    # Get timezone offset from config
+    timezone_offset = getattr(config, 'TIMEZONE_OFFSET_HOURS', -5)
+
+    if WEATHER_CONFIG is None:
+        print("Weather API not configured, using fallback data")
+        return weather_api.get_display_variables(None, None, timezone_offset)
+    elif wifi.radio.connected:
+        # Fetch real weather data
+        current_data, forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG)
+        return weather_api.get_display_variables(current_data, forecast_data, timezone_offset)
+    else:
+        # Use fallback data
+        print("WiFi not connected, using fallback data")
+        return weather_api.get_display_variables(None, None, timezone_offset)
+
+# Main execution
+def main():
+    """Main execution loop"""
+    # Connect to WiFi
+    if connect_wifi():
+        print("WiFi connected, will fetch real weather data")
+    else:
+        print("WiFi connection failed or skipped, will use fallback data")
+
+    # Update display (will automatically use real or fallback data based on WiFi)
+    update_display_with_weather_layout()
+
+# Run main function
+main()
 
 # Main loop
 print("PinkWeather ready!")

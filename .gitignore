@@ -3,3 +3,4 @@ __pycache__
 AndaleMono.ttf
 fonts/
 iconz/*.svg
+web/.env
