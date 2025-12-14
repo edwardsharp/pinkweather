@@ -9,6 +9,7 @@ from text_renderer import BLACK, WHITE
 
 # Import display shapes for borders
 from adafruit_display_shapes.rect import Rect
+from adafruit_display_shapes.line import Line
 
 # Global variable to track SD card availability and icon loader function
 sd_available = False
@@ -102,15 +103,34 @@ def create_forecast_row(forecast_data, y_position=50):
         # Get display text (time, "NOW", or special event)
         time_str = get_cell_display_text(forecast_item, timezone_offset)
 
-        # Create cell border using adafruit_display_shapes
-        cell_border = Rect(
+        # Create cell with white background and only bottom+side borders (no top border)
+        # White background
+        cell_bg = Rect(
             cell_x, y_position,
-            cell_width - 1, row_height,
+            cell_width, row_height,
             fill=WHITE,
-            outline=BLACK,
-            stroke=1
+            outline=None
         )
-        forecast_group.append(cell_border)
+        forecast_group.append(cell_bg)
+
+        # Only add bottom border
+        bottom_border = Rect(
+            cell_x, y_position + row_height - 1,
+            cell_width, 1,
+            fill=BLACK,
+            outline=None
+        )
+        forecast_group.append(bottom_border)
+
+        # Only add right border (except for last cell)
+        if i < max_cells - 1:
+            right_border = Rect(
+                cell_x + cell_width - 1, y_position,
+                1, row_height,
+                fill=BLACK,
+                outline=None
+            )
+            forecast_group.append(right_border)
 
         # Add icon FIRST (before text) so it renders behind text elements
         if sd_available and load_bmp_icon_func:

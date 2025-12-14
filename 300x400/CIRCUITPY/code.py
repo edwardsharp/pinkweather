@@ -185,8 +185,8 @@ def update_display_with_weather_layout():
     else:
         # Use original header layout
         print("Using original header layout")
-        # Get moon phase for current date
-        moon_phase = calculate_moon_phase()
+        # Get moon phase using API timestamp for consistency with alternative header
+        moon_phase = calculate_moon_phase(weather_data.get('current_timestamp'))
         moon_icon_name = phase_to_icon_name(moon_phase)
 
         # Set up icon loader for forecast rows before creating layout

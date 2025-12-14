@@ -40,8 +40,10 @@ def create_alt_header(current_timestamp=None, timezone_offset_hours=None, y_posi
         local_timestamp = current_timestamp + (timezone_offset_hours * 3600)
         try:
             current_time = time.gmtime(local_timestamp)
+            print(f"DEBUG: time.gmtime({local_timestamp}) = {current_time}")
         except AttributeError:
             current_time = time.localtime(local_timestamp)
+            print(f"DEBUG: time.localtime({local_timestamp}) = {current_time}")
     else:
         current_time = time.localtime()
 
@@ -56,9 +58,14 @@ def create_alt_header(current_timestamp=None, timezone_offset_hours=None, y_posi
 
     date_str = f"{day_name} {day_num} {month_name}"
 
-    # Get moon phase info
-    print(f"Calculating moon phase for timestamp: {current_timestamp}")
-    moon_info = moon_phase.get_moon_info(current_timestamp)
+    # Debug: show what timestamp is being used for date vs moon phase
+    print(f"DEBUG: current_timestamp for date calculation: {current_timestamp}")
+    print(f"DEBUG: local_timestamp for date: {local_timestamp}")
+    print(f"DEBUG: calculated date: {date_str}")
+
+    # Get moon phase info using same local timestamp as date calculation
+    print(f"Calculating moon phase for local timestamp: {local_timestamp}")
+    moon_info = moon_phase.get_moon_info(local_timestamp)
     moon_phase_str = moon_info['name'].upper()
     moon_icon_name = moon_phase.phase_to_icon_name(moon_info['phase'])
     print(f"Moon phase calculated: {moon_phase_str}")
@@ -76,11 +83,11 @@ def create_alt_header(current_timestamp=None, timezone_offset_hours=None, y_posi
     print(f"Date label created with font: {hyperl15_font}")
 
     # Create moon phase label (right aligned but shifted left to make room for icon)
-    print(f"Creating moon phase label: '{moon_phase_str}' at anchored position (360, {y_position - 8})")
+    print(f"Creating moon phase label: '{moon_phase_str}' at anchored position (360, {y_position - 10})")
     moon_label = label.Label(hyperl15_font, text=moon_phase_str, color=WHITE)
     # Use anchor point for true right alignment, shifted left 30px to make room for 25px icon
     moon_label.anchor_point = (1.0, 0.0)  # Right anchor, top baseline
-    moon_label.anchored_position = (360, y_position - 8)  # 40px from right edge to leave room for icon
+    moon_label.anchored_position = (360, y_position - 10)  # 40px from right edge to leave room for icon, moved up 2px
     header_group.append(moon_label)
     print("Moon phase label created")
 
@@ -89,7 +96,7 @@ def create_alt_header(current_timestamp=None, timezone_offset_hours=None, y_posi
         moon_icon = icon_loader(f"{moon_icon_name}.bmp")
         if moon_icon:
             moon_icon.x = 375  # 25px from right edge (outside black background)
-            moon_icon.y = 2     # Near top of header
+            moon_icon.y = 0     # Back to top alignment
             header_group.append(moon_icon)
 
     return header_group
@@ -125,7 +132,7 @@ def create_alt_weather_layout(current_timestamp=None, timezone_offset_hours=None
 
 
         header_height = get_alt_header_height()
-        forecast_y = header_height + 2  # Move forecast cells up 3px closer to header
+        forecast_y = header_height  # Move forecast cells up 1px closer to header
 
         forecast_group, cell_count = create_forecast_row(forecast_data, forecast_y)
         main_group.append(forecast_group)
