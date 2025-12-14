@@ -92,17 +92,14 @@ def render_400x300_display(text_content):
         text_display = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(text_display)
 
-        create_weather_layout = text_display.create_weather_layout
-        get_header_height = text_display.get_header_height
-
         # Import alternative header functions
         try:
-            create_alt_weather_layout = text_display.create_alt_weather_layout
-            alt_header_path = os.path.join(circuitpy_400x300_path, 'alt_weather_header.py')
-            spec = importlib.util.spec_from_file_location("alt_weather_header", alt_header_path)
-            alt_weather_header = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(alt_weather_header)
-            get_alt_header_height = alt_weather_header.get_alt_header_height
+            create_weather_layout = text_display.create_weather_layout
+            header_path = os.path.join(circuitpy_400x300_path, 'header.py')
+            spec = importlib.util.spec_from_file_location("header", header_path)
+            header = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(header)
+            get_header_height = header.get_header_height
 
             # Import forecast row for icon loading setup
             forecast_row_path = os.path.join(circuitpy_400x300_path, 'forecast_row.py')
@@ -155,15 +152,6 @@ def render_400x300_display(text_content):
 
         # Get timezone offset for web server (same as hardware)
         timezone_offset = int(env_config.get('TIMEZONE_OFFSET_HOURS', '-5'))
-
-        # Check for alternative header option in .env
-        use_alternative_header = env_config.get('USE_ALTERNATIVE_HEADER', 'true').lower() == 'true'
-
-        # Import icon position constants
-        WEATHER_ICON_X = text_display.WEATHER_ICON_X
-        WEATHER_ICON_Y = text_display.WEATHER_ICON_Y
-        MOON_ICON_X = text_display.MOON_ICON_X
-        MOON_ICON_Y = text_display.MOON_ICON_Y
 
         # Get current moon phase
         moon_phase = calculate_web_moon_phase()
@@ -242,48 +230,18 @@ def render_400x300_display(text_content):
             print("No .env configuration found, using fallback weather data")
             weather_data = weather_api.get_display_variables(None, timezone_offset)
 
-        # Choose layout based on configuration
-        if use_alternative_header and create_alt_weather_layout:
-            print("Using alternative header layout for web preview")
+        # Use single-line header layout
+        print("Using single-line header layout for web preview")
 
-            main_group = create_alt_weather_layout(
-                current_timestamp=weather_data.get('current_timestamp'),
-                timezone_offset_hours=timezone_offset,
-                forecast_data=weather_data['forecast_data'],
-                weather_desc=weather_data['weather_desc'],
-                icon_loader=web_icon_loader
-            )
-        else:
-            print("Using original header layout for web preview")
-            main_group = create_weather_layout(
-                day_name=weather_data['day_name'],
-                day_num=weather_data['day_num'],
-                month_name=weather_data['month_name'],
-                current_temp=weather_data['current_temp'],
-                feels_like=weather_data['feels_like'],
-                high_temp=weather_data['high_temp'],
-                low_temp=weather_data['low_temp'],
-                sunrise_time=weather_data['sunrise_time'],
-                sunset_time=weather_data['sunset_time'],
-                weather_desc=weather_data['weather_desc'],
-                weather_icon_name=weather_data['weather_icon_name'],
-                moon_icon_name=f"{moon_icon_name}.bmp",
-                forecast_data=weather_data['forecast_data']
-            )
+        main_group = create_weather_layout(
+            current_timestamp=weather_data.get('current_timestamp'),
+            timezone_offset_hours=timezone_offset,
+            forecast_data=weather_data['forecast_data'],
+            weather_desc=weather_data['weather_desc'],
+            icon_loader=web_icon_loader
+        )
 
-        # Icons are now integrated directly into forecast cells via set_icon_loader
-        # Add remaining icons for original header layout
-        if not (use_alternative_header and create_alt_weather_layout):
-            # Original header - weather and moon icons (forecast icons handled in forecast_row)
-            # Add weather icon from weather data
-            weather_icon = load_web_bmp_icon(weather_data['weather_icon_name'], WEATHER_ICON_X, WEATHER_ICON_Y)
-            if weather_icon:
-                main_group.append(weather_icon)
-
-            # Add moon phase icon
-            moon_icon = load_web_bmp_icon(f"{moon_icon_name}.bmp", MOON_ICON_X, MOON_ICON_Y)
-            if moon_icon:
-                main_group.append(moon_icon)
+        # Icons are integrated directly into forecast cells and header via icon_loader
 
     finally:
         # Clean up: remove from path and restore directory

@@ -82,7 +82,6 @@ def calculate_moon_phase(unix_timestamp=None, year=None, month=None, day=None):
     # Use unix timestamp if provided, otherwise use supplied date
     if unix_timestamp is not None:
         year, month, day = timestamp_to_date(unix_timestamp)
-        print(f"DEBUG: Converted timestamp {unix_timestamp} to date: {year}-{month:02d}-{day:02d}")
     else:
         # Use reasonable defaults if no date provided
         year = year or 2024
@@ -111,9 +110,6 @@ def calculate_moon_phase(unix_timestamp=None, year=None, month=None, day=None):
 
     # Ensure phase is in 0.0-1.0 range
     phase = phase % 1.0
-
-    print(f"DEBUG: Julian Day: {current_jd}, Days since ref: {days_since_reference:.2f}, Phase: {phase:.3f}")
-
     return phase
 
 def phase_to_icon_name(phase):

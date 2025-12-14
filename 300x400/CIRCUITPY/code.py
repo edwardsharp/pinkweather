@@ -13,27 +13,19 @@ import adafruit_ssd1683
 import adafruit_sdcard
 import storage
 import gc
-import json
+
 import wifi
-import socketpool
-import ssl
-import adafruit_requests
+
 from digitalio import DigitalInOut
 
 # shared display functions
-from display import create_text_display, get_text_capacity, create_weather_layout, create_alt_weather_layout, WEATHER_ICON_X, WEATHER_ICON_Y, MOON_ICON_X, MOON_ICON_Y
-from alt_weather_header import get_alt_header_height
-# get_forecast_icon_positions import removed - icons now handled directly in forecast_row.py
+from display import get_text_capacity, create_weather_layout
 from forecast_row import set_icon_loader
-from weather_header import get_header_height
 
 # Import configuration and shared modules
 import config
 import weather_api
-from moon_phase import calculate_moon_phase, phase_to_icon_name
 
-# Configuration flag for alternative header
-USE_ALTERNATIVE_HEADER = True  # Set to False to use original header
 
 # Create weather config from imported settings
 WEATHER_CONFIG = {
@@ -160,7 +152,7 @@ def load_bmp_icon(filename):
         return None
 
 def update_display_with_weather_layout():
-    """Create structured weather layout with icons using display.py"""
+    """Create weather layout with single-line header"""
     check_memory()
 
     # Get parsed weather data (real or fallback)
@@ -168,71 +160,17 @@ def update_display_with_weather_layout():
 
     print("Creating weather layout...")
 
-    if USE_ALTERNATIVE_HEADER:
-        # Use alternative single-line header with date and moon phase text
-        print("Using alternative header layout")
+    # Set up icon loader for forecast rows
+    set_icon_loader(sd_available, load_bmp_icon)
 
-        # Set up icon loader for forecast rows before creating layout
-        set_icon_loader(sd_available, load_bmp_icon)
+    main_group = create_weather_layout(
+        current_timestamp=weather_data.get('current_timestamp'),
+        timezone_offset_hours=getattr(config, 'TIMEZONE_OFFSET_HOURS', -5),
+        forecast_data=weather_data['forecast_data'],
+        weather_desc=weather_data['weather_desc'],
+        icon_loader=load_bmp_icon if sd_available else None
+    )
 
-        main_group = create_alt_weather_layout(
-            current_timestamp=weather_data.get('current_timestamp'),
-            timezone_offset_hours=getattr(config, 'TIMEZONE_OFFSET_HOURS', -5),
-            forecast_data=weather_data['forecast_data'],
-            weather_desc=weather_data['weather_desc'],
-            icon_loader=load_bmp_icon if sd_available else None
-        )
-    else:
-        # Use original header layout
-        print("Using original header layout")
-        # Get moon phase using API timestamp for consistency with alternative header
-        moon_phase = calculate_moon_phase(weather_data.get('current_timestamp'))
-        moon_icon_name = phase_to_icon_name(moon_phase)
-
-        # Set up icon loader for forecast rows before creating layout
-        set_icon_loader(sd_available, load_bmp_icon)
-
-        main_group = create_weather_layout(
-            day_name=weather_data['day_name'],
-            day_num=weather_data['day_num'],
-            month_name=weather_data['month_name'],
-            current_temp=weather_data['current_temp'],
-            feels_like=weather_data['feels_like'],
-            high_temp=weather_data['high_temp'],
-            low_temp=weather_data['low_temp'],
-            sunrise_time=weather_data['sunrise_time'],
-            sunset_time=weather_data['sunset_time'],
-            weather_desc=weather_data['weather_desc'],
-            weather_icon_name=weather_data['weather_icon_name'],
-            moon_icon_name=f"{moon_icon_name}.bmp",
-            forecast_data=weather_data['forecast_data']
-        )
-
-    # Load and position icons if SD card is available
-    if sd_available:
-        if USE_ALTERNATIVE_HEADER:
-            # Icons are now handled directly in forecast_row.py for proper layering
-            print("Forecast icons integrated into forecast cells")
-        else:
-            # Original header layout with weather and moon icons
-            # Weather icon from weather data
-            weather_icon = load_bmp_icon(weather_data['weather_icon_name'])
-            if weather_icon:
-                weather_icon.x = WEATHER_ICON_X
-                weather_icon.y = WEATHER_ICON_Y
-                main_group.append(weather_icon)
-
-            # Moon phase icon
-            moon_icon = load_bmp_icon(f"{moon_icon_name}.bmp")
-            if moon_icon:
-                moon_icon.x = MOON_ICON_X
-                moon_icon.y = MOON_ICON_Y
-                main_group.append(moon_icon)
-
-            # Forecast icons are now handled directly in forecast_row.py for proper layering
-            print("Forecast icons integrated into forecast cells for original header too")
-
-        print("Display updated successfully")
     # Update display
     display.root_group = main_group
     display.refresh()
@@ -290,7 +228,7 @@ def main():
     else:
         print("WiFi connection failed or skipped, will use fallback data")
 
-    # Update display (will automatically use real or fallback data based on WiFi)
+    # Update display
     update_display_with_weather_layout()
 
 # Run main function
@@ -299,11 +237,5 @@ main()
 # Main loop
 print("PinkWeather ready!")
 while True:
-    # Add your main program logic here
-    # For example:
-    # - Fetch weather data from API
-    # - Update display with new information
-    # - Handle sensor readings
-    # - etc.
-
-    time.sleep(60)  # Sleep for 1 minute
+    # Main program loop - currently just maintains the display
+    time.sleep(60)
