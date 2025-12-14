@@ -92,6 +92,27 @@ def render_400x300_display(text_content):
         get_forecast_icon_positions_from_layout = text_display.get_forecast_icon_positions_from_layout
         get_header_height = text_display.get_header_height
 
+        # Import alternative header functions
+        try:
+            create_alt_weather_layout = text_display.create_alt_weather_layout
+            alt_header_path = os.path.join(circuitpy_400x300_path, 'alt_weather_header.py')
+            spec = importlib.util.spec_from_file_location("alt_weather_header", alt_header_path)
+            alt_weather_header = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(alt_weather_header)
+            get_alt_header_height = alt_weather_header.get_alt_header_height
+
+            # Import forecast row for icon positions
+            forecast_row_path = os.path.join(circuitpy_400x300_path, 'forecast_row.py')
+            spec = importlib.util.spec_from_file_location("forecast_row", forecast_row_path)
+            forecast_row_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(forecast_row_module)
+            get_forecast_icon_positions = forecast_row_module.get_forecast_icon_positions
+        except Exception as e:
+            print(f"Alternative header not available: {e}")
+            create_alt_weather_layout = None
+            get_alt_header_height = None
+            get_forecast_icon_positions = None
+
         # Import weather API module and cached version
         weather_api_path = os.path.join(circuitpy_400x300_path, 'weather_api.py')
         spec = importlib.util.spec_from_file_location("weather_api", weather_api_path)
@@ -130,6 +151,9 @@ def render_400x300_display(text_content):
         # Get timezone offset for web server (same as hardware)
         timezone_offset = int(env_config.get('TIMEZONE_OFFSET_HOURS', '-5'))
 
+        # Check for alternative header option in .env
+        use_alternative_header = env_config.get('USE_ALTERNATIVE_HEADER', 'true').lower() == 'true'
+
         # Import icon position constants
         WEATHER_ICON_X = text_display.WEATHER_ICON_X
         WEATHER_ICON_Y = text_display.WEATHER_ICON_Y
@@ -159,50 +183,74 @@ def render_400x300_display(text_content):
         # Get weather data (real or fallback)
         if weather_config:
             print("Using real weather data from .env configuration (with caching)")
-            current_data, forecast_data = fetch_weather_data_cached(weather_config)
-            weather_data = weather_api.get_display_variables(current_data, forecast_data, timezone_offset)
+            forecast_data = fetch_weather_data_cached(weather_config)
+            weather_data = weather_api.get_display_variables(forecast_data, timezone_offset)
         else:
             print("No .env configuration found, using fallback weather data")
-            weather_data = weather_api.get_display_variables(None, None, timezone_offset)
+            weather_data = weather_api.get_display_variables(None, timezone_offset)
 
-        main_group = create_weather_layout(
-            day_name=weather_data['day_name'],
-            day_num=weather_data['day_num'],
-            month_name=weather_data['month_name'],
-            current_temp=weather_data['current_temp'],
-            feels_like=weather_data['feels_like'],
-            high_temp=weather_data['high_temp'],
-            low_temp=weather_data['low_temp'],
-            sunrise_time=weather_data['sunrise_time'],
-            sunset_time=weather_data['sunset_time'],
-            weather_desc=weather_data['weather_desc'],
-            weather_icon_name=weather_data['weather_icon_name'],
-            moon_icon_name=f"{moon_icon_name}.bmp",
-            forecast_data=weather_data['forecast_data']
-        )
-
-        # Add weather icon from weather data
-        weather_icon = load_web_bmp_icon(weather_data['weather_icon_name'], WEATHER_ICON_X, WEATHER_ICON_Y)
-        if weather_icon:
-            main_group.append(weather_icon)
-
-        # Add moon phase icon
-        moon_icon = load_web_bmp_icon(f"{moon_icon_name}.bmp", MOON_ICON_X, MOON_ICON_Y)
-        if moon_icon:
-            main_group.append(moon_icon)
-
-        # Add forecast icons
-        if weather_data['forecast_data']:
-            # Calculate forecast_y position (same logic as in display.py)
-            header_height = get_header_height()
-            forecast_y = header_height + 15
-            forecast_positions = get_forecast_icon_positions_from_layout(main_group, weather_data['forecast_data'], forecast_y)
+        # Choose layout based on configuration
+        if use_alternative_header and create_alt_weather_layout:
+            print("Using alternative header layout for web preview")
+            main_group = create_alt_weather_layout(
+                current_timestamp=weather_data.get('current_timestamp'),
+                timezone_offset_hours=timezone_offset,
+                forecast_data=weather_data['forecast_data'],
+                weather_desc=weather_data['weather_desc']
+            )
         else:
-            forecast_positions = []
-        for x, y, icon_code in forecast_positions:
-            forecast_icon = load_web_bmp_icon(f"{icon_code}.bmp", x, y)
-            if forecast_icon:
-                main_group.append(forecast_icon)
+            print("Using original header layout for web preview")
+            main_group = create_weather_layout(
+                day_name=weather_data['day_name'],
+                day_num=weather_data['day_num'],
+                month_name=weather_data['month_name'],
+                current_temp=weather_data['current_temp'],
+                feels_like=weather_data['feels_like'],
+                high_temp=weather_data['high_temp'],
+                low_temp=weather_data['low_temp'],
+                sunrise_time=weather_data['sunrise_time'],
+                sunset_time=weather_data['sunset_time'],
+                weather_desc=weather_data['weather_desc'],
+                weather_icon_name=weather_data['weather_icon_name'],
+                moon_icon_name=f"{moon_icon_name}.bmp",
+                forecast_data=weather_data['forecast_data']
+            )
+
+        # Add icons based on layout type
+        if use_alternative_header and create_alt_weather_layout:
+            # Alternative header - only forecast icons
+            if weather_data['forecast_data'] and get_forecast_icon_positions:
+                header_height = get_alt_header_height() if get_alt_header_height else 25
+                forecast_y = header_height + 2  # Match hardware positioning
+                forecast_positions = get_forecast_icon_positions(weather_data['forecast_data'], forecast_y)
+
+                for x, y, icon_code in forecast_positions:
+                    forecast_icon = load_web_bmp_icon(f"{icon_code}.bmp", x, y)
+                    if forecast_icon:
+                        main_group.append(forecast_icon)
+        else:
+            # Original header - weather, moon, and forecast icons
+            # Add weather icon from weather data
+            weather_icon = load_web_bmp_icon(weather_data['weather_icon_name'], WEATHER_ICON_X, WEATHER_ICON_Y)
+            if weather_icon:
+                main_group.append(weather_icon)
+
+            # Add moon phase icon
+            moon_icon = load_web_bmp_icon(f"{moon_icon_name}.bmp", MOON_ICON_X, MOON_ICON_Y)
+            if moon_icon:
+                main_group.append(moon_icon)
+
+            # Add forecast icons
+            if weather_data['forecast_data']:
+                # Calculate forecast_y position (same logic as in display.py)
+                header_height = get_header_height()
+                forecast_y = header_height + 15
+                forecast_positions = get_forecast_icon_positions_from_layout(main_group, weather_data['forecast_data'], forecast_y)
+
+                for x, y, icon_code in forecast_positions:
+                    forecast_icon = load_web_bmp_icon(f"{icon_code}.bmp", x, y)
+                    if forecast_icon:
+                        main_group.append(forecast_icon)
 
     finally:
         # Clean up: remove from path and restore directory

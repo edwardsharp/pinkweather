@@ -21,12 +21,18 @@ import adafruit_requests
 from digitalio import DigitalInOut
 
 # shared display functions
-from display import create_text_display, get_text_capacity, create_weather_layout, WEATHER_ICON_X, WEATHER_ICON_Y, MOON_ICON_X, MOON_ICON_Y
+from display import create_text_display, get_text_capacity, create_weather_layout, create_alt_weather_layout, WEATHER_ICON_X, WEATHER_ICON_Y, MOON_ICON_X, MOON_ICON_Y
+from alt_weather_header import get_alt_header_height
+from forecast_row import get_forecast_icon_positions
+from weather_header import get_header_height
 
 # Import configuration and shared modules
 import config
 import weather_api
 from moon_phase import calculate_moon_phase, phase_to_icon_name
+
+# Configuration flag for alternative header
+USE_ALTERNATIVE_HEADER = True  # Set to False to use original header
 
 # Create weather config from imported settings
 WEATHER_CONFIG = {
@@ -159,57 +165,81 @@ def update_display_with_weather_layout():
     # Get parsed weather data (real or fallback)
     weather_data = get_weather_display_data()
 
-    # Get moon phase for icon
-    current_phase = calculate_moon_phase()
-    moon_icon_name = phase_to_icon_name(current_phase)
+    print("Creating weather layout...")
 
-    # Create weather layout using display.py
-    main_group = create_weather_layout(
-        day_name=weather_data['day_name'],
-        day_num=weather_data['day_num'],
-        month_name=weather_data['month_name'],
-        current_temp=weather_data['current_temp'],
-        feels_like=weather_data['feels_like'],
-        high_temp=weather_data['high_temp'],
-        low_temp=weather_data['low_temp'],
-        sunrise_time=weather_data['sunrise_time'],
-        sunset_time=weather_data['sunset_time'],
-        weather_desc=weather_data['weather_desc'],
-        weather_icon_name=weather_data['weather_icon_name'],
-        moon_icon_name=f"{moon_icon_name}.bmp",
-        forecast_data=weather_data['forecast_data']
-    )
+    if USE_ALTERNATIVE_HEADER:
+        # Use alternative single-line header with date and moon phase text
+        print("Using alternative header layout")
+        main_group = create_alt_weather_layout(
+            current_timestamp=weather_data.get('current_timestamp'),
+            timezone_offset_hours=getattr(config, 'TIMEZONE_OFFSET_HOURS', -5),
+            forecast_data=weather_data['forecast_data'],
+            weather_desc=weather_data['weather_desc']
+        )
+    else:
+        # Use original header layout
+        print("Using original header layout")
+        # Get moon phase for current date
+        moon_phase = calculate_moon_phase()
+        moon_icon_name = phase_to_icon_name(moon_phase)
+
+        main_group = create_weather_layout(
+            day_name=weather_data['day_name'],
+            day_num=weather_data['day_num'],
+            month_name=weather_data['month_name'],
+            current_temp=weather_data['current_temp'],
+            feels_like=weather_data['feels_like'],
+            high_temp=weather_data['high_temp'],
+            low_temp=weather_data['low_temp'],
+            sunrise_time=weather_data['sunrise_time'],
+            sunset_time=weather_data['sunset_time'],
+            weather_desc=weather_data['weather_desc'],
+            weather_icon_name=weather_data['weather_icon_name'],
+            moon_icon_name=f"{moon_icon_name}.bmp",
+            forecast_data=weather_data['forecast_data']
+        )
 
     # Load and position icons if SD card is available
     if sd_available:
-        # Weather icon from weather data
-        weather_icon = load_bmp_icon(weather_data['weather_icon_name'])
-        if weather_icon:
-            weather_icon.x = WEATHER_ICON_X
-            weather_icon.y = WEATHER_ICON_Y
-            main_group.append(weather_icon)
+        if USE_ALTERNATIVE_HEADER:
+            # For alternative header, only load forecast icons
+            header_height = get_alt_header_height()
+            forecast_y = header_height + 2
+            forecast_positions = get_forecast_icon_positions(weather_data['forecast_data'], forecast_y)
 
-        # Moon phase icon (between first line elements)
-        moon_icon = load_bmp_icon(f"{moon_icon_name}.bmp")
-        if moon_icon:
-            moon_icon.x = MOON_ICON_X
-            moon_icon.y = MOON_ICON_Y
-            main_group.append(moon_icon)
-            print(f"Moon phase: {moon_icon_name}")
+            for x, y, icon_code in forecast_positions:
+                forecast_icon = load_bmp_icon(f"{icon_code}.bmp")
+                if forecast_icon:
+                    forecast_icon.x = x
+                    forecast_icon.y = y
+                    main_group.append(forecast_icon)
+        else:
+            # Original header layout with weather and moon icons
+            # Weather icon from weather data
+            weather_icon = load_bmp_icon(weather_data['weather_icon_name'])
+            if weather_icon:
+                weather_icon.x = WEATHER_ICON_X
+                weather_icon.y = WEATHER_ICON_Y
+                main_group.append(weather_icon)
 
-        # Add forecast icons
-        from forecast_row import get_forecast_icon_positions
-        from weather_header import get_header_height
-        header_height = get_header_height()
-        forecast_y = header_height + 15
-        forecast_positions = get_forecast_icon_positions(weather_data['forecast_data'], forecast_y)
+            # Moon phase icon
+            moon_icon = load_bmp_icon(f"{moon_icon_name}.bmp")
+            if moon_icon:
+                moon_icon.x = MOON_ICON_X
+                moon_icon.y = MOON_ICON_Y
+                main_group.append(moon_icon)
 
-        for x, y, icon_code in forecast_positions:
-            forecast_icon = load_bmp_icon(f"{icon_code}.bmp")
-            if forecast_icon:
-                forecast_icon.x = x
-                forecast_icon.y = y
-                main_group.append(forecast_icon)
+            # Forecast icons
+            header_height = get_header_height()
+            forecast_y = header_height + 15
+            forecast_positions = get_forecast_icon_positions(weather_data['forecast_data'], forecast_y)
+
+            for x, y, icon_code in forecast_positions:
+                forecast_icon = load_bmp_icon(f"{icon_code}.bmp")
+                if forecast_icon:
+                    forecast_icon.x = x
+                    forecast_icon.y = y
+                    main_group.append(forecast_icon)
 
         print("Display updated successfully")
     # Update display
@@ -252,9 +282,9 @@ def get_weather_display_data():
         print("Weather API not configured, using fallback data")
         return weather_api.get_display_variables(None, None, timezone_offset)
     elif wifi.radio.connected:
-        # Fetch real weather data
-        current_data, forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG)
-        return weather_api.get_display_variables(current_data, forecast_data, timezone_offset)
+        # Fetch real weather data (forecast API only)
+        forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG)
+        return weather_api.get_display_variables(forecast_data, timezone_offset)
     else:
         # Use fallback data
         print("WiFi not connected, using fallback data")

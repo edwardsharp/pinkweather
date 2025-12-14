@@ -13,7 +13,7 @@ DISPLAY_WIDTH = 400
 DISPLAY_HEIGHT = 300
 
 # Export icon positions for hardware/web renderer use
-__all__ = ['create_weather_layout', 'create_text_display', 'get_text_capacity',
+__all__ = ['create_weather_layout', 'create_alt_weather_layout', 'create_text_display', 'get_text_capacity',
            'WEATHER_ICON_X', 'WEATHER_ICON_Y', 'MOON_ICON_X', 'MOON_ICON_Y']
 
 
@@ -96,6 +96,20 @@ def create_weather_layout(day_name="Thu", day_num=11, month_name="Dec",
 
     return main_group
 
+def create_alt_weather_layout(current_timestamp=None, timezone_offset_hours=None, forecast_data=None, weather_desc=None):
+    """Create weather layout with alternative single-line header
+
+    Args:
+        current_timestamp: Unix timestamp from weather API for accurate date
+        timezone_offset_hours: Timezone offset for local time
+        forecast_data: List of forecast items for the forecast row
+        weather_desc: Weather description text
+
+    Returns:
+        DisplayIO group containing the complete layout
+    """
+    from alt_weather_header import create_alt_weather_layout
+    return create_alt_weather_layout(current_timestamp, timezone_offset_hours, forecast_data, weather_desc)
 
 def get_forecast_icon_positions_from_layout(layout_group, forecast_data=None, forecast_y=None):
     """Get forecast icon positions by recalculating them"""

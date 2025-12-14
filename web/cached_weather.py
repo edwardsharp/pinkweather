@@ -8,7 +8,7 @@ import sys
 from api_cache import cached_url_request
 
 def fetch_weather_data_cached(config=None):
-    """Fetch weather data with caching for web server"""
+    """Fetch weather data with caching for web server - only forecast endpoint needed"""
     # Import weather_api from CIRCUITPY directory
     circuitpy_path = os.path.join(os.path.dirname(__file__), '..', '300x400', 'CIRCUITPY')
     if circuitpy_path not in sys.path:
@@ -20,20 +20,16 @@ def fetch_weather_data_cached(config=None):
     urls = weather_api.get_weather_urls(config)
     if not urls:
         print("Weather API configuration incomplete")
-        return None, None
+        return None
 
-    current_weather = None
     forecast_data = None
 
     try:
-        # Use cached requests instead of direct API calls
-        print("Fetching current weather (with caching)...")
-        current_weather = cached_url_request(urls['current'])
-
+        # Use cached requests for forecast only (includes current weather in first item)
         print("Fetching forecast data (with caching)...")
         forecast_data = cached_url_request(urls['forecast'])
 
     except Exception as e:
         print(f"Error fetching cached weather data: {e}")
 
-    return current_weather, forecast_data
+    return forecast_data

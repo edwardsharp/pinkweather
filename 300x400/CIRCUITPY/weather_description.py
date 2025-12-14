@@ -17,8 +17,8 @@ def create_weather_description(weather_desc, y_position=120, available_height=18
     # Create text renderer with available dimensions
     desc_renderer = TextRenderer(width=400, height=available_height)
 
-    # Render the description text without background
-    desc_group = desc_renderer.render_text_no_background(weather_desc)
+    # Render the description text with regular method
+    desc_group = desc_renderer.render_text(weather_desc)
 
     # Position the text group
     desc_group.y = y_position

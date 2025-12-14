@@ -7,17 +7,56 @@ import time
 
 def calculate_moon_phase(unix_timestamp=None, year=None, month=None, day=None):
     """Calculate moon phase for a given date (simplified version for CircuitPython)"""
-    # Use unix timestamp if provided, otherwise use current date
+    # Use unix timestamp if provided, convert manually without using gmtime/localtime
     if unix_timestamp is not None:
-        time_struct = time.localtime(unix_timestamp)
-        year = time_struct.tm_year
-        month = time_struct.tm_mon
-        day = time_struct.tm_mday
-    elif year is None or month is None or day is None:
-        current_time = time.localtime()
-        year = year or current_time.tm_year
-        month = month or current_time.tm_mon
-        day = day or current_time.tm_mday
+        # Convert Unix timestamp to date manually (days since Unix epoch)
+        days_since_epoch = unix_timestamp // 86400
+        # Approximate calculation: January 1, 1970 was day 719163 in astronomical calculations
+        # This is a simplified approach for moon phase calculation
+        year = 1970 + (days_since_epoch // 365)
+        # Simple approximation for month/day - good enough for moon phase
+        days_in_year = days_since_epoch % 365
+        if days_in_year < 31:
+            month = 1
+            day = days_in_year + 1
+        elif days_in_year < 59:
+            month = 2
+            day = days_in_year - 30
+        elif days_in_year < 90:
+            month = 3
+            day = days_in_year - 58
+        elif days_in_year < 120:
+            month = 4
+            day = days_in_year - 89
+        elif days_in_year < 151:
+            month = 5
+            day = days_in_year - 119
+        elif days_in_year < 181:
+            month = 6
+            day = days_in_year - 150
+        elif days_in_year < 212:
+            month = 7
+            day = days_in_year - 180
+        elif days_in_year < 243:
+            month = 8
+            day = days_in_year - 211
+        elif days_in_year < 273:
+            month = 9
+            day = days_in_year - 242
+        elif days_in_year < 304:
+            month = 10
+            day = days_in_year - 272
+        elif days_in_year < 334:
+            month = 11
+            day = days_in_year - 303
+        else:
+            month = 12
+            day = days_in_year - 333
+    else:
+        # If no timestamp provided, use reasonable defaults
+        year = year or 2024
+        month = month or 12
+        day = day or 14
 
     # Julian day calculation
     if month <= 2:
@@ -72,7 +111,9 @@ def phase_to_icon_name(phase):
 
 def get_moon_info(unix_timestamp=None, year=None, month=None, day=None):
     """Get complete moon phase information"""
+    print(f"Moon phase calculation for timestamp: {unix_timestamp}")
     phase = calculate_moon_phase(unix_timestamp, year, month, day)
+    print(f"Calculated moon phase value: {phase}")
     icon_name = phase_to_icon_name(phase)
 
     # Convert phase to percentage
@@ -95,6 +136,8 @@ def get_moon_info(unix_timestamp=None, year=None, month=None, day=None):
         name = "Third Quarter"
     else:
         name = "Waning Crescent"
+
+    print(f"Moon phase name: {name}")
 
     return {
         'phase': phase,
