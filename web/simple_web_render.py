@@ -89,7 +89,6 @@ def render_400x300_display(text_content):
         spec.loader.exec_module(text_display)
 
         create_weather_layout = text_display.create_weather_layout
-        get_forecast_icon_positions_from_layout = text_display.get_forecast_icon_positions_from_layout
         get_header_height = text_display.get_header_height
 
         # Import alternative header functions
@@ -101,17 +100,19 @@ def render_400x300_display(text_content):
             spec.loader.exec_module(alt_weather_header)
             get_alt_header_height = alt_weather_header.get_alt_header_height
 
-            # Import forecast row for icon positions
+            # Import forecast row for icon loading setup
             forecast_row_path = os.path.join(circuitpy_400x300_path, 'forecast_row.py')
             spec = importlib.util.spec_from_file_location("forecast_row", forecast_row_path)
             forecast_row_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(forecast_row_module)
-            get_forecast_icon_positions = forecast_row_module.get_forecast_icon_positions
+            set_icon_loader = forecast_row_module.set_icon_loader
+
+            # Store the configured module to avoid re-import issues
+            configured_forecast_module = forecast_row_module
         except Exception as e:
             print(f"Alternative header not available: {e}")
             create_alt_weather_layout = None
             get_alt_header_height = None
-            get_forecast_icon_positions = None
 
         # Import weather API module and cached version
         weather_api_path = os.path.join(circuitpy_400x300_path, 'weather_api.py')
@@ -180,6 +181,54 @@ def render_400x300_display(text_content):
         moon_icon_name = moon_phase_module.phase_to_icon_name(current_phase)
         print(f"Web server moon phase: {moon_icon_name}")
 
+        # Set up icon loader for forecast rows (web version uses real icons)
+        def web_icon_loader(filename):
+            """Web version icon loading that matches hardware interface"""
+
+            try:
+                # Look in iconz/bmp folder
+                icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'iconz', 'bmp', filename)
+
+                if os.path.exists(icon_path):
+                    # Load image and convert to displayio-like structure
+                    pil_image = Image.open(icon_path)
+
+
+                    # Convert PIL image to bitmap-like structure for displayio emulation
+                    width, height = pil_image.size
+                    bitmap = displayio.Bitmap(width, height, 2)
+                    palette = displayio.Palette(2)
+                    palette[0] = 0xFFFFFF  # White
+                    palette[1] = 0x000000  # Black
+
+                    # Simple black/white conversion
+                    for py in range(height):
+                        for px in range(width):
+                            pixel = pil_image.getpixel((px, py))
+                            if isinstance(pixel, tuple):
+                                # RGB/RGBA
+                                gray = sum(pixel[:3]) / 3
+                            else:
+                                # Grayscale
+                                gray = pixel
+                            bitmap[px, py] = 0 if gray > 128 else 1
+
+                    tilegrid = displayio.TileGrid(bitmap, pixel_shader=palette)
+                    return tilegrid
+                else:
+
+                    return None
+            except Exception as e:
+
+                return None
+
+        # Configure the icon loader on the same module instance
+        set_icon_loader(True, web_icon_loader)  # True indicates icons are "available"
+
+        # Inject the configured forecast module into sys.modules to prevent re-import
+        import sys
+        sys.modules['forecast_row'] = configured_forecast_module
+
         # Get weather data (real or fallback)
         if weather_config:
             print("Using real weather data from .env configuration (with caching)")
@@ -192,11 +241,13 @@ def render_400x300_display(text_content):
         # Choose layout based on configuration
         if use_alternative_header and create_alt_weather_layout:
             print("Using alternative header layout for web preview")
+
             main_group = create_alt_weather_layout(
                 current_timestamp=weather_data.get('current_timestamp'),
                 timezone_offset_hours=timezone_offset,
                 forecast_data=weather_data['forecast_data'],
-                weather_desc=weather_data['weather_desc']
+                weather_desc=weather_data['weather_desc'],
+                icon_loader=web_icon_loader
             )
         else:
             print("Using original header layout for web preview")
@@ -216,20 +267,10 @@ def render_400x300_display(text_content):
                 forecast_data=weather_data['forecast_data']
             )
 
-        # Add icons based on layout type
-        if use_alternative_header and create_alt_weather_layout:
-            # Alternative header - only forecast icons
-            if weather_data['forecast_data'] and get_forecast_icon_positions:
-                header_height = get_alt_header_height() if get_alt_header_height else 25
-                forecast_y = header_height + 2  # Match hardware positioning
-                forecast_positions = get_forecast_icon_positions(weather_data['forecast_data'], forecast_y)
-
-                for x, y, icon_code in forecast_positions:
-                    forecast_icon = load_web_bmp_icon(f"{icon_code}.bmp", x, y)
-                    if forecast_icon:
-                        main_group.append(forecast_icon)
-        else:
-            # Original header - weather, moon, and forecast icons
+        # Icons are now integrated directly into forecast cells via set_icon_loader
+        # Add remaining icons for original header layout
+        if not (use_alternative_header and create_alt_weather_layout):
+            # Original header - weather and moon icons (forecast icons handled in forecast_row)
             # Add weather icon from weather data
             weather_icon = load_web_bmp_icon(weather_data['weather_icon_name'], WEATHER_ICON_X, WEATHER_ICON_Y)
             if weather_icon:
@@ -239,18 +280,6 @@ def render_400x300_display(text_content):
             moon_icon = load_web_bmp_icon(f"{moon_icon_name}.bmp", MOON_ICON_X, MOON_ICON_Y)
             if moon_icon:
                 main_group.append(moon_icon)
-
-            # Add forecast icons
-            if weather_data['forecast_data']:
-                # Calculate forecast_y position (same logic as in display.py)
-                header_height = get_header_height()
-                forecast_y = header_height + 15
-                forecast_positions = get_forecast_icon_positions_from_layout(main_group, weather_data['forecast_data'], forecast_y)
-
-                for x, y, icon_code in forecast_positions:
-                    forecast_icon = load_web_bmp_icon(f"{icon_code}.bmp", x, y)
-                    if forecast_icon:
-                        main_group.append(forecast_icon)
 
     finally:
         # Clean up: remove from path and restore directory

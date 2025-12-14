@@ -96,6 +96,41 @@ def parse_forecast_data(forecast_data):
         print(f"Error parsing forecast data: {e}")
         return None
 
+def interpolate_temperature(target_timestamp, forecast_items):
+    """Calculate interpolated temperature for a target timestamp based on surrounding forecast data"""
+    if not forecast_items or len(forecast_items) < 2:
+        return None
+
+    # Find the two forecast items that bracket the target timestamp
+    before_item = None
+    after_item = None
+
+    for item in forecast_items:
+        if item['dt'] <= target_timestamp:
+            before_item = item
+        elif item['dt'] > target_timestamp and after_item is None:
+            after_item = item
+            break
+
+    # If we can't bracket the time, use the closest available
+    if before_item is None and after_item is not None:
+        return after_item['temp']
+    elif after_item is None and before_item is not None:
+        return before_item['temp']
+    elif before_item is None and after_item is None:
+        return forecast_items[0]['temp']  # Fallback to first item
+
+    # Linear interpolation between before and after temperatures
+    time_diff = after_item['dt'] - before_item['dt']
+    if time_diff == 0:
+        return before_item['temp']
+
+    temp_diff = after_item['temp'] - before_item['temp']
+    target_offset = target_timestamp - before_item['dt']
+    interpolated_temp = before_item['temp'] + (temp_diff * target_offset / time_diff)
+
+    return round(interpolated_temp)
+
 def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
     """Create enhanced forecast with current weather as 'NOW' plus sunrise/sunset events from single API"""
     if timezone_offset_hours is None:
@@ -115,9 +150,12 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
     local_current_timestamp = current_timestamp + (timezone_offset_hours * 3600)
     print(f"Local current timestamp: {local_current_timestamp}")
 
+    # Get forecast items for temperature interpolation
+    forecast_items = parse_forecast_data(forecast_data)
+
     # Create "NOW" cell
     now_item = {
-        'dt': current_timestamp - 86400,  # Make NOW always sort first (24 hours earlier)
+        'dt': current_timestamp,  # Use actual current timestamp
         'temp': current_weather['current_temp'],
         'feels_like': current_weather['feels_like'],
         'icon': current_weather['weather_icon'],
@@ -140,21 +178,34 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
             local_sunrise_ts = sunrise_ts + (timezone_offset_hours * 3600)
             local_sunset_ts = sunset_ts + (timezone_offset_hours * 3600)
 
+            # Calculate tomorrow's sunrise/sunset (add 24 hours)
+            tomorrow_sunrise_ts = sunrise_ts + 86400  # UTC + 24 hours
+            tomorrow_sunset_ts = sunset_ts + 86400    # UTC + 24 hours
+            local_tomorrow_sunrise_ts = tomorrow_sunrise_ts + (timezone_offset_hours * 3600)
+            local_tomorrow_sunset_ts = tomorrow_sunset_ts + (timezone_offset_hours * 3600)
+
             # Include sunrise/sunset if they're within past 6 hours or future 24 hours
             past_window = 6 * 3600  # 6 hours ago
             future_window = 24 * 3600  # 24 hours from now
 
             print(f"Local sunrise: {local_sunrise_ts}, local sunset: {local_sunset_ts}")
+            print(f"Local tomorrow sunrise: {local_tomorrow_sunrise_ts}, local tomorrow sunset: {local_tomorrow_sunset_ts}")
 
             # Store all special event times for filtering forecast items
             special_event_times = []
 
-            # Compare UTC times - include if within past 6 hours or future 24 hours
+            # Today's sunrise/sunset - compare UTC times
             if current_timestamp - past_window <= sunrise_ts <= current_timestamp + future_window:
+                # Calculate interpolated temperature for sunrise time
+                sunrise_temp = interpolate_temperature(sunrise_ts, forecast_items)
+                if sunrise_temp is None:
+                    sunrise_temp = current_weather['current_temp']
+
                 sunrise_item = {
-                    'dt': local_sunrise_ts,  # Store as local time for correct display
-                    'temp': current_weather['current_temp'],
-                    'feels_like': current_weather['feels_like'],
+                    'dt': sunrise_ts,  # Store UTC time for consistent sorting
+                    'display_time': local_sunrise_ts,  # Local time for display
+                    'temp': sunrise_temp,
+                    'feels_like': current_weather['feels_like'],  # Could also interpolate this
                     'icon': 'sunrise',
                     'description': 'Sunrise',
                     'is_now': False,
@@ -163,13 +214,19 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
                 }
                 enhanced_items.append(sunrise_item)
                 special_event_times.append(local_sunrise_ts)
-                print(f"Added sunrise at local time {local_sunrise_ts}")
+                print(f"Added sunrise at local time {local_sunrise_ts} with temp {sunrise_temp}°C")
 
             if current_timestamp - past_window <= sunset_ts <= current_timestamp + future_window:
+                # Calculate interpolated temperature for sunset time
+                sunset_temp = interpolate_temperature(sunset_ts, forecast_items)
+                if sunset_temp is None:
+                    sunset_temp = current_weather['current_temp']
+
                 sunset_item = {
-                    'dt': local_sunset_ts,  # Store as local time for correct display
-                    'temp': current_weather['current_temp'],
-                    'feels_like': current_weather['feels_like'],
+                    'dt': sunset_ts,  # Store UTC time for consistent sorting
+                    'display_time': local_sunset_ts,  # Local time for display
+                    'temp': sunset_temp,
+                    'feels_like': current_weather['feels_like'],  # Could also interpolate this
                     'icon': 'sunset',
                     'description': 'Sunset',
                     'is_now': False,
@@ -178,10 +235,53 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
                 }
                 enhanced_items.append(sunset_item)
                 special_event_times.append(local_sunset_ts)
-                print(f"Added sunset at local time {local_sunset_ts}")
+                print(f"Added sunset at local time {local_sunset_ts} with temp {sunset_temp}°C")
+
+            # Tomorrow's sunrise/sunset - compare UTC times
+            if current_timestamp - past_window <= tomorrow_sunrise_ts <= current_timestamp + future_window:
+                # Calculate interpolated temperature for tomorrow's sunrise time
+                tomorrow_sunrise_temp = interpolate_temperature(tomorrow_sunrise_ts, forecast_items)
+                if tomorrow_sunrise_temp is None:
+                    tomorrow_sunrise_temp = current_weather['current_temp']
+
+                tomorrow_sunrise_item = {
+                    'dt': tomorrow_sunrise_ts,  # Store UTC time for consistent sorting
+                    'display_time': local_tomorrow_sunrise_ts,  # Local time for display
+                    'temp': tomorrow_sunrise_temp,
+                    'feels_like': current_weather['feels_like'],  # Could also interpolate this
+                    'icon': 'sunrise',
+                    'description': 'Tomorrow Sunrise',
+                    'is_now': False,
+                    'is_special': True,
+                    'special_type': 'sunrise'
+                }
+                enhanced_items.append(tomorrow_sunrise_item)
+                special_event_times.append(local_tomorrow_sunrise_ts)
+                print(f"Added tomorrow sunrise at local time {local_tomorrow_sunrise_ts} with temp {tomorrow_sunrise_temp}°C")
+
+            if current_timestamp - past_window <= tomorrow_sunset_ts <= current_timestamp + future_window:
+                # Calculate interpolated temperature for tomorrow's sunset time
+                tomorrow_sunset_temp = interpolate_temperature(tomorrow_sunset_ts, forecast_items)
+                if tomorrow_sunset_temp is None:
+                    tomorrow_sunset_temp = current_weather['current_temp']
+
+                tomorrow_sunset_item = {
+                    'dt': tomorrow_sunset_ts,  # Store UTC time for consistent sorting
+                    'display_time': local_tomorrow_sunset_ts,  # Local time for display
+                    'temp': tomorrow_sunset_temp,
+                    'feels_like': current_weather['feels_like'],  # Could also interpolate this
+                    'icon': 'sunset',
+                    'description': 'Tomorrow Sunset',
+                    'is_now': False,
+                    'is_special': True,
+                    'special_type': 'sunset'
+                }
+                enhanced_items.append(tomorrow_sunset_item)
+                special_event_times.append(local_tomorrow_sunset_ts)
+                print(f"Added tomorrow sunset at local time {local_tomorrow_sunset_ts} with temp {tomorrow_sunset_temp}°C")
 
     # Add regular forecast items (filter based on special events and current time)
-    forecast_items = parse_forecast_data(forecast_data)
+    # forecast_items already loaded above for temperature interpolation
     if forecast_items:
         print(f"Processing {len(forecast_items)} forecast items")
         for item in forecast_items:
@@ -212,8 +312,14 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
                 enhanced_items.append(item)
                 print(f"  Added forecast item at UTC {item['dt']}")
 
-    # Sort all items by timestamp to create natural timeline
-    enhanced_items.sort(key=lambda x: x['dt'])
+    # Sort items: NOW first, then chronological order by timestamp
+    def sort_key(item):
+        if item.get('is_now', False):
+            return (0, 0)  # NOW always first
+        else:
+            return (1, item['dt'])  # Everything else by timestamp
+
+    enhanced_items.sort(key=sort_key)
 
     # Debug output for ordering
     print("Enhanced forecast order:")

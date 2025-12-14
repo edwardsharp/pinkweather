@@ -4,7 +4,7 @@ Main display coordinator that combines header, forecast, and description modules
 
 import displayio
 from weather_header import create_weather_header, get_header_height, WEATHER_ICON_X, WEATHER_ICON_Y, MOON_ICON_X, MOON_ICON_Y
-from forecast_row import create_forecast_row, get_forecast_icon_positions, get_forecast_row_height
+from forecast_row import create_forecast_row, get_forecast_row_height
 from weather_description import create_weather_description
 from text_renderer import get_text_capacity, WHITE
 
@@ -96,7 +96,7 @@ def create_weather_layout(day_name="Thu", day_num=11, month_name="Dec",
 
     return main_group
 
-def create_alt_weather_layout(current_timestamp=None, timezone_offset_hours=None, forecast_data=None, weather_desc=None):
+def create_alt_weather_layout(current_timestamp=None, timezone_offset_hours=None, forecast_data=None, weather_desc=None, icon_loader=None):
     """Create weather layout with alternative single-line header
 
     Args:
@@ -104,15 +104,12 @@ def create_alt_weather_layout(current_timestamp=None, timezone_offset_hours=None
         timezone_offset_hours: Timezone offset for local time
         forecast_data: List of forecast items for the forecast row
         weather_desc: Weather description text
+        icon_loader: Function to load icons (same as forecast icons use)
 
     Returns:
         DisplayIO group containing the complete layout
     """
     from alt_weather_header import create_alt_weather_layout
-    return create_alt_weather_layout(current_timestamp, timezone_offset_hours, forecast_data, weather_desc)
+    return create_alt_weather_layout(current_timestamp, timezone_offset_hours, forecast_data, weather_desc, icon_loader)
 
-def get_forecast_icon_positions_from_layout(layout_group, forecast_data=None, forecast_y=None):
-    """Get forecast icon positions by recalculating them"""
-    if forecast_data and forecast_y is not None:
-        return get_forecast_icon_positions(forecast_data, forecast_y)
-    return []
+# get_forecast_icon_positions_from_layout function removed - icons are now handled directly in forecast_row.py

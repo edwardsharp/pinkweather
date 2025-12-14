@@ -23,7 +23,8 @@ from digitalio import DigitalInOut
 # shared display functions
 from display import create_text_display, get_text_capacity, create_weather_layout, create_alt_weather_layout, WEATHER_ICON_X, WEATHER_ICON_Y, MOON_ICON_X, MOON_ICON_Y
 from alt_weather_header import get_alt_header_height
-from forecast_row import get_forecast_icon_positions
+# get_forecast_icon_positions import removed - icons now handled directly in forecast_row.py
+from forecast_row import set_icon_loader
 from weather_header import get_header_height
 
 # Import configuration and shared modules
@@ -170,11 +171,16 @@ def update_display_with_weather_layout():
     if USE_ALTERNATIVE_HEADER:
         # Use alternative single-line header with date and moon phase text
         print("Using alternative header layout")
+
+        # Set up icon loader for forecast rows before creating layout
+        set_icon_loader(sd_available, load_bmp_icon)
+
         main_group = create_alt_weather_layout(
             current_timestamp=weather_data.get('current_timestamp'),
             timezone_offset_hours=getattr(config, 'TIMEZONE_OFFSET_HOURS', -5),
             forecast_data=weather_data['forecast_data'],
-            weather_desc=weather_data['weather_desc']
+            weather_desc=weather_data['weather_desc'],
+            icon_loader=load_bmp_icon if sd_available else None
         )
     else:
         # Use original header layout
@@ -182,6 +188,9 @@ def update_display_with_weather_layout():
         # Get moon phase for current date
         moon_phase = calculate_moon_phase()
         moon_icon_name = phase_to_icon_name(moon_phase)
+
+        # Set up icon loader for forecast rows before creating layout
+        set_icon_loader(sd_available, load_bmp_icon)
 
         main_group = create_weather_layout(
             day_name=weather_data['day_name'],
@@ -202,17 +211,8 @@ def update_display_with_weather_layout():
     # Load and position icons if SD card is available
     if sd_available:
         if USE_ALTERNATIVE_HEADER:
-            # For alternative header, only load forecast icons
-            header_height = get_alt_header_height()
-            forecast_y = header_height + 2
-            forecast_positions = get_forecast_icon_positions(weather_data['forecast_data'], forecast_y)
-
-            for x, y, icon_code in forecast_positions:
-                forecast_icon = load_bmp_icon(f"{icon_code}.bmp")
-                if forecast_icon:
-                    forecast_icon.x = x
-                    forecast_icon.y = y
-                    main_group.append(forecast_icon)
+            # Icons are now handled directly in forecast_row.py for proper layering
+            print("Forecast icons integrated into forecast cells")
         else:
             # Original header layout with weather and moon icons
             # Weather icon from weather data
@@ -229,17 +229,8 @@ def update_display_with_weather_layout():
                 moon_icon.y = MOON_ICON_Y
                 main_group.append(moon_icon)
 
-            # Forecast icons
-            header_height = get_header_height()
-            forecast_y = header_height + 15
-            forecast_positions = get_forecast_icon_positions(weather_data['forecast_data'], forecast_y)
-
-            for x, y, icon_code in forecast_positions:
-                forecast_icon = load_bmp_icon(f"{icon_code}.bmp")
-                if forecast_icon:
-                    forecast_icon.x = x
-                    forecast_icon.y = y
-                    main_group.append(forecast_icon)
+            # Forecast icons are now handled directly in forecast_row.py for proper layering
+            print("Forecast icons integrated into forecast cells for original header too")
 
         print("Display updated successfully")
     # Update display
