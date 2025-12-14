@@ -13,6 +13,10 @@ circuitpy_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'CIRCU
 
 # Add 300x400/CIRCUITPY to path for the new display
 circuitpy_400x300_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '300x400', 'CIRCUITPY')
+sys.path.insert(0, circuitpy_400x300_path)
+
+# Import shared moon phase functions from 300x400/CIRCUITPY
+from moon_phase import calculate_moon_phase, phase_to_icon_name
 
 
 def render_250x122_display(temp_c, humidity, csv_data=None, system_status=None):
@@ -331,66 +335,14 @@ def load_web_bmp_icon(filename, x, y):
 
 
 def calculate_web_moon_phase():
-    """Calculate moon phase for web (simplified)"""
+    """Calculate moon phase for web using shared module"""
     import time
-    current_time = time.localtime()
-    year = current_time.tm_year
-    month = current_time.tm_mon
-    day = current_time.tm_mday
-
-    # Calculate Julian day number
-    if month <= 2:
-        year -= 1
-        month += 12
-
-    a = year // 100
-    b = 2 - a + (a // 4)
-
-    julian_day = int(365.25 * (year + 4716)) + int(30.6001 * (month + 1)) + day + b - 1524.5
-
-    # Calculate days since known new moon (January 6, 2000)
-    days_since_new_moon = julian_day - 2451550.1
-
-    # Calculate number of lunar cycles
-    lunar_cycle_length = 29.53058867
-    cycles = days_since_new_moon / lunar_cycle_length
-
-    # Get fractional part (phase within current cycle)
-    phase = cycles - int(cycles)
-
-    # Ensure phase is between 0 and 1
-    if phase < 0:
-        phase += 1
-
-    return phase
-
+    current_timestamp = int(time.time())
+    return calculate_moon_phase(current_timestamp)
 
 def web_phase_to_icon_name(phase):
-    """Convert numeric phase to BMP icon filename for web"""
-    if phase < 0.03 or phase > 0.97:
-        return "moon-new"
-    elif phase < 0.22:
-        crescent_num = int((phase - 0.03) / 0.038) + 1
-        crescent_num = max(1, min(5, crescent_num))
-        return f"moon-waxing-crescent-{crescent_num}"
-    elif phase < 0.28:
-        return "moon-first-quarter"
-    elif phase < 0.47:
-        gibbous_num = int((phase - 0.28) / 0.032) + 1
-        gibbous_num = max(1, min(6, gibbous_num))
-        return f"moon-waxing-gibbous-{gibbous_num}"
-    elif phase < 0.53:
-        return "moon-full"
-    elif phase < 0.72:
-        gibbous_num = 6 - int((phase - 0.53) / 0.032)
-        gibbous_num = max(1, min(6, gibbous_num))
-        return f"moon-waning-gibbous-{gibbous_num}"
-    elif phase < 0.78:
-        return "moon-third-quarter"
-    else:
-        crescent_num = 5 - int((phase - 0.78) / 0.038)
-        crescent_num = max(1, min(5, crescent_num))
-        return f"moon-waning-crescent-{crescent_num}"
+    """Convert numeric phase to BMP icon filename for web using shared module"""
+    return phase_to_icon_name(phase)
 
 
 def get_averages_from_csv(csv_data):

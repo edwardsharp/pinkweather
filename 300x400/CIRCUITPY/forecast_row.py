@@ -113,12 +113,11 @@ def create_forecast_row(forecast_data, y_position=50):
         )
         forecast_group.append(cell_bg)
 
-        # Only add bottom border
-        bottom_border = Rect(
+        # Only add bottom border using Line for thinner appearance
+        bottom_border = Line(
             cell_x, y_position + row_height - 1,
-            cell_width, 1,
-            fill=BLACK,
-            outline=None
+            cell_x + cell_width, y_position + row_height - 1,
+            color=BLACK
         )
         forecast_group.append(bottom_border)
 
