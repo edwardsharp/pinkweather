@@ -43,6 +43,7 @@ def create_header(current_timestamp=None, timezone_offset_hours=None, y_position
             current_time = time.localtime(local_timestamp)
     else:
         current_time = time.localtime()
+        local_timestamp = time.time()  # Use current time as fallback
 
     # Format date string
     day_names = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']

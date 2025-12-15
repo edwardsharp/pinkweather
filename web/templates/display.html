@@ -191,7 +191,7 @@
                                     250×122 Weather Station
                                 </option>
                                 <option value="400x300">
-                                    400×300 Text Display
+                                    400×300 Weather Display
                                 </option>
                             </select>
                         </div>
@@ -253,6 +253,61 @@
                         </div>
                     </div>
 
+                    <div class="scenario-group" id="weather-data-controls">
+                        <h4>Weather Data</h4>
+                        <div class="form-group">
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    id="use_mock_weather"
+                                    onchange="toggleWeatherSource()"
+                                />
+                                Use Mock Weather Data
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="mock_scenario">Mock Scenario:</label>
+                            <select
+                                id="mock_scenario"
+                                name="mock_scenario"
+                                disabled
+                            >
+                                <option value="winter_clear">
+                                    Clear Winter Day
+                                </option>
+                                <option value="winter_storm" selected>
+                                    Winter Storm
+                                </option>
+                                <option value="winter_mixed">
+                                    Mixed Winter
+                                </option>
+                                <option value="spring_mild">Mild Spring</option>
+                                <option value="spring_rain">Spring Rain</option>
+                                <option value="spring_variable">
+                                    Variable Spring
+                                </option>
+                                <option value="summer_hot">Hot Summer</option>
+                                <option value="summer_storms">
+                                    Summer Storms
+                                </option>
+                                <option value="summer_humid">
+                                    Humid Summer
+                                </option>
+                                <option value="fall_crisp">Crisp Fall</option>
+                                <option value="fall_rain">Fall Rain</option>
+                                <option value="fall_variable">
+                                    Variable Fall
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <small
+                                >Use arrow keys: ←→ time (3h), ↑↓ season, Space
+                                regenerate</small
+                            >
+                        </div>
+                    </div>
+
                     <div class="scenario-group" id="sensor-controls">
                         <h4>Sensor Override</h4>
                         <div class="form-group">
@@ -282,37 +337,7 @@
                         </div>
                     </div>
 
-                    <div
-                        class="scenario-group"
-                        id="text-controls"
-                        style="display: none"
-                    >
-                        <h4>Text Input</h4>
-                        <div class="form-group">
-                            <label for="text_input">Display Text:</label>
-                            <textarea
-                                id="text_input"
-                                name="text_input"
-                                rows="8"
-                                placeholder="Enter text with markup: <b>bold</b>, <i>italic</i>, <bi>bold italic</bi>, <red>red text</red>"
-                                style="
-                                    width: 100%;
-                                    padding: 8px;
-                                    border: 1px solid #333;
-                                    border-radius: 4px;
-                                    background: #111;
-                                    color: #fff;
-                                    font-family: monospace;
-                                    resize: vertical;
-                                "
-                            >
-<b>Now:</b> <red>Cloudy</red> conditions with <i>rain</i> expected around <b>2am</b>. Wind gusts up to <b>25mph</b> making it feel like <red>-2°C</red>.
 
-<b>Tomorrow:</b> <red>Sunny</red> and <b>4°C</b> with light winds from the <i>west</i> at 10mph.
-
-<b>Weekend:</b> <bi>Partly cloudy</bi> with temperatures reaching <b>6°C</b>.</textarea
-                            >
-                        </div>
                         <div
                             class="specs"
                             style="
@@ -498,7 +523,6 @@
                     document.getElementById("weather-controls");
                 const sensorControls =
                     document.getElementById("sensor-controls");
-                const textControls = document.getElementById("text-controls");
                 const quickTests = document.getElementById("quick-tests");
 
                 if (displayType === "400x300") {
@@ -507,10 +531,9 @@
                     img.height = scale2x.checked ? 600 : 300;
                     specs.innerHTML = `Display: 400×300 pixels | Tri-color E-ink | ${scale2x.checked ? "2×" : "1:1"} scale<br />Fonts: Vollkorn 20px (regular, bold, italic, bold-italic)`;
 
-                    // Show text controls, hide weather controls
+                    // Hide weather controls for 400x300
                     weatherControls.style.display = "none";
                     sensorControls.style.display = "none";
-                    textControls.style.display = "block";
                     quickTests.style.display = "none";
                 } else {
                     // Switch to 250x122 display
@@ -518,10 +541,9 @@
                     img.height = scale2x.checked ? 500 : 250;
                     specs.innerHTML = `Display: 122×250 pixels | Tri-color E-ink | ${scale2x.checked ? "2×" : "1:1"} scale<br />Fonts: Barlow Condensed 60px/30px + Terminal 8px (matching hardware)`;
 
-                    // Show weather controls, hide text controls
+                    // Show weather controls for 250x122
                     weatherControls.style.display = "block";
                     sensorControls.style.display = "block";
-                    textControls.style.display = "none";
                     quickTests.style.display = "block";
                 }
 
@@ -564,12 +586,29 @@
             }
 
             function updateDisplay() {
+                const useMockWeather =
+                    document.getElementById("use_mock_weather").checked;
+                const displayType = document.getElementById("display_type").value;
+
+                console.log("updateDisplay called - Mock:", useMockWeather, "Display:", displayType, "Scenario:", currentScenario, "Timestamp:", currentTimestamp);
+
                 // Show loading state
                 form.classList.add("loading");
                 errorMessage.style.display = "none";
 
                 // Collect form data
                 const formData = new FormData(form);
+
+                // Add mock weather data to form if enabled
+                if (useMockWeather) {
+                    formData.append("use_mock_weather", "on");
+                    formData.append("mock_timestamp", currentTimestamp);
+                    formData.append(
+                        "mock_scenario",
+                        document.getElementById("mock_scenario").value,
+                    );
+                    console.log("Added mock data to form:", document.getElementById("mock_scenario").value, currentTimestamp);
+                }
 
                 // Submit to server
                 fetch("/preview", {
@@ -613,6 +652,88 @@
 
             // Auto-update timer (off by default)
             let autoUpdateTimer = null;
+            let currentTimestamp = Math.floor(Date.now() / 1000);
+            let currentScenario = "winter_storm";
+            let seasons = ["winter", "spring", "summer", "fall"];
+            let currentSeasonIndex = 0;
+
+            // Keyboard controls
+            document.addEventListener("keydown", function (e) {
+                if (!document.getElementById("use_mock_weather").checked)
+                    return;
+                if (document.getElementById("display_type").value !== "400x300")
+                    return;
+
+                console.log("Key pressed:", e.key, "Mock enabled:", document.getElementById("use_mock_weather").checked);
+
+                switch (e.key) {
+                    case "ArrowLeft":
+                        e.preventDefault();
+                        stepTime(-1);
+                        break;
+                    case "ArrowRight":
+                        e.preventDefault();
+                        stepTime(1);
+                        break;
+                    case "ArrowUp":
+                        e.preventDefault();
+                        stepSeason(-1);
+                        break;
+                    case "ArrowDown":
+                        e.preventDefault();
+                        stepSeason(1);
+                        break;
+                    case " ":
+                        e.preventDefault();
+                        regenerateScenario();
+                        break;
+                }
+            });
+
+            function stepTime(direction) {
+                currentTimestamp += direction * 10800; // 3 hours
+                console.log("Stepping time:", direction, "new timestamp:", currentTimestamp);
+                updateDisplay();
+            }
+
+            function stepSeason(direction) {
+                currentSeasonIndex =
+                    (currentSeasonIndex + direction + seasons.length) %
+                    seasons.length;
+                const season = seasons[currentSeasonIndex];
+                const scenarios = {
+                    winter: "winter_storm",
+                    spring: "spring_rain",
+                    summer: "summer_hot",
+                    fall: "fall_rain",
+                };
+                currentScenario = scenarios[season];
+                document.getElementById("mock_scenario").value =
+                    currentScenario;
+                updateDisplay();
+            }
+
+            function regenerateScenario() {
+                currentTimestamp += Math.floor(Math.random() * 7200) - 3600;
+                updateDisplay();
+            }
+
+            function toggleWeatherSource() {
+                const useMock =
+                    document.getElementById("use_mock_weather").checked;
+                document.getElementById("mock_scenario").disabled = !useMock;
+                currentScenario =
+                    document.getElementById("mock_scenario").value;
+                console.log("Weather source toggled:", useMock ? "mock" : "real");
+                updateDisplay();
+            }
+
+            // Add event listener for scenario dropdown
+            document.getElementById("mock_scenario").addEventListener("change", function() {
+                currentScenario = this.value;
+                console.log("Scenario changed to:", currentScenario);
+                updateDisplay();
+            });
 
             function toggleAutoUpdate() {
                 saveSettings(); // Save settings when changed

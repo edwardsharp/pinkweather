@@ -47,7 +47,10 @@ def parse_current_weather_from_forecast(forecast_data, timezone_offset_hours=Non
             'weather_desc': manual_capitalize(current_item['weather'][0]['description']),
             'weather_icon': current_item['weather'][0]['icon'],
             'city_name': city_data['name'],
-            'country': city_data['country']
+            'country': city_data['country'],
+            'humidity': current_item['main'].get('humidity', 0),
+            'wind_speed': current_item.get('wind', {}).get('speed', 0),
+            'wind_gust': current_item.get('wind', {}).get('gust', 0)
         }
 
         # Add current timestamp from API for accurate date
@@ -429,6 +432,9 @@ def get_display_variables(forecast_data, timezone_offset_hours=None):
         'weather_icon_name': f"{current_weather['weather_icon']}.bmp",
         'sunrise_time': current_weather['sunrise_time'],
         'sunset_time': current_weather['sunset_time'],
+        'humidity': current_weather.get('humidity', 0),
+        'wind_speed': current_weather.get('wind_speed', 0),
+        'wind_gust': current_weather.get('wind_gust', 0),
 
         # Forecast data
         'forecast_data': forecast_items,

@@ -12,6 +12,8 @@ import io
 import os
 import json
 import sys
+import time
+from pathlib import Path
 
 # Add parent directory to path to import shared modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -19,7 +21,28 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from web_adapter import (
     get_mock_sensor_data, get_mock_csv_data, get_mock_system_status
 )
-from simple_web_render import render_250x122_display, render_400x300_display
+from simple_web_render import render_250x122_display, render_400x300_display, render_400x300_weather_layout
+from mock_weather_data import generate_scenario_data, get_predefined_scenarios
+from cached_weather import fetch_weather_data_cached
+import os
+
+# Load environment variables from .env file
+def load_dotenv():
+    """Load environment variables from .env file"""
+    env_file = Path(__file__).parent / '.env'
+    if env_file.exists():
+        with open(env_file) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key] = value
+        print(f"Loaded environment variables from {env_file}")
+    else:
+        print(f"No .env file found at {env_file}")
+
+# Load .env on module import
+load_dotenv()
 
 class DisplayHandler(BaseHTTPRequestHandler):
     # Store current image data in memory
@@ -40,6 +63,8 @@ class DisplayHandler(BaseHTTPRequestHandler):
             self.handle_preview_post()
         else:
             self.send_error(404, "File not found")
+
+
 
     def serve_index(self):
         """Serve the main HTML interface from template file."""
@@ -100,19 +125,167 @@ class DisplayHandler(BaseHTTPRequestHandler):
             # Get display type
             display_type = form_data.get('display_type', ['250x122'])[0]
 
-            if display_type == '400x300':
-                # Handle 400x300 display
-                text_input = form_data.get('text_input', [''])[0]
-                if not text_input:
-                    text_input = '<b>Sample:</b> Enter text in the input box below to preview on the <red>400×300</red> display!'
+            # Debug checkbox detection
+            use_mock_weather = 'use_mock_weather' in form_data
+            print(f"Display type: {display_type}, Mock weather checkbox detected: {use_mock_weather}")
 
-                image = render_400x300_display(text_input)
+            if display_type == '400x300':
+                # Handle 400x300 display with full weather layout
+                use_mock_weather = 'use_mock_weather' in form_data
+                current_weather = None
+                forecast_data = None
+                weather_desc = None
+                current_timestamp = None
+
+                if use_mock_weather:
+                    # Use real weather parsing pipeline with mock data
+                    mock_scenario = form_data.get('mock_scenario', ['winter_storm'])[0]
+                    mock_timestamp = form_data.get('mock_timestamp', [str(int(time.time()))])[0]
+
+                    print(f"Mock weather enabled: scenario={mock_scenario}, timestamp={mock_timestamp}")
+
+                    try:
+                        timestamp = int(mock_timestamp)
+                    except ValueError:
+                        timestamp = int(time.time())
+
+                    # Generate mock weather data
+                    mock_data = generate_scenario_data(mock_scenario, timestamp)
+                    print(f"Generated mock data for {mock_data['city']['name']}")
+
+                    # Generate weather narrative using real pipeline
+                    try:
+                        # Add 300x400/CIRCUITPY to path for weather modules
+                        circuitpy_path = os.path.join(os.path.dirname(__file__), '..', '300x400', 'CIRCUITPY')
+                        if circuitpy_path not in sys.path:
+                            sys.path.insert(0, circuitpy_path)
+
+                        from weather_narrative import get_weather_narrative
+                        from weather_api import parse_current_weather_from_forecast, get_display_variables
+
+                        # Parse weather data
+                        current_weather = parse_current_weather_from_forecast(mock_data, -5)
+                        display_vars = get_display_variables(mock_data, -5)
+
+                        if current_weather and display_vars.get('forecast_data'):
+                            narrative = get_weather_narrative(
+                                current_weather,
+                                display_vars['forecast_data'],
+                                current_weather.get('current_timestamp'),
+                                -5
+                            )
+                            # Store data for full layout rendering
+                            forecast_data = display_vars['forecast_data']
+                            weather_desc = narrative
+                            current_timestamp = current_weather.get('current_timestamp')
+                            print(f"Generated weather narrative ({len(narrative)} chars): {narrative[:100]}...")
+                        else:
+                            weather_desc = f"Mock weather scenario: {mock_scenario} (weather parsing failed)"
+                            print("Weather parsing returned None - using fallback text")
+
+                    except Exception as e:
+                        print(f"Error in weather narrative pipeline: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        weather_desc = f"Mock weather scenario: {mock_scenario} (error: {str(e)})"
+                else:
+                    # Use real weather API, fall back to mock on any error
+                    api_key = os.getenv('OPENWEATHER_API_KEY')
+                    if api_key:
+                        try:
+                            config = {
+                                'api_key': api_key,
+                                'latitude': float(os.getenv('LATITUDE', 40.7128)),
+                                'longitude': float(os.getenv('LONGITUDE', -74.0060)),
+                                'timezone_offset_hours': int(os.getenv('TIMEZONE_OFFSET_HOURS', -5)),
+                                'units': 'metric'
+                            }
+                            forecast_data = fetch_weather_data_cached(config)
+
+                            if forecast_data:
+                                # Add 300x400/CIRCUITPY to path for weather modules
+                                circuitpy_path = os.path.join(os.path.dirname(__file__), '..', '300x400', 'CIRCUITPY')
+                                if circuitpy_path not in sys.path:
+                                    sys.path.insert(0, circuitpy_path)
+
+                                from weather_narrative import get_weather_narrative
+                                from weather_api import parse_current_weather_from_forecast, get_display_variables
+
+                                # Parse real weather data
+                                current_weather = parse_current_weather_from_forecast(forecast_data, config['timezone_offset_hours'])
+                                display_vars = get_display_variables(forecast_data, config['timezone_offset_hours'])
+
+                                if current_weather and display_vars.get('forecast_data'):
+                                    narrative = get_weather_narrative(
+                                        current_weather,
+                                        display_vars['forecast_data'],
+                                        current_weather.get('current_timestamp'),
+                                        config['timezone_offset_hours']
+                                    )
+                                    # Store data for full layout rendering
+                                    forecast_data = display_vars['forecast_data']
+                                    weather_desc = narrative
+                                    current_timestamp = current_weather.get('current_timestamp')
+                                    print(f"Generated real weather narrative ({len(narrative)} chars): {narrative[:100]}...")
+                                else:
+                                    raise Exception("Real weather parsing returned None")
+                            else:
+                                raise Exception("Failed to fetch real weather data")
+                        except Exception as e:
+                            print(f"Real weather failed, falling back to mock: {e}")
+                            # Fall back to mock weather with default winter_storm scenario
+                            mock_data = generate_scenario_data('winter_storm', int(time.time()))
+                            current_weather = parse_current_weather_from_forecast(mock_data, -5)
+                            display_vars = get_display_variables(mock_data, -5)
+                            if current_weather and display_vars.get('forecast_data'):
+                                narrative = get_weather_narrative(
+                                    current_weather,
+                                    display_vars['forecast_data'],
+                                    current_weather.get('current_timestamp'),
+                                    -5
+                                )
+                                forecast_data = display_vars['forecast_data']
+                                weather_desc = narrative + " (using mock data - real API failed)"
+                                current_timestamp = current_weather.get('current_timestamp')
+                            else:
+                                weather_desc = "Both real and mock weather failed"
+                    else:
+                        print("No API key configured, using mock weather")
+                        # No API key - use mock weather
+                        mock_data = generate_scenario_data('winter_clear', int(time.time()))
+                        current_weather = parse_current_weather_from_forecast(mock_data, -5)
+                        display_vars = get_display_variables(mock_data, -5)
+                        if current_weather and display_vars.get('forecast_data'):
+                            narrative = get_weather_narrative(
+                                current_weather,
+                                display_vars['forecast_data'],
+                                current_weather.get('current_timestamp'),
+                                -5
+                            )
+                            forecast_data = display_vars['forecast_data']
+                            weather_desc = narrative + " (using mock data - no API key)"
+                            current_timestamp = current_weather.get('current_timestamp')
+                        else:
+                            weather_desc = "Mock weather generation failed"
+
+                print(f"Rendering 400x300 weather layout...")
+                if weather_desc:
+                    image = render_400x300_weather_layout(
+                        current_weather=current_weather,
+                        forecast_data=forecast_data,
+                        weather_desc=weather_desc,
+                        current_timestamp=current_timestamp,
+                        timezone_offset_hours=-5
+                    )
+                else:
+                    # Fallback to text renderer if no weather description
+                    image = render_400x300_display("No weather data available")
 
                 response_data = {
                     'success': True,
                     'image_url': '/current_image.png',
                     'display_type': '400x300',
-                    'text_content': text_input
+                    'text_content': weather_desc or "No weather data"
                 }
             else:
                 # Handle 250x122 display (original logic)
@@ -158,7 +331,7 @@ class DisplayHandler(BaseHTTPRequestHandler):
             image.save(img_buffer, format='PNG')
             DisplayHandler.current_image_data = img_buffer.getvalue()
 
-            print(f"Display generated ({display_type}), size: {len(DisplayHandler.current_image_data)} bytes")
+            print(f"Display generated ({display_type}), image size: {len(DisplayHandler.current_image_data)} bytes")
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -184,7 +357,7 @@ def run_server(port=8000):
     server_address = ('', port)
     httpd = HTTPServer(server_address, DisplayHandler)
 
-    print(f"Weather Display Development Server")
+    print(f"PinkWeather Development Server")
     print(f"Server running at http://localhost:{port}")
     print("Press Ctrl+C to stop the server")
 

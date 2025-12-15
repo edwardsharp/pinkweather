@@ -68,7 +68,7 @@ display = adafruit_ssd1683.SSD1683(
     display_bus,
     width=400,
     height=300,
-    highlight_color=0x000000,  # Black instead of red to prevent artifacts
+    highlight_color=0xFF0000,  # Black instead of red to prevent artifacts
     busy_pin=busy_pin
 )
 
@@ -163,11 +163,15 @@ def update_display_with_weather_layout():
     # Set up icon loader for forecast rows
     set_icon_loader(sd_available, load_bmp_icon)
 
+    # Generate rich weather narrative
+    timezone_offset = getattr(config, 'TIMEZONE_OFFSET_HOURS', -5)
+    weather_narrative = generate_weather_narrative(weather_data, timezone_offset)
+
     main_group = create_weather_layout(
         current_timestamp=weather_data.get('current_timestamp'),
-        timezone_offset_hours=getattr(config, 'TIMEZONE_OFFSET_HOURS', -5),
+        timezone_offset_hours=timezone_offset,
         forecast_data=weather_data['forecast_data'],
-        weather_desc=weather_data['weather_desc'],
+        weather_desc=weather_narrative,
         icon_loader=load_bmp_icon if sd_available else None
     )
 
@@ -181,6 +185,44 @@ def update_display_with_weather_layout():
     # Wait for refresh to complete
     time.sleep(display.time_to_refresh + 2)
     print("Refresh complete")
+
+def generate_weather_narrative(weather_data, timezone_offset_hours):
+    """Generate rich weather narrative from weather data"""
+    try:
+        from weather_narrative import get_weather_narrative
+
+        # Extract current weather info for narrative generation
+        current_weather = {
+            'current_temp': weather_data.get('current_temp', 0),
+            'feels_like': weather_data.get('feels_like', 0),
+            'high_temp': weather_data.get('high_temp', 0),
+            'low_temp': weather_data.get('low_temp', 0),
+            'weather_desc': weather_data.get('weather_desc', ''),
+            'sunrise_time': weather_data.get('sunrise_time', '7:00a'),
+            'sunset_time': weather_data.get('sunset_time', '5:00p'),
+            'humidity': weather_data.get('humidity', 0),
+            'wind_speed': weather_data.get('wind_speed', 0),
+            'wind_gust': weather_data.get('wind_gust', 0)
+        }
+
+        forecast_data = weather_data.get('forecast_data', [])
+        current_timestamp = weather_data.get('current_timestamp')
+
+        # Generate the rich narrative
+        narrative = get_weather_narrative(
+            current_weather,
+            forecast_data,
+            current_timestamp,
+            timezone_offset_hours
+        )
+
+        print(f"Generated weather narrative: {narrative[:50]}...")
+        return narrative
+
+    except Exception as e:
+        print(f"Error generating weather narrative: {e}")
+        # Fallback to basic description
+        return weather_data.get('weather_desc', 'Weather information unavailable')
 
 # Get text capacity information
 capacity = get_text_capacity()
