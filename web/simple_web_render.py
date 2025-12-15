@@ -133,6 +133,13 @@ def render_400x300_weather_layout(current_weather=None, forecast_data=None, weat
             # The caller will set x,y position after this returns
             return load_web_bmp_icon(filename, 0, 0)
 
+        # Configure forecast row icon loader (required for forecast icons to show)
+        try:
+            from forecast_row import set_icon_loader
+            set_icon_loader(True, icon_loader_wrapper)  # Icons available via web loader
+        except ImportError:
+            pass  # Forecast row module not available
+
         # Create weather layout
         main_group = display_module.create_weather_layout(
             current_timestamp=current_timestamp,
