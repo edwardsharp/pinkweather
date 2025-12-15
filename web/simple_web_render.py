@@ -106,7 +106,7 @@ def render_400x300_display(text_content):
     return displayio_group_to_pil_image(main_group, width=400, height=300)
 
 
-def render_400x300_weather_layout(current_weather=None, forecast_data=None, weather_desc=None, current_timestamp=None, timezone_offset_hours=-5):
+def render_400x300_weather_layout(current_weather=None, forecast_data=None, weather_desc=None, current_timestamp=None, timezone_offset_hours=-5, day_name=None, day_num=None, month_name=None):
     """
     Render full 400x300 weather layout with header, forecast, and description
     Returns PIL Image
@@ -140,13 +140,16 @@ def render_400x300_weather_layout(current_weather=None, forecast_data=None, weat
         except ImportError:
             pass  # Forecast row module not available
 
-        # Create weather layout
+        # Create weather layout with date info from weather data
         main_group = display_module.create_weather_layout(
             current_timestamp=current_timestamp,
             timezone_offset_hours=timezone_offset_hours,
             forecast_data=forecast_data,
             weather_desc=weather_desc,
-            icon_loader=icon_loader_wrapper  # Use wrapped icon loader
+            icon_loader=icon_loader_wrapper,  # Use wrapped icon loader
+            day_name=day_name,
+            day_num=day_num,
+            month_name=month_name
         )
 
     finally:

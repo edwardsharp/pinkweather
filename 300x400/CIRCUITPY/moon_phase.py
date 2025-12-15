@@ -83,10 +83,8 @@ def calculate_moon_phase(unix_timestamp=None, year=None, month=None, day=None):
     if unix_timestamp is not None:
         year, month, day = timestamp_to_date(unix_timestamp)
     else:
-        # Use reasonable defaults if no date provided
-        year = year or 2024
-        month = month or 12
-        day = day or 14
+        # No date provided - cannot calculate moon phase
+        return None
 
     # Convert to Julian Day Number
     current_jd = date_to_julian_day(year, month, day)
@@ -114,6 +112,9 @@ def calculate_moon_phase(unix_timestamp=None, year=None, month=None, day=None):
 
 def phase_to_icon_name(phase):
     """Convert moon phase (0.0-1.0) to icon name"""
+    if phase is None:
+        return "moon-new"  # Default icon if phase calculation failed
+
     # Normalize phase to 0.0-1.0 range
     phase = phase % 1.0
 
@@ -148,6 +149,11 @@ def get_moon_info(unix_timestamp=None, year=None, month=None, day=None):
     print(f"Moon phase calculation for timestamp: {unix_timestamp}")
     phase = calculate_moon_phase(unix_timestamp, year, month, day)
     print(f"Calculated moon phase value: {phase}")
+
+    if phase is None:
+        print("Moon phase calculation failed - no valid date provided")
+        return None
+
     icon_name = phase_to_icon_name(phase)
 
     # Convert phase to percentage

@@ -4,10 +4,12 @@ Hourly forecast row with stacked cells (time, icon, temperature)
 
 import displayio
 import terminalio
+import config
 from adafruit_display_text import label
+from adafruit_bitmap_font import bitmap_font
 from adafruit_display_shapes.rect import Rect
 from adafruit_display_shapes.line import Line
-from adafruit_bitmap_font import bitmap_font
+from date_utils import format_timestamp_to_hhmm
 from text_renderer import BLACK, WHITE
 
 # Global configuration for icon loading
@@ -24,30 +26,20 @@ def set_icon_loader(sd_available_flag, icon_loader_func):
 hyperl15_font = bitmap_font.load_font("hyperl15reg.pcf")
 terminal_font = terminalio.FONT
 
-def format_time_hhmm(timestamp, timezone_offset_hours=None):
-    """Format timestamp to HH:MM format with timezone offset"""
-    if timezone_offset_hours is None:
-        timezone_offset_hours = -5
 
-    local_timestamp = timestamp + (timezone_offset_hours * 3600)
-    hours_since_epoch = local_timestamp // 3600
-    hour = hours_since_epoch % 24
-    minute = (local_timestamp % 3600) // 60
-    return f"{hour:02d}:{minute:02d}"
 
 def get_cell_display_text(forecast_item, timezone_offset_hours=None):
     """Get display text for a forecast cell"""
     if forecast_item.get('is_now', False):
         return "NOW"
 
-    if forecast_item.get('is_special', False):
+    if forecast_item.get('is_special'):
+        # Special events (sunrise/sunset) already have local timestamps from API
         display_timestamp = forecast_item.get('display_time', forecast_item['dt'])
-        hours_since_epoch = display_timestamp // 3600
-        hour = hours_since_epoch % 24
-        minute = (display_timestamp % 3600) // 60
-        return f"{hour:02d}:{minute:02d}"
+        return format_timestamp_to_hhmm(display_timestamp, 0)  # No timezone conversion needed
 
-    return format_time_hhmm(forecast_item['dt'], timezone_offset_hours)
+    # Regular forecast items have UTC timestamps, need conversion
+    return format_timestamp_to_hhmm(forecast_item['dt'], timezone_offset_hours or -5)
 
 def create_forecast_row(forecast_data, y_position=50):
     """Create hourly forecast row with stacked cells
@@ -66,7 +58,6 @@ def create_forecast_row(forecast_data, y_position=50):
         forecast_item = forecast_data[i]
         cell_x = i * cell_width
 
-        import config
         timezone_offset = getattr(config, 'TIMEZONE_OFFSET_HOURS', -5)
         time_str = get_cell_display_text(forecast_item, timezone_offset)
 

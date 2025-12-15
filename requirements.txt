@@ -6,6 +6,7 @@ cairosvg>=2.7.0
 adafruit-circuitpython-bitmap_font>=2.3.0
 adafruit-circuitpython-display_text>=3.3.0
 adafruit-circuitpython-display_shapes>=2.10.0
+adafruit-circuitpython-datetime>=1.0.0
 
 # Microcontroller dependencies (CircuitPython)
 # These are only needed when running on Pi Pico 2W

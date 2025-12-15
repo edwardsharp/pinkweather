@@ -15,7 +15,7 @@ from weather_description import create_weather_description
 # Load hyperl15reg.pcf font for header
 hyperl15_font = bitmap_font.load_font("hyperl15reg.pcf")
 
-def create_header(current_timestamp=None, timezone_offset_hours=None, y_position=10, icon_loader=None):
+def create_header(current_timestamp=None, timezone_offset_hours=None, y_position=10, icon_loader=None, day_name=None, day_num=None, month_name=None):
     """Create single-line header with date and moon phase
 
     Args:
@@ -23,43 +23,45 @@ def create_header(current_timestamp=None, timezone_offset_hours=None, y_position
         timezone_offset_hours: Timezone offset for local time
         y_position: Y position for the header line
         icon_loader: Function to load icons (same as forecast icons use)
+        day_name: Pre-calculated day name (e.g. 'MON')
+        day_num: Pre-calculated day number (e.g. 15)
+        month_name: Pre-calculated month name (e.g. 'DEC')
 
     Returns:
         DisplayIO group containing the header elements
     """
 
+    # Require explicit timezone offset - no defaults
     if timezone_offset_hours is None:
-        timezone_offset_hours = -5  # Default EST offset
+        raise ValueError("timezone_offset_hours must be provided")
 
     # Create display group for header
     header_group = displayio.Group()
 
-    # Get current date from timestamp
+    # Use pre-calculated date info (always required now)
+    if day_name and day_num and month_name:
+        date_str = f"{day_name} {day_num} {month_name}"
+    else:
+        date_str = "DATE ERROR"  # Should not happen if called correctly
+
+    # Set local_timestamp for moon phase calculation
     if current_timestamp:
         local_timestamp = current_timestamp + (timezone_offset_hours * 3600)
-        try:
-            current_time = time.gmtime(local_timestamp)
-        except AttributeError:
-            current_time = time.localtime(local_timestamp)
     else:
-        current_time = time.localtime()
-        local_timestamp = time.time()  # Use current time as fallback
+        local_timestamp = None
 
-    # Format date string
-    day_names = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
-    month_names = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-                   'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-
-    day_name = day_names[current_time[6]]  # tm_wday
-    day_num = current_time[2]  # tm_mday
-    month_name = month_names[current_time[1] - 1]  # tm_mon
-
-    date_str = f"{day_name} {day_num} {month_name}"
-
-    # Get moon phase info using same local timestamp as date calculation
-    moon_info = moon_phase.get_moon_info(local_timestamp)
-    moon_phase_str = moon_info['name'].upper()
-    moon_icon_name = moon_phase.phase_to_icon_name(moon_info['phase'])
+    # Get moon phase info using local timestamp
+    if local_timestamp:
+        moon_info = moon_phase.get_moon_info(local_timestamp)
+        if moon_info:
+            moon_phase_str = moon_info['name'].upper()
+            moon_icon_name = moon_phase.phase_to_icon_name(moon_info['phase'])
+        else:
+            moon_phase_str = None
+            moon_icon_name = None
+    else:
+        moon_phase_str = None
+        moon_icon_name = None
 
     # Black background rectangle behind header text, leaving space for moon icon
     header_bg = Rect(0, 0, 370, 25, fill=BLACK)
@@ -78,7 +80,8 @@ def create_header(current_timestamp=None, timezone_offset_hours=None, y_position
     header_group.append(moon_label)
 
     # Moon phase icon positioned at far right
-    if icon_loader:
+    # Add moon icon if available and moon phase calculation succeeded
+    if icon_loader and moon_icon_name:
         moon_icon = icon_loader(f"{moon_icon_name}.bmp")
         if moon_icon:
             moon_icon.x = 375
@@ -91,7 +94,7 @@ def get_header_height():
     """Get the total height needed for the header"""
     return 25
 
-def create_weather_layout(current_timestamp=None, timezone_offset_hours=None, forecast_data=None, weather_desc=None, icon_loader=None):
+def create_weather_layout(current_timestamp=None, timezone_offset_hours=None, forecast_data=None, weather_desc=None, icon_loader=None, day_name=None, day_num=None, month_name=None):
     """Create complete weather layout with single-line header, forecast, and description
 
     Args:
@@ -100,6 +103,9 @@ def create_weather_layout(current_timestamp=None, timezone_offset_hours=None, fo
         forecast_data: List of forecast items for the forecast row
         weather_desc: Weather description text
         icon_loader: Function to load icons (same as forecast icons use)
+        day_name: Pre-calculated day name (e.g. 'MON')
+        day_num: Pre-calculated day number (e.g. 15)
+        month_name: Pre-calculated month name (e.g. 'DEC')
 
     Returns:
         DisplayIO group containing the complete layout
@@ -109,7 +115,7 @@ def create_weather_layout(current_timestamp=None, timezone_offset_hours=None, fo
     main_group = displayio.Group()
 
     # Create header
-    header_group = create_header(current_timestamp, timezone_offset_hours, y_position=15, icon_loader=icon_loader)
+    header_group = create_header(current_timestamp, timezone_offset_hours, y_position=15, icon_loader=icon_loader, day_name=day_name, day_num=day_num, month_name=month_name)
     main_group.append(header_group)
 
     # Add forecast row below header

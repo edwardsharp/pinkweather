@@ -25,6 +25,7 @@ from forecast_row import set_icon_loader
 # Import configuration and shared modules
 import config
 import weather_api
+from weather_narrative import get_weather_narrative
 
 
 # Create weather config from imported settings
@@ -103,31 +104,7 @@ BLACK = 0x000000
 WHITE = 0xFFFFFF
 RED = 0xFF0000
 
-def format_time(unix_timestamp=None):
-    """Format time as '9:36p' (12-hour format with am/p suffix)"""
-    if unix_timestamp is None:
-        time_struct = time.localtime()
-    else:
-        time_struct = time.localtime(unix_timestamp)
 
-    hour = time_struct.tm_hour
-    minute = time_struct.tm_min
-
-    # Convert to 12-hour format
-    if hour == 0:
-        hour_12 = 12
-        suffix = 'a'
-    elif hour < 12:
-        hour_12 = hour
-        suffix = 'a'
-    elif hour == 12:
-        hour_12 = 12
-        suffix = 'p'
-    else:
-        hour_12 = hour - 12
-        suffix = 'p'
-
-    return f"{hour_12}:{minute:02d}{suffix}"
 
 def check_memory():
     """Check available memory and force collection if low"""
@@ -155,8 +132,12 @@ def update_display_with_weather_layout():
     """Create weather layout with single-line header"""
     check_memory()
 
-    # Get parsed weather data (real or fallback)
+    # Get parsed weather data
     weather_data = get_weather_display_data()
+
+    if not weather_data:
+        print("No weather data available - cannot create display")
+        return
 
     print("Creating weather layout...")
 
@@ -172,7 +153,10 @@ def update_display_with_weather_layout():
         timezone_offset_hours=timezone_offset,
         forecast_data=weather_data['forecast_data'],
         weather_desc=weather_narrative,
-        icon_loader=load_bmp_icon if sd_available else None
+        icon_loader=load_bmp_icon if sd_available else None,
+        day_name=weather_data.get('day_name'),
+        day_num=weather_data.get('day_num'),
+        month_name=weather_data.get('month_name')
     )
 
     # Update display
@@ -189,7 +173,6 @@ def update_display_with_weather_layout():
 def generate_weather_narrative(weather_data, timezone_offset_hours):
     """Generate rich weather narrative from weather data"""
     try:
-        from weather_narrative import get_weather_narrative
 
         # Extract current weather info for narrative generation
         current_weather = {
@@ -221,7 +204,7 @@ def generate_weather_narrative(weather_data, timezone_offset_hours):
 
     except Exception as e:
         print(f"Error generating weather narrative: {e}")
-        # Fallback to basic description
+        # Use basic description instead
         return weather_data.get('weather_desc', 'Weather information unavailable')
 
 # Get text capacity information
@@ -250,16 +233,15 @@ def get_weather_display_data():
     timezone_offset = getattr(config, 'TIMEZONE_OFFSET_HOURS', -5)
 
     if WEATHER_CONFIG is None:
-        print("Weather API not configured, using fallback data")
-        return weather_api.get_display_variables(None, None, timezone_offset)
+        print("Weather API not configured")
+        return None
     elif wifi.radio.connected:
         # Fetch real weather data (forecast API only)
         forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG)
         return weather_api.get_display_variables(forecast_data, timezone_offset)
     else:
-        # Use fallback data
-        print("WiFi not connected, using fallback data")
-        return weather_api.get_display_variables(None, None, timezone_offset)
+        print("WiFi not connected")
+        return None
 
 # Main execution
 def main():
@@ -268,7 +250,7 @@ def main():
     if connect_wifi():
         print("WiFi connected, will fetch real weather data")
     else:
-        print("WiFi connection failed or skipped, will use fallback data")
+        print("WiFi connection failed or skipped")
 
     # Update display
     update_display_with_weather_layout()

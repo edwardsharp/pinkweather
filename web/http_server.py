@@ -270,12 +270,20 @@ class DisplayHandler(BaseHTTPRequestHandler):
 
                 print(f"Rendering 400x300 weather layout...")
                 if weather_desc:
+                    # Get date info from display_vars if available
+                    day_name = display_vars.get('day_name') if 'display_vars' in locals() else None
+                    day_num = display_vars.get('day_num') if 'display_vars' in locals() else None
+                    month_name = display_vars.get('month_name') if 'display_vars' in locals() else None
+
                     image = render_400x300_weather_layout(
                         current_weather=current_weather,
                         forecast_data=forecast_data,
                         weather_desc=weather_desc,
                         current_timestamp=current_timestamp,
-                        timezone_offset_hours=-5
+                        timezone_offset_hours=-5,
+                        day_name=day_name,
+                        day_num=day_num,
+                        month_name=month_name
                     )
                 else:
                     # Fallback to text renderer if no weather description
