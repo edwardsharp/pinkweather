@@ -5,7 +5,7 @@ Works on both CircuitPython hardware and standard Python web server
 
 import json
 import time
-from date_utils import format_timestamp_to_date, format_timestamp_to_time
+from date_utils import format_timestamp_to_date, format_timestamp_to_time, utc_to_local
 
 # No default configuration - must be provided by calling code
 
@@ -54,35 +54,23 @@ def parse_current_weather_from_forecast(forecast_data, timezone_offset_hours=Non
             'wind_gust': current_item.get('wind', {}).get('gust', 0)
         }
 
-        # Add current timestamp from API for accurate date
-        parsed['current_timestamp'] = current_item['dt']
+        # Add current timestamp from API for accurate date (convert UTC to local)
+        parsed['current_timestamp'] = utc_to_local(current_item['dt'], timezone_offset_hours)
 
         # Add sunrise/sunset from city data
         if 'sunrise' in city_data and 'sunset' in city_data:
             sunrise_ts = city_data['sunrise']
             sunset_ts = city_data['sunset']
 
-            # Debug logging for sunrise/sunset timestamps
-            print(f"DEBUG: Raw sunrise timestamp from API: {sunrise_ts}")
-            print(f"DEBUG: Raw sunset timestamp from API: {sunset_ts}")
-            print(f"DEBUG: Current timestamp from API: {current_item['dt']}")
+            # Convert UTC timestamps to local time immediately
+            sunrise_local = utc_to_local(sunrise_ts, timezone_offset_hours)
+            sunset_local = utc_to_local(sunset_ts, timezone_offset_hours)
 
-            # Test both UTC and local time interpretations
-            sunrise_utc_formatted = format_timestamp_to_time(sunrise_ts, timezone_offset_hours, format_12h=True)
-            sunset_utc_formatted = format_timestamp_to_time(sunset_ts, timezone_offset_hours, format_12h=True)
-            sunrise_local_formatted = format_timestamp_to_time(sunrise_ts, 0, format_12h=True)
-            sunset_local_formatted = format_timestamp_to_time(sunset_ts, 0, format_12h=True)
-
-            print(f"DEBUG: Sunrise as UTC+offset: {sunrise_utc_formatted}")
-            print(f"DEBUG: Sunset as UTC+offset: {sunset_utc_formatted}")
-            print(f"DEBUG: Sunrise as local time: {sunrise_local_formatted}")
-            print(f"DEBUG: Sunset as local time: {sunset_local_formatted}")
-
-            # Store both timestamps and formatted times (temporarily use local time interpretation)
-            parsed['sunrise_timestamp'] = sunrise_ts
-            parsed['sunset_timestamp'] = sunset_ts
-            parsed['sunrise_time'] = format_timestamp_to_time(sunrise_ts, 0, format_12h=True)  # Try as local time
-            parsed['sunset_time'] = format_timestamp_to_time(sunset_ts, 0, format_12h=True)   # Try as local time
+            # Store both timestamps and formatted times (all in local time)
+            parsed['sunrise_timestamp'] = sunrise_local
+            parsed['sunset_timestamp'] = sunset_local
+            parsed['sunrise_time'] = format_timestamp_to_time(sunrise_local, format_12h=True)
+            parsed['sunset_time'] = format_timestamp_to_time(sunset_local, format_12h=True)
         else:
             parsed['sunrise_timestamp'] = None
             parsed['sunset_timestamp'] = None
@@ -95,7 +83,7 @@ def parse_current_weather_from_forecast(forecast_data, timezone_offset_hours=Non
         print(f"Error parsing current weather from forecast: {e}")
         return None
 
-def parse_forecast_data(forecast_data):
+def parse_forecast_data(forecast_data, timezone_offset_hours):
     """Parse forecast API response into display variables (skip first item since it's used as current)"""
     if not forecast_data or 'list' not in forecast_data:
         return None
@@ -105,8 +93,9 @@ def parse_forecast_data(forecast_data):
 
         # Skip first item (used as current weather), take next 8 items
         for item in forecast_data['list'][1:9]:
+            # Convert forecast timestamps to local time
             parsed_item = {
-                'dt': item['dt'],
+                'dt': utc_to_local(item['dt'], timezone_offset_hours),
                 'temp': round(item['main']['temp']),
                 'feels_like': round(item['main']['feels_like']),
                 'icon': item['weather'][0]['icon'],
@@ -167,19 +156,14 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
     if not current_weather:
         return []
 
-    current_timestamp = current_weather['current_timestamp']
-    print(f"Current API timestamp: {current_timestamp}")
-
-    # Convert current time to local for comparison
-    local_current_timestamp = current_timestamp + (timezone_offset_hours * 3600)
-    print(f"Local current timestamp: {local_current_timestamp}")
+    current_timestamp = current_weather['current_timestamp']  # Already in local time
 
     # Get forecast items for temperature interpolation
-    forecast_items = parse_forecast_data(forecast_data)
+    forecast_items = parse_forecast_data(forecast_data, timezone_offset_hours)
 
     # Create "NOW" cell
     now_item = {
-        'dt': current_timestamp,  # Use actual current timestamp
+        'dt': current_timestamp,  # Use actual current timestamp (already local)
         'temp': current_weather['current_temp'],
         'feels_like': current_weather['feels_like'],
         'icon': current_weather['weather_icon'],
@@ -192,46 +176,34 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
     if 'city' in forecast_data:
         city_data = forecast_data['city']
         if 'sunrise' in city_data and 'sunset' in city_data:
-            sunrise_ts = city_data['sunrise']
-            sunset_ts = city_data['sunset']
+            # Convert UTC timestamps to local time
+            sunrise_ts = utc_to_local(city_data['sunrise'], timezone_offset_hours)
+            sunset_ts = utc_to_local(city_data['sunset'], timezone_offset_hours)
 
-            print(f"API sunrise UTC: {sunrise_ts}, sunset UTC: {sunset_ts}")
-            print(f"Current API time UTC: {current_timestamp}")
+            # Calculate tomorrow's sunrise/sunset (add 24 hours) - already local
+            tomorrow_sunrise_ts = sunrise_ts + 86400  # Local + 24 hours
+            tomorrow_sunset_ts = sunset_ts + 86400    # Local + 24 hours
 
-            # API appears to return sunrise/sunset in local time, not UTC
-            # So we don't need to apply timezone conversion
-            local_sunrise_ts = sunrise_ts
-            local_sunset_ts = sunset_ts
-
-            # Calculate tomorrow's sunrise/sunset (add 24 hours to local times)
-            tomorrow_sunrise_ts = sunrise_ts + 86400  # Local time + 24 hours
-            tomorrow_sunset_ts = sunset_ts + 86400    # Local time + 24 hours
-            local_tomorrow_sunrise_ts = tomorrow_sunrise_ts
-            local_tomorrow_sunset_ts = tomorrow_sunset_ts
-
-            # Include sunrise/sunset if they're within past 6 hours or future 24 hours
-            past_window = 6 * 3600  # 6 hours ago
+            # Include sunrise/sunset if they're in the future (within next 24 hours)
+            # Don't show past sunrise/sunset events
             future_window = 24 * 3600  # 24 hours from now
 
-            print(f"Local sunrise: {local_sunrise_ts}, local sunset: {local_sunset_ts}")
-            print(f"Local tomorrow sunrise: {local_tomorrow_sunrise_ts}, local tomorrow sunset: {local_tomorrow_sunset_ts}")
-
-            # Store all special event times for filtering forecast items
+            # Store all special event times for filtering forecast items (all local)
             special_event_times = []
 
-            # Today's sunrise/sunset - convert current time to local for comparison
-            local_current_timestamp = current_timestamp + (timezone_offset_hours * 3600)
-            if local_current_timestamp - past_window <= sunrise_ts <= local_current_timestamp + future_window:
+            # Today's sunrise/sunset - compare local times
+            print(f"DEBUG: Current time: {current_timestamp}, Sunrise: {sunrise_ts}")
+            print(f"DEBUG: Time since sunrise: {(current_timestamp - sunrise_ts) / 3600:.1f} hours")
+            print(f"DEBUG: Future window: {future_window / 3600} hours")
+
+            if current_timestamp <= sunrise_ts <= current_timestamp + future_window:
                 # Calculate interpolated temperature for sunrise time
-                # Convert sunrise time to UTC for interpolation (forecast items are in UTC)
-                sunrise_utc = sunrise_ts - (timezone_offset_hours * 3600)
-                sunrise_temp = interpolate_temperature(sunrise_utc, forecast_items)
+                sunrise_temp = interpolate_temperature(sunrise_ts, forecast_items)
                 if sunrise_temp is None:
                     sunrise_temp = current_weather['current_temp']
 
                 sunrise_item = {
-                    'dt': sunrise_ts,  # Store local time (API gives local time)
-                    'display_time': local_sunrise_ts,  # Same as dt since already local
+                    'dt': sunrise_ts,  # Store local time
                     'temp': sunrise_temp,
                     'feels_like': current_weather['feels_like'],  # Could also interpolate this
                     'icon': 'sunrise',
@@ -241,20 +213,20 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
                     'special_type': 'sunrise'
                 }
                 enhanced_items.append(sunrise_item)
-                special_event_times.append(local_sunrise_ts)
-                print(f"Added sunrise at local time {local_sunrise_ts} with temp {sunrise_temp}°C")
+                special_event_times.append(sunrise_ts)
 
-            if local_current_timestamp - past_window <= sunset_ts <= local_current_timestamp + future_window:
+            print(f"DEBUG: Current time: {current_timestamp}, Sunset: {sunset_ts}")
+            print(f"DEBUG: Time until sunset: {(sunset_ts - current_timestamp) / 3600:.1f} hours")
+
+            if current_timestamp <= sunset_ts <= current_timestamp + future_window:
                 # Calculate interpolated temperature for sunset time
-                # Convert sunset time to UTC for interpolation (forecast items are in UTC)
-                sunset_utc = sunset_ts - (timezone_offset_hours * 3600)
-                sunset_temp = interpolate_temperature(sunset_utc, forecast_items)
+                # Calculate interpolated temperature for sunset time
+                sunset_temp = interpolate_temperature(sunset_ts, forecast_items)
                 if sunset_temp is None:
                     sunset_temp = current_weather['current_temp']
 
                 sunset_item = {
-                    'dt': sunset_ts,  # Store local time (API gives local time)
-                    'display_time': local_sunset_ts,  # Same as dt since already local
+                    'dt': sunset_ts,  # Store local time
                     'temp': sunset_temp,
                     'feels_like': current_weather['feels_like'],  # Could also interpolate this
                     'icon': 'sunset',
@@ -264,21 +236,18 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
                     'special_type': 'sunset'
                 }
                 enhanced_items.append(sunset_item)
-                special_event_times.append(local_sunset_ts)
-                print(f"Added sunset at local time {local_sunset_ts} with temp {sunset_temp}°C")
+                special_event_times.append(sunset_ts)
 
-            # Tomorrow's sunrise/sunset - compare with local current time
-            if local_current_timestamp - past_window <= tomorrow_sunrise_ts <= local_current_timestamp + future_window:
+            # Tomorrow's sunrise/sunset - compare local times
+            if current_timestamp <= tomorrow_sunrise_ts <= current_timestamp + future_window:
                 # Calculate interpolated temperature for tomorrow's sunrise time
-                # Convert tomorrow's sunrise time to UTC for interpolation (forecast items are in UTC)
-                tomorrow_sunrise_utc = tomorrow_sunrise_ts - (timezone_offset_hours * 3600)
-                tomorrow_sunrise_temp = interpolate_temperature(tomorrow_sunrise_utc, forecast_items)
+                # Calculate interpolated temperature for tomorrow's sunrise time
+                tomorrow_sunrise_temp = interpolate_temperature(tomorrow_sunrise_ts, forecast_items)
                 if tomorrow_sunrise_temp is None:
                     tomorrow_sunrise_temp = current_weather['current_temp']
 
                 tomorrow_sunrise_item = {
-                    'dt': tomorrow_sunrise_ts,  # Store local time (API gives local time)
-                    'display_time': local_tomorrow_sunrise_ts,  # Same as dt since already local
+                    'dt': tomorrow_sunrise_ts,  # Store local time
                     'temp': tomorrow_sunrise_temp,
                     'feels_like': current_weather['feels_like'],  # Could also interpolate this
                     'icon': 'sunrise',
@@ -288,20 +257,17 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
                     'special_type': 'sunrise'
                 }
                 enhanced_items.append(tomorrow_sunrise_item)
-                special_event_times.append(local_tomorrow_sunrise_ts)
-                print(f"Added tomorrow sunrise at local time {local_tomorrow_sunrise_ts} with temp {tomorrow_sunrise_temp}°C")
+                special_event_times.append(tomorrow_sunrise_ts)
 
-            if local_current_timestamp - past_window <= tomorrow_sunset_ts <= local_current_timestamp + future_window:
+            if current_timestamp <= tomorrow_sunset_ts <= current_timestamp + future_window:
                 # Calculate interpolated temperature for tomorrow's sunset time
-                # Convert tomorrow's sunset time to UTC for interpolation (forecast items are in UTC)
-                tomorrow_sunset_utc = tomorrow_sunset_ts - (timezone_offset_hours * 3600)
-                tomorrow_sunset_temp = interpolate_temperature(tomorrow_sunset_utc, forecast_items)
+                # Calculate interpolated temperature for tomorrow's sunset time
+                tomorrow_sunset_temp = interpolate_temperature(tomorrow_sunset_ts, forecast_items)
                 if tomorrow_sunset_temp is None:
                     tomorrow_sunset_temp = current_weather['current_temp']
 
                 tomorrow_sunset_item = {
-                    'dt': tomorrow_sunset_ts,  # Store local time (API gives local time)
-                    'display_time': local_tomorrow_sunset_ts,  # Same as dt since already local
+                    'dt': tomorrow_sunset_ts,  # Store local time
                     'temp': tomorrow_sunset_temp,
                     'feels_like': current_weather['feels_like'],  # Could also interpolate this
                     'icon': 'sunset',
@@ -311,40 +277,29 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
                     'special_type': 'sunset'
                 }
                 enhanced_items.append(tomorrow_sunset_item)
-                special_event_times.append(local_tomorrow_sunset_ts)
-                print(f"Added tomorrow sunset at local time {local_tomorrow_sunset_ts} with temp {tomorrow_sunset_temp}°C")
+                special_event_times.append(tomorrow_sunset_ts)
 
     # Add regular forecast items (filter based on special events and current time)
     # forecast_items already loaded above for temperature interpolation
     if forecast_items:
-        print(f"Processing {len(forecast_items)} forecast items")
         for item in forecast_items:
-            # item['dt'] is UTC from API, convert to local for comparison with sunrise/sunset
-            print(f"Forecast item: UTC {item['dt']}")
-
-            # Skip if forecast time is in the past (compare UTC times directly)
+            # Skip if forecast time is in the past (compare local times directly)
             if item['dt'] <= current_timestamp:
-                print(f"  Skipping: forecast time {item['dt']} is in past, current UTC time {current_timestamp}")
                 continue
 
-            # Convert to local time for special event comparison
-            forecast_local_time = item['dt'] + (timezone_offset_hours * 3600)
-
-            # Skip if too close to any special event (within 30 minutes)
+            # Skip if too close to any special event (within 30 minutes) - all in local time
             too_close_to_special = False
             if 'special_event_times' in locals():
                 for special_time in special_event_times:
-                    if abs(forecast_local_time - special_time) <= (30 * 60):
-                        print(f"  Skipping: too close to special event at {special_time}")
+                    if abs(item['dt'] - special_time) <= (30 * 60):
                         too_close_to_special = True
                         break
 
             if not too_close_to_special:
-                # Mark regular forecast items but keep UTC timestamps
+                # Mark regular forecast items but keep local timestamps
                 item['is_now'] = False
                 item['is_special'] = False
                 enhanced_items.append(item)
-                print(f"  Added forecast item at UTC {item['dt']}")
 
     # Sort items: NOW first, then chronological order by timestamp
     def sort_key(item):
@@ -355,11 +310,7 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
 
     enhanced_items.sort(key=sort_key)
 
-    # Debug output for ordering
-    print("Enhanced forecast order:")
-    for i, item in enumerate(enhanced_items[:8]):
-        item_type = "NOW" if item.get('is_now') else item.get('special_type', 'forecast')
-        print(f"  {i+1}. {item_type} - dt:{item['dt']}")
+
 
     # Return up to 8 items for display
     return enhanced_items[:8]
@@ -387,7 +338,7 @@ def get_display_variables(forecast_data, timezone_offset_hours=None):
             raise ValueError("timezone_offset_hours must be provided")
 
         # Convert timestamp to date components using centralized utility
-        date_info = format_timestamp_to_date(api_timestamp, timezone_offset_hours)
+        date_info = format_timestamp_to_date(api_timestamp)
         day_name = date_info['day_name']
         day_num = date_info['day_num']
         month_name = date_info['month_name']

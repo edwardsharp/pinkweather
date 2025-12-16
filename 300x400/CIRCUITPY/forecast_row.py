@@ -28,18 +28,14 @@ terminal_font = terminalio.FONT
 
 
 
-def get_cell_display_text(forecast_item, timezone_offset_hours=None):
-    """Get display text for a forecast cell"""
+def get_cell_display_text(forecast_item):
+    """Get display text for a forecast cell - timestamps are already in local time"""
     if forecast_item.get('is_now', False):
         return "NOW"
 
-    if forecast_item.get('is_special'):
-        # Special events (sunrise/sunset) already have local timestamps from API
-        display_timestamp = forecast_item.get('display_time', forecast_item['dt'])
-        return format_timestamp_to_hhmm(display_timestamp, 0)  # No timezone conversion needed
-
-    # Regular forecast items have UTC timestamps, need conversion
-    return format_timestamp_to_hhmm(forecast_item['dt'], timezone_offset_hours or -5)
+    # All timestamps are already in local time, no conversion needed
+    local_timestamp = forecast_item['dt']
+    return format_timestamp_to_hhmm(local_timestamp)
 
 def create_forecast_row(forecast_data, y_position=50):
     """Create hourly forecast row with stacked cells
@@ -58,8 +54,7 @@ def create_forecast_row(forecast_data, y_position=50):
         forecast_item = forecast_data[i]
         cell_x = i * cell_width
 
-        timezone_offset = getattr(config, 'TIMEZONE_OFFSET_HOURS', -5)
-        time_str = get_cell_display_text(forecast_item, timezone_offset)
+        time_str = get_cell_display_text(forecast_item)
 
         # Cell background
         cell_bg = Rect(cell_x, y_position, cell_width, row_height, fill=WHITE, outline=None)

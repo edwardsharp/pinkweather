@@ -21,12 +21,11 @@ def create_text_display(text_content):
 
 
 
-def create_weather_layout(current_timestamp=None, timezone_offset_hours=None, forecast_data=None, weather_desc=None, icon_loader=None, day_name=None, day_num=None, month_name=None):
+def create_weather_layout(current_timestamp=None, forecast_data=None, weather_desc=None, icon_loader=None, day_name=None, day_num=None, month_name=None):
     """Create weather layout with single-line header
 
     Args:
-        current_timestamp: Unix timestamp from weather API for accurate date
-        timezone_offset_hours: Timezone offset for local time
+        current_timestamp: Unix timestamp from weather API for accurate date (already in local time)
         forecast_data: List of forecast items for the forecast row
         weather_desc: Weather description text
         icon_loader: Function to load icons
@@ -37,4 +36,4 @@ def create_weather_layout(current_timestamp=None, timezone_offset_hours=None, fo
     Returns:
         DisplayIO group containing the complete layout
     """
-    return create_header_layout(current_timestamp, timezone_offset_hours, forecast_data, weather_desc, icon_loader, day_name, day_num, month_name)
+    return create_header_layout(current_timestamp, forecast_data, weather_desc, icon_loader, day_name, day_num, month_name)

@@ -145,12 +145,10 @@ def update_display_with_weather_layout():
     set_icon_loader(sd_available, load_bmp_icon)
 
     # Generate rich weather narrative
-    timezone_offset = getattr(config, 'TIMEZONE_OFFSET_HOURS', -5)
-    weather_narrative = generate_weather_narrative(weather_data, timezone_offset)
+    weather_narrative = generate_weather_narrative(weather_data)
 
     main_group = create_weather_layout(
         current_timestamp=weather_data.get('current_timestamp'),
-        timezone_offset_hours=timezone_offset,
         forecast_data=weather_data['forecast_data'],
         weather_desc=weather_narrative,
         icon_loader=load_bmp_icon if sd_available else None,
@@ -170,7 +168,7 @@ def update_display_with_weather_layout():
     time.sleep(display.time_to_refresh + 2)
     print("Refresh complete")
 
-def generate_weather_narrative(weather_data, timezone_offset_hours):
+def generate_weather_narrative(weather_data):
     """Generate rich weather narrative from weather data"""
     try:
 
@@ -195,8 +193,7 @@ def generate_weather_narrative(weather_data, timezone_offset_hours):
         narrative = get_weather_narrative(
             current_weather,
             forecast_data,
-            current_timestamp,
-            timezone_offset_hours
+            current_timestamp
         )
 
         print(f"Generated weather narrative: {narrative[:50]}...")

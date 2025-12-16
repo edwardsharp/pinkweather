@@ -7,14 +7,13 @@ import moon_phase
 from date_utils import get_hour_from_timestamp, categorize_time_for_narrative, format_timestamp_to_time
 
 
-def get_weather_narrative(weather_data, forecast_data, current_timestamp=None, timezone_offset_hours=-5):
+def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
     """Generate intelligent weather narrative based on current conditions and forecast
 
     Args:
         weather_data: Current weather data dict with temp, feels_like, weather, etc.
         forecast_data: List of forecast items for next ~24 hours
-        current_timestamp: Unix timestamp for current time
-        timezone_offset_hours: Timezone offset for local time calculations
+        current_timestamp: Unix timestamp for current time (in local time)
 
     Returns:
         String: Rich, contextual weather description
@@ -26,7 +25,7 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None, t
     if not current_timestamp:
         return "Weather narrative unavailable - no timestamp provided"
 
-    current_hour = get_hour_from_timestamp(current_timestamp, timezone_offset_hours)
+    current_hour = get_hour_from_timestamp(current_timestamp)
 
     # Extract key current conditions
     current_temp = weather_data.get('current_temp', 0)
@@ -41,7 +40,7 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None, t
 
     # Determine if it's evening by comparing current time to sunset timestamp
     if sunset_timestamp:
-        sunset_hour = get_hour_from_timestamp(sunset_timestamp, timezone_offset_hours)
+        sunset_hour = get_hour_from_timestamp(sunset_timestamp)
         is_evening = current_hour >= sunset_hour
     else:
         is_evening = False  # Can't determine, assume not evening
@@ -54,12 +53,12 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None, t
     narrative_parts.append(current_conditions)
 
     # 2. Current precipitation status
-    current_precip = _describe_current_precipitation(weather_desc, forecast_data, timezone_offset_hours)
+    current_precip = _describe_current_precipitation(weather_desc, forecast_data)
     if current_precip:
         narrative_parts.append(current_precip)
 
     # 3. Upcoming precipitation in next few hours
-    upcoming_precip = _analyze_upcoming_precipitation(forecast_data, timezone_offset_hours)
+    upcoming_precip = _analyze_upcoming_precipitation(forecast_data)
     if upcoming_precip:
         narrative_parts.append(upcoming_precip)
 
@@ -332,7 +331,7 @@ def _get_temperature_context(temp):
         return None
 
 
-def _describe_current_precipitation(weather_desc, forecast_data, timezone_offset_hours=-5):
+def _describe_current_precipitation(weather_desc, forecast_data):
     """Describe current precipitation and when it will clear"""
     current_desc_lower = weather_desc.lower()
 
@@ -347,20 +346,20 @@ def _describe_current_precipitation(weather_desc, forecast_data, timezone_offset
 
     if is_snowing:
         # Check when snow will end
-        clear_time = _find_when_precipitation_ends(forecast_data, ['snow'], timezone_offset_hours)
+        clear_time = _find_when_precipitation_ends(forecast_data, ['snow'])
         if clear_time:
             return f"<red>Currently snowing,</red> <i>expected</i> to stop {clear_time}"
         else:
             return "<red>Currently snowing</red>"
     elif is_raining:
         # Check when rain will end
-        clear_time = _find_when_precipitation_ends(forecast_data, ['rain', 'drizzle'], timezone_offset_hours)
+        clear_time = _find_when_precipitation_ends(forecast_data, ['rain', 'drizzle'])
         if clear_time:
             return f"Currently raining, <i>expected</i> to end {clear_time}"
         else:
             return "Currently raining"
     elif is_stormy:
-        clear_time = _find_when_precipitation_ends(forecast_data, ['storm', 'thunder', 'rain'], timezone_offset_hours)
+        clear_time = _find_when_precipitation_ends(forecast_data, ['storm', 'thunder', 'rain'])
         if clear_time:
             return f"<red>Thunderstorms ongoing,</red> <i>clearing</i> {clear_time}"
         else:
@@ -369,7 +368,7 @@ def _describe_current_precipitation(weather_desc, forecast_data, timezone_offset
     return None
 
 
-def _analyze_upcoming_precipitation(forecast_data, timezone_offset_hours=-5):
+def _analyze_upcoming_precipitation(forecast_data):
     """Check for precipitation in the next few hours"""
     if not forecast_data or len(forecast_data) < 3:
         return None
@@ -386,7 +385,7 @@ def _analyze_upcoming_precipitation(forecast_data, timezone_offset_hours=-5):
             time_desc = "later"
             if timestamp:
                 try:
-                    hour = get_hour_from_timestamp(timestamp, timezone_offset_hours)
+                    hour = get_hour_from_timestamp(timestamp)
 
                     # Generalize overnight hours (midnight to 8am)
                     if hour >= 0 and hour <= 8:
@@ -411,7 +410,7 @@ def _analyze_upcoming_precipitation(forecast_data, timezone_offset_hours=-5):
     return None
 
 
-def _find_when_precipitation_ends(forecast_data, precip_types, timezone_offset_hours=-5):
+def _find_when_precipitation_ends(forecast_data, precip_types):
     """Find when current precipitation is expected to end"""
     if not forecast_data:
         return None
@@ -432,7 +431,7 @@ def _find_when_precipitation_ends(forecast_data, precip_types, timezone_offset_h
         if pop < 0.3 and not has_precip_desc and not has_precip_icon:
             if timestamp:
                 try:
-                    hour = get_hour_from_timestamp(timestamp, timezone_offset_hours)
+                    hour = get_hour_from_timestamp(timestamp)
                     if hour == 0:
                         return "around midnight"
                     elif hour < 12:

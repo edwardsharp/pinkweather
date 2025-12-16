@@ -12,8 +12,10 @@ class MockWeatherGenerator:
     """Generate realistic mock weather data for testing"""
 
     def __init__(self, base_timestamp=None):
-        """Initialize with optional base timestamp"""
-        self.base_timestamp = base_timestamp or int(time.time())
+        """Initialize with required base timestamp - no system time allowed"""
+        if base_timestamp is None:
+            raise ValueError("base_timestamp must be provided - no system time allowed")
+        self.base_timestamp = base_timestamp
 
         # Season-appropriate temperature ranges (Celsius)
         self.season_temps = {

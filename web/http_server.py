@@ -140,14 +140,14 @@ class DisplayHandler(BaseHTTPRequestHandler):
                 if use_mock_weather:
                     # Use real weather parsing pipeline with mock data
                     mock_scenario = form_data.get('mock_scenario', ['winter_storm'])[0]
-                    mock_timestamp = form_data.get('mock_timestamp', [str(int(time.time()))])[0]
+                    mock_timestamp = form_data.get('mock_timestamp', [''])[0]
 
                     print(f"Mock weather enabled: scenario={mock_scenario}, timestamp={mock_timestamp}")
 
                     try:
                         timestamp = int(mock_timestamp)
                     except ValueError:
-                        timestamp = int(time.time())
+                        raise ValueError("Invalid mock timestamp provided")
 
                     # Generate mock weather data
                     mock_data = generate_scenario_data(mock_scenario, timestamp)
@@ -171,8 +171,7 @@ class DisplayHandler(BaseHTTPRequestHandler):
                             narrative = get_weather_narrative(
                                 current_weather,
                                 display_vars['forecast_data'],
-                                current_weather.get('current_timestamp'),
-                                -5
+                                current_weather.get('current_timestamp')
                             )
                             # Store data for full layout rendering
                             forecast_data = display_vars['forecast_data']
@@ -219,8 +218,7 @@ class DisplayHandler(BaseHTTPRequestHandler):
                                     narrative = get_weather_narrative(
                                         current_weather,
                                         display_vars['forecast_data'],
-                                        current_weather.get('current_timestamp'),
-                                        config['timezone_offset_hours']
+                                        current_weather.get('current_timestamp')
                                     )
                                     # Store data for full layout rendering
                                     forecast_data = display_vars['forecast_data']
@@ -232,41 +230,15 @@ class DisplayHandler(BaseHTTPRequestHandler):
                             else:
                                 raise Exception("Failed to fetch real weather data")
                         except Exception as e:
-                            print(f"Real weather failed, falling back to mock: {e}")
-                            # Fall back to mock weather with default winter_storm scenario
-                            mock_data = generate_scenario_data('winter_storm', int(time.time()))
-                            current_weather = parse_current_weather_from_forecast(mock_data, -5)
-                            display_vars = get_display_variables(mock_data, -5)
-                            if current_weather and display_vars.get('forecast_data'):
-                                narrative = get_weather_narrative(
-                                    current_weather,
-                                    display_vars['forecast_data'],
-                                    current_weather.get('current_timestamp'),
-                                    -5
-                                )
-                                forecast_data = display_vars['forecast_data']
-                                weather_desc = narrative + " (using mock data - real API failed)"
-                                current_timestamp = current_weather.get('current_timestamp')
-                            else:
-                                weather_desc = "Both real and mock weather failed"
+                            print(f"Real weather failed: {e}")
+                            weather_desc = f"Real weather API failed: {str(e)}"
+                            forecast_data = None
+                            current_timestamp = None
                     else:
-                        print("No API key configured, using mock weather")
-                        # No API key - use mock weather
-                        mock_data = generate_scenario_data('winter_clear', int(time.time()))
-                        current_weather = parse_current_weather_from_forecast(mock_data, -5)
-                        display_vars = get_display_variables(mock_data, -5)
-                        if current_weather and display_vars.get('forecast_data'):
-                            narrative = get_weather_narrative(
-                                current_weather,
-                                display_vars['forecast_data'],
-                                current_weather.get('current_timestamp'),
-                                -5
-                            )
-                            forecast_data = display_vars['forecast_data']
-                            weather_desc = narrative + " (using mock data - no API key)"
-                            current_timestamp = current_weather.get('current_timestamp')
-                        else:
-                            weather_desc = "Mock weather generation failed"
+                        print("No API key configured")
+                        weather_desc = "No API key configured - cannot fetch weather data"
+                        forecast_data = None
+                        current_timestamp = None
 
                 print(f"Rendering 400x300 weather layout...")
                 if weather_desc:
@@ -280,7 +252,6 @@ class DisplayHandler(BaseHTTPRequestHandler):
                         forecast_data=forecast_data,
                         weather_desc=weather_desc,
                         current_timestamp=current_timestamp,
-                        timezone_offset_hours=-5,
                         day_name=day_name,
                         day_num=day_num,
                         month_name=month_name
