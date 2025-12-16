@@ -69,7 +69,7 @@ display = adafruit_ssd1683.SSD1683(
     display_bus,
     width=400,
     height=300,
-    highlight_color=0xFF0000,  # Black instead of red to prevent artifacts
+    highlight_color=0xFF0000,
     busy_pin=busy_pin
 )
 
