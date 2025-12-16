@@ -82,9 +82,9 @@ def create_forecast_row(forecast_data, y_position=50):
             icon_y = y_position + 14
 
             if forecast_item.get('is_special', False):
-                icon_code = f"{forecast_item['icon']}-small"
+                icon_code = f"{forecast_item['icon']}"
             else:
-                icon_code = f"{forecast_item['icon']}-small"
+                icon_code = f"{forecast_item['icon']}"
 
             forecast_icon = load_bmp_icon_func(f"{icon_code}.bmp")
             if forecast_icon:

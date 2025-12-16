@@ -377,7 +377,7 @@ def get_display_variables(forecast_data, timezone_offset_hours=None):
         'current_timestamp': current_weather.get('current_timestamp'),
 
         # Moon phase (placeholder - you can add moon calculation later)
-        'moon_icon_name': 'moon-waning-crescent-5.bmp'
+        'moon_icon_name': 'moon-waning-crescent-5'
     }
 
     return display_vars
