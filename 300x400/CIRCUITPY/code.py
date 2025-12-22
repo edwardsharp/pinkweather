@@ -3,38 +3,42 @@ PinkWeather CircuitPython Code for 400x300 E-ink Display
 Text display with markup support and hard word wrapping
 """
 
+import gc
 import time
+
+import adafruit_sdcard
+import adafruit_ssd1683
 import board
 import busio
-import digitalio
-import displayio
-import fourwire
-import adafruit_ssd1683
-import adafruit_sdcard
-import storage
-import gc
-
-import wifi
-
-from digitalio import DigitalInOut
-
-# shared display functions
-from display import get_text_capacity, create_weather_layout
-from forecast_row import set_icon_loader
 
 # Import configuration and shared modules
 import config
+import digitalio
+import displayio
+import fourwire
+import storage
 import weather_api
-from weather_narrative import get_weather_narrative
+import wifi
+from digitalio import DigitalInOut
 
+# shared display functions
+from display import create_weather_layout, get_text_capacity
+from forecast_row import set_icon_loader
+from weather_narrative import get_weather_narrative
+from weather_persistence import save_weather_data, should_refresh_weather
 
 # Create weather config from imported settings
-WEATHER_CONFIG = {
-    'api_key': config.OPENWEATHER_API_KEY,
-    'latitude': config.LATITUDE,
-    'longitude': config.LONGITUDE,
-    'units': 'metric'
-} if config.OPENWEATHER_API_KEY and config.LATITUDE and config.LONGITUDE else None
+WEATHER_CONFIG = (
+    {
+        "api_key": config.OPENWEATHER_API_KEY,
+        "latitude": config.LATITUDE,
+        "longitude": config.LONGITUDE,
+        "timezone_offset_hours": config.TIMEZONE_OFFSET_HOURS,
+        "units": "metric",
+    }
+    if config.OPENWEATHER_API_KEY and config.LATITUDE and config.LONGITUDE
+    else None
+)
 
 # Release any previously used displays
 displayio.release_displays()
@@ -54,11 +58,7 @@ busy_pin = None  # digitalio.DigitalInOut(board.GP22) if you wire it
 
 # Create the display bus
 display_bus = fourwire.FourWire(
-    spi,
-    command=dc_pin,
-    chip_select=cs_pin,
-    reset=rst_pin,
-    baudrate=1000000
+    spi, command=dc_pin, chip_select=cs_pin, reset=rst_pin, baudrate=1000000
 )
 
 # Wait a moment for the bus to initialize
@@ -66,11 +66,7 @@ time.sleep(1)
 
 # Create the display
 display = adafruit_ssd1683.SSD1683(
-    display_bus,
-    width=400,
-    height=300,
-    highlight_color=0xFF0000,
-    busy_pin=busy_pin
+    display_bus, width=400, height=300, highlight_color=0xFF0000, busy_pin=busy_pin
 )
 
 # rotate the display 0 so the bottom is the side with the 20pin cable
@@ -105,7 +101,6 @@ WHITE = 0xFFFFFF
 RED = 0xFF0000
 
 
-
 def check_memory():
     """Check available memory and force collection if low"""
     gc.collect()
@@ -114,6 +109,7 @@ def check_memory():
         print(f"LOW MEMORY: {free_mem} bytes free")
         gc.collect()
     return free_mem
+
 
 def load_bmp_icon(filename):
     """Load BMP icon from SD card with error handling"""
@@ -128,12 +124,10 @@ def load_bmp_icon(filename):
         print(f"Failed to load {filename}: {e}")
         return None
 
-def update_display_with_weather_layout():
-    """Create weather layout with single-line header"""
-    check_memory()
 
-    # Get parsed weather data
-    weather_data = get_weather_display_data()
+def update_display_with_weather_layout(weather_data):
+    """Create weather layout with single-line header using provided weather data"""
+    check_memory()
 
     if not weather_data:
         print("No weather data available - cannot create display")
@@ -148,52 +142,47 @@ def update_display_with_weather_layout():
     weather_narrative = generate_weather_narrative(weather_data)
 
     main_group = create_weather_layout(
-        current_timestamp=weather_data.get('current_timestamp'),
-        forecast_data=weather_data['forecast_data'],
+        current_timestamp=weather_data.get("current_timestamp"),
+        forecast_data=weather_data["forecast_data"],
         weather_desc=weather_narrative,
         icon_loader=load_bmp_icon if sd_available else None,
-        day_name=weather_data.get('day_name'),
-        day_num=weather_data.get('day_num'),
-        month_name=weather_data.get('month_name')
+        day_name=weather_data.get("day_name"),
+        day_num=weather_data.get("day_num"),
+        month_name=weather_data.get("month_name"),
     )
 
     # Update display
     display.root_group = main_group
     display.refresh()
 
-    print("Weather layout displayed!")
-    check_memory()
-
     # Wait for refresh to complete
     time.sleep(display.time_to_refresh)
     print("Refresh complete")
 
+
 def generate_weather_narrative(weather_data):
     """Generate rich weather narrative from weather data"""
     try:
-
         # Extract current weather info for narrative generation
         current_weather = {
-            'current_temp': weather_data.get('current_temp', 0),
-            'feels_like': weather_data.get('feels_like', 0),
-            'high_temp': weather_data.get('high_temp', 0),
-            'low_temp': weather_data.get('low_temp', 0),
-            'weather_desc': weather_data.get('weather_desc', ''),
-            'sunrise_time': weather_data.get('sunrise_time', '7:00a'),
-            'sunset_time': weather_data.get('sunset_time', '5:00p'),
-            'humidity': weather_data.get('humidity', 0),
-            'wind_speed': weather_data.get('wind_speed', 0),
-            'wind_gust': weather_data.get('wind_gust', 0)
+            "current_temp": weather_data.get("current_temp", 0),
+            "feels_like": weather_data.get("feels_like", 0),
+            "high_temp": weather_data.get("high_temp", 0),
+            "low_temp": weather_data.get("low_temp", 0),
+            "weather_desc": weather_data.get("weather_desc", ""),
+            "sunrise_time": weather_data.get("sunrise_time", "7:00a"),
+            "sunset_time": weather_data.get("sunset_time", "5:00p"),
+            "humidity": weather_data.get("humidity", 0),
+            "wind_speed": weather_data.get("wind_speed", 0),
+            "wind_gust": weather_data.get("wind_gust", 0),
         }
 
-        forecast_data = weather_data.get('forecast_data', [])
-        current_timestamp = weather_data.get('current_timestamp')
+        forecast_data = weather_data.get("forecast_data", [])
+        current_timestamp = weather_data.get("current_timestamp")
 
         # Generate the rich narrative
         narrative = get_weather_narrative(
-            current_weather,
-            forecast_data,
-            current_timestamp
+            current_weather, forecast_data, current_timestamp
         )
 
         print(f"Generated weather narrative: {narrative[:50]}...")
@@ -202,11 +191,15 @@ def generate_weather_narrative(weather_data):
     except Exception as e:
         print(f"Error generating weather narrative: {e}")
         # Use basic description instead
-        return weather_data.get('weather_desc', 'Weather information unavailable')
+        return weather_data.get("weather_desc", "Weather information unavailable")
+
 
 # Get text capacity information
 capacity = get_text_capacity()
-print(f"Display: {capacity['chars_per_line']} chars/line, {capacity['lines_per_screen']} lines, {capacity['total_capacity']} total")
+print(
+    f"Display: {capacity['chars_per_line']} chars/line, {capacity['lines_per_screen']} lines, {capacity['total_capacity']} total"
+)
+
 
 def connect_wifi():
     """Connect to WiFi network"""
@@ -224,39 +217,84 @@ def connect_wifi():
         print(f"Failed to connect to WiFi: {e}")
         return False
 
+
 def get_weather_display_data():
-    """Get parsed weather data ready for display"""
-    # Get timezone offset from config
-    timezone_offset = getattr(config, 'TIMEZONE_OFFSET_HOURS', -5)
+    """Get weather data for display - always fetch fresh data"""
+    timezone_offset = getattr(config, "TIMEZONE_OFFSET_HOURS", -5)
 
     if WEATHER_CONFIG is None:
         print("Weather API not configured")
         return None
-    elif wifi.radio.connected:
-        # Fetch real weather data (forecast API only)
-        forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG)
-        return weather_api.get_display_variables(forecast_data, timezone_offset)
-    else:
+
+    if not wifi.radio.connected:
         print("WiFi not connected")
         return None
 
-# Main execution
+    # Always fetch fresh weather data (since we need current time anyway)
+    print("Fetching fresh weather data from API")
+    forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG)
+    if forecast_data:
+        display_vars = weather_api.get_display_variables(forecast_data, timezone_offset)
+
+        # Save to SD card for persistence across power cycles
+        if sd_available and display_vars:
+            current_timestamp = display_vars.get("current_timestamp")
+            save_weather_data(
+                display_vars, display_vars.get("forecast_data", []), current_timestamp
+            )
+
+        return display_vars
+    else:
+        print("Failed to fetch weather data")
+        return None
+
+
+# Main execution and loop
 def main():
-    """Main execution loop"""
+    """Main execution with simplified weather refresh logic"""
+    # Global state
+    last_successful_update = 0
+    current_weather_data = None
+
     # Connect to WiFi
     if connect_wifi():
         print("WiFi connected, will fetch real weather data")
     else:
         print("WiFi connection failed or skipped")
 
-    # Update display
-    update_display_with_weather_layout()
+    print("pinkweather ready!")
+
+    while True:
+        current_time = time.monotonic()
+
+        # Check if we need to update (every hour or on first boot)
+        needs_update = (current_time - last_successful_update) >= 3600  # 1 hour
+
+        if needs_update:
+            print("Time to refresh weather data...")
+            try:
+                # Attempt to fetch fresh weather data
+                fresh_data = get_weather_display_data()
+                if fresh_data:
+                    current_weather_data = fresh_data
+                    update_display_with_weather_layout(current_weather_data)
+                    last_successful_update = current_time
+                    print("Weather refresh completed successfully")
+                else:
+                    print("Weather fetch failed - will retry in 15 minutes")
+            except Exception as e:
+                print(f"Error fetching weather: {e} - will retry in 15 minutes")
+
+        # Check for error condition (no updates for 12+ hours)
+        hours_since_update = (current_time - last_successful_update) / 3600
+        if hours_since_update >= 12:
+            print(f"WARNING: No weather updates for {hours_since_update:.1f} hours")
+            # Could display error message here if needed
+
+        # Sleep for 15 minutes before next check
+        print("Sleeping for 15 minutes...")
+        time.sleep(15 * 60)
+
 
 # Run main function
 main()
-
-# Main loop
-print("pinkweather ready!")
-while True:
-    # Main program loop - currently just maintains the display
-    time.sleep(60)
