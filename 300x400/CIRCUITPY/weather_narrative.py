@@ -1,5 +1,5 @@
 """
-Weather narrative generator - creates intelligent, contextual weather descriptions
+weather narrative generator - creates contextual weather description text string
 """
 
 import moon_phase

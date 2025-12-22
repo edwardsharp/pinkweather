@@ -1,6 +1,8 @@
 """
-PinkWeather CircuitPython Code for 400x300 E-ink Display
-Text display with markup support and hard word wrapping
+pinkweather CircuitPython code for 400x300 e-ink display
+
+weather forecast text display with markup support and wo-
+rd wrapping.
 """
 
 import gc
@@ -230,7 +232,7 @@ def get_weather_display_data():
         print("WiFi not connected")
         return None
 
-    # Always fetch fresh weather data (since we need current time anyway)
+    # Always fetch fresh weather data (since current time is needed anyway)
     print("Fetching fresh weather data from API")
     forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG)
     if forecast_data:
@@ -252,7 +254,7 @@ def get_weather_display_data():
 # Main execution and loop
 def main():
     """Main execution with simplified weather refresh logic"""
-    # Global state
+    # Global state for polling
     last_successful_update = 0
     current_weather_data = None
 
@@ -267,7 +269,7 @@ def main():
     while True:
         current_time = time.monotonic()
 
-        # Check if we need to update (every hour or on first boot)
+        # Check if need to update (every hour or on first boot)
         needs_update = (current_time - last_successful_update) >= 3600  # 1 hour
 
         if needs_update:

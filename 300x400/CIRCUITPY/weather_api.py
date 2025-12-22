@@ -1,13 +1,11 @@
 """
-Shared Weather API module for PinkWeather
-Works on both CircuitPython hardware and standard Python web server
+shared weather api module for pinkweather
+works on both circuitpython hardware and standard python web server
 """
 
 import json
 
 from date_utils import format_timestamp_to_date, format_timestamp_to_time, utc_to_local
-
-# No default configuration - must be provided by calling code
 
 
 def manual_capitalize(text):
@@ -426,8 +424,6 @@ def get_display_variables(forecast_data, timezone_offset_hours=None):
     return display_vars
 
 
-# Removed fallback functions - use real weather data or fail cleanly
-
 # Platform-specific HTTP functions
 try:
     # Try CircuitPython imports
@@ -507,10 +503,6 @@ except ImportError:
         fetch_weather_data = fetch_weather_data_python
 
     except ImportError:
-        # No HTTP capability, use fallback
-        def fetch_weather_data_fallback(config=None):
-            """Fallback when no HTTP capability available"""
-            print("No HTTP capability available, using fallback data")
-            return None
-
-        fetch_weather_data = fetch_weather_data_fallback
+        # o noz! #TODO: something meaningful?
+        print("onoz! weather_api unable to import http library!")
+        fetch_weather_data = None

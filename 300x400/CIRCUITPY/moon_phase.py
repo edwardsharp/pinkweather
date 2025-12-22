@@ -1,7 +1,9 @@
 """
-Moon phase calculation module with accurate leap year handling
-Shared between hardware and web server for consistent moon phase display
-Uses November 20, 2025 new moon as reference point for better accuracy
+moon phase calculation module with leap year handling
+
+shared between hardware and web preview server
+
+uses november 20, 2025 new moon as reference point for better accuracy
 """
 
 import adafruit_datetime as datetime

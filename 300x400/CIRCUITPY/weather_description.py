@@ -1,9 +1,9 @@
 """
-Weather description text rendering for long text content
+weather description text rendering for long text content
 """
 
-import displayio
-from text_renderer import TextRenderer, WHITE
+from text_renderer import TextRenderer
+
 
 def create_weather_description(weather_desc, y_position=120, available_height=180):
     """Create weather description text display
@@ -30,8 +30,9 @@ def get_text_capacity_for_description(available_height=180):
     """Get text capacity for description area"""
     renderer = TextRenderer(width=400, height=available_height)
     return {
-        'chars_per_line': renderer.chars_per_line,
-        'lines_available': available_height // renderer.line_height,
-        'total_capacity': renderer.chars_per_line * (available_height // renderer.line_height),
-        'line_height': renderer.line_height
+        "chars_per_line": renderer.chars_per_line,
+        "lines_available": available_height // renderer.line_height,
+        "total_capacity": renderer.chars_per_line
+        * (available_height // renderer.line_height),
+        "line_height": renderer.line_height,
     }

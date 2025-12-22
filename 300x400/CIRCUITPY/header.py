@@ -1,5 +1,5 @@
 """
-Single-line weather header with date and moon phase text
+single-line weather header with date and moon phase text
 """
 
 import displayio

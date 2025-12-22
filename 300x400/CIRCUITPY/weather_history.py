@@ -1,6 +1,6 @@
 """
-Weather history persistence module for storing yesterday's temperatures
-Handles both SD card storage (hardware) and cache file storage (web preview)
+weather history persistence module for storing yesterday's temperatures
+handles both sd card storage (hardware) and cache file storage (web preview)
 """
 
 import json

@@ -1,9 +1,8 @@
 """
-Weather data persistence module for saving/loading API data to SD card
+weather data persistence module for saving/loading api data to sd card
 """
 
 import json
-import os
 
 
 def get_weather_data_path():

@@ -1,11 +1,11 @@
 """
-Centralized date/time utilities using adafruit_datetime
-Provides consistent date handling for both CircuitPython hardware and web server
+date/time utilz using adafruit_datetime
+consistent date handling for both CircuitPython hardware and web preview server
 """
 
 import adafruit_datetime as datetime
 
-# Constants
+# some constants
 DAY_NAMES = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 MONTH_NAMES = [
     "JAN",
@@ -38,7 +38,6 @@ def utc_to_local(utc_timestamp, timezone_offset_hours=-5):
 
 def format_timestamp_to_date(timestamp):
     """Convert Unix timestamp to formatted date components
-    NOTE: timestamp should already be in local time
 
     Args:
         timestamp: Unix timestamp (seconds since epoch) in LOCAL TIME
@@ -68,10 +67,9 @@ def format_timestamp_to_date(timestamp):
 
 def format_timestamp_to_time(timestamp, format_12h=True):
     """Convert Unix timestamp to formatted time string
-    NOTE: timestamp should already be in local time
 
     Args:
-        timestamp: Unix timestamp (seconds since epoch) in LOCAL TIME
+        timestamp: Unix timestamp (seconds since epoch)
         format_12h: If True, use 12-hour format (3p), if False use 24-hour (15:00)
 
     Returns:
@@ -107,10 +105,9 @@ def format_timestamp_to_time(timestamp, format_12h=True):
 
 def format_timestamp_to_hhmm(timestamp):
     """Convert Unix timestamp to HH:MM format (24-hour)
-    NOTE: timestamp should already be in local time
 
     Args:
-        timestamp: Unix timestamp (seconds since epoch) in LOCAL TIME
+        timestamp: Unix timestamp (seconds since epoch)
 
     Returns:
         str: Time in HH:MM format (e.g. "15:30")
@@ -124,10 +121,9 @@ def format_timestamp_to_hhmm(timestamp):
 
 def get_hour_from_timestamp(timestamp):
     """Get hour (0-23) from Unix timestamp
-    NOTE: timestamp should already be in local time
 
     Args:
-        timestamp: Unix timestamp (seconds since epoch) in LOCAL TIME
+        timestamp: Unix timestamp (seconds since epoch)
 
     Returns:
         int: Hour in 24-hour format (0-23)
@@ -141,10 +137,9 @@ def get_hour_from_timestamp(timestamp):
 
 def is_nighttime(timestamp):
     """Check if timestamp represents nighttime hours (6pm - 6am)
-    NOTE: timestamp should already be in local time
 
     Args:
-        timestamp: Unix timestamp (seconds since epoch) in LOCAL TIME
+        timestamp: Unix timestamp (seconds since epoch)
 
     Returns:
         bool: True if nighttime
@@ -155,10 +150,9 @@ def is_nighttime(timestamp):
 
 def format_date_header(timestamp):
     """Format timestamp for header display (e.g. "MON 15 DEC")
-    NOTE: timestamp should already be in local time
 
     Args:
-        timestamp: Unix timestamp (seconds since epoch) in LOCAL TIME
+        timestamp: Unix timestamp (seconds since epoch)
 
     Returns:
         str: Formatted date string for header
@@ -169,10 +163,9 @@ def format_date_header(timestamp):
 
 def categorize_time_for_narrative(timestamp):
     """Categorize timestamp for weather narrative descriptions
-    NOTE: timestamp should already be in local time
 
     Args:
-        timestamp: Unix timestamp (seconds since epoch) in LOCAL TIME
+        timestamp: Unix timestamp (seconds since epoch)
 
     Returns:
         str: Time category ('overnight', 'morning', 'afternoon', 'evening')
@@ -232,7 +225,9 @@ def parse_time_string_to_hour(time_str):
 def _timestamp_to_components(timestamp):
     """Convert Unix timestamp to date/time components using manual calculation
 
-    This avoids all datetime library timezone issues by doing the math ourselves.
+    This avoids all datetime library timezone issues by doing the math ourselves,
+    mostly because running on a micro-controller and i didn't look too hard for importing
+    some other time library (so there's probably edge-case bugz).
     Assumes timestamp is already adjusted to local time.
 
     Returns:

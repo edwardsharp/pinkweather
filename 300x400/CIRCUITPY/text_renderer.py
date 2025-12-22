@@ -1,5 +1,5 @@
 """
-Core text rendering functionality with markup support and hard word wrapping
+core text rendering functionality with markup support and hard word wrapping
 """
 
 import re
@@ -88,7 +88,7 @@ class TextRenderer:
 
     def should_break_word(self, word, remaining_width, style):
         """Determine if a word should be broken based on smart rules"""
-        word_width = self.measure_text_width(word, style)
+        # word_width = self.measure_text_width(word, style)
 
         # Rule 1: If word is shorter than 5 characters, don't break it
         if len(word) < 5:
@@ -100,7 +100,7 @@ class TextRenderer:
             return False
 
         # Rule 3: If breaking would leave only 1-2 chars on next line, don't break
-        hyphen_width = self.measure_text_width("-", style)
+        # hyphen_width = self.measure_text_width("-", style)
 
         # Find where we would break
         for i in range(2, len(word) - 2):  # At least 2 chars before and after
