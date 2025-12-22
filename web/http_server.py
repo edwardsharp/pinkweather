@@ -27,6 +27,8 @@ from simple_web_render import (
     render_400x300_display,
     render_400x300_weather_layout,
 )
+
+# Weather API functions are imported locally where needed
 from web_adapter import get_mock_csv_data, get_mock_sensor_data, get_mock_system_status
 
 
@@ -235,19 +237,35 @@ class DisplayHandler(BaseHTTPRequestHandler):
                                 if circuitpy_path not in sys.path:
                                     sys.path.insert(0, circuitpy_path)
 
+                                # Parse real weather data
                                 from weather_api import (
                                     get_display_variables,
                                     parse_current_weather_from_forecast,
                                 )
                                 from weather_narrative import get_weather_narrative
 
-                                # Parse real weather data
                                 current_weather = parse_current_weather_from_forecast(
                                     forecast_data, config["timezone_offset_hours"]
                                 )
                                 display_vars = get_display_variables(
                                     forecast_data, config["timezone_offset_hours"]
                                 )
+
+                                # Store today's temperatures in history for tomorrow's comparison
+                                if current_weather:
+                                    try:
+                                        from weather_history import (
+                                            store_today_temperatures,
+                                        )
+
+                                        store_today_temperatures(
+                                            current_weather.get("current_timestamp"),
+                                            current_weather.get("current_temp"),
+                                            current_weather.get("high_temp"),
+                                            current_weather.get("low_temp"),
+                                        )
+                                    except Exception as e:
+                                        print(f"Failed to store weather history: {e}")
 
                                 if current_weather and display_vars.get(
                                     "forecast_data"
@@ -288,6 +306,72 @@ class DisplayHandler(BaseHTTPRequestHandler):
                                         print(repr(parsed_text))
                                         print("Visible text:")
                                         print(parsed_text)
+
+                                        # Font metrics debugging
+                                        try:
+                                            from adafruit_bitmap_font import bitmap_font
+                                            from adafruit_display_text import label
+
+                                            vollkorn_font = bitmap_font.load_font(
+                                                "vollkorn20reg.pcf"
+                                            )
+                                            hyperl_font = bitmap_font.load_font(
+                                                "hyperl20reg.pcf"
+                                            )
+
+                                            print("Font metrics comparison:")
+
+                                            # Test degree symbol specifically
+                                            v_degree = label.Label(
+                                                vollkorn_font, text="°", color=0x000000
+                                            )
+                                            h_degree = label.Label(
+                                                hyperl_font, text="°", color=0x000000
+                                            )
+
+                                            print(
+                                                f"Vollkorn '°' bounding box: {v_degree.bounding_box}"
+                                            )
+                                            print(
+                                                f"Hyperlegible '°' bounding box: {h_degree.bounding_box}"
+                                            )
+
+                                            # Test number with degree
+                                            v_temp = label.Label(
+                                                vollkorn_font, text="3°", color=0x000000
+                                            )
+                                            h_temp = label.Label(
+                                                hyperl_font, text="3°", color=0x000000
+                                            )
+
+                                            print(
+                                                f"Vollkorn '3°' bounding box: {v_temp.bounding_box}"
+                                            )
+                                            print(
+                                                f"Hyperlegible '3°' bounding box: {h_temp.bounding_box}"
+                                            )
+
+                                        except Exception as e:
+                                            print(f"Font metrics debug failed: {e}")
+
+                                        # Check for extra spaces around degree symbols
+                                        if "°" in parsed_text:
+                                            print("Degree symbol analysis:")
+                                            for i, char in enumerate(parsed_text):
+                                                if char == "°":
+                                                    before = (
+                                                        parsed_text[i - 2 : i]
+                                                        if i >= 2
+                                                        else parsed_text[:i]
+                                                    )
+                                                    after = (
+                                                        parsed_text[i + 1 : i + 3]
+                                                        if i < len(parsed_text) - 2
+                                                        else parsed_text[i + 1 :]
+                                                    )
+                                                    print(
+                                                        f"  Position {i}: '{before}°{after}'"
+                                                    )
                                     except Exception as e:
                                         print(f"Tag parsing debug failed: {e}")
                                 else:

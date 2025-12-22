@@ -2,17 +2,20 @@
 Minimal web renderer using the exact shared display code from CIRCUITPY
 """
 
-import sys
-import os
 import importlib.util
-from PIL import Image, ImageDraw, ImageFont
+import os
+import sys
+
 import displayio
+from PIL import Image, ImageDraw, ImageFont
 
 # Add CIRCUITPY to path so we can use the shared display module
-circuitpy_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'CIRCUITPY')
+circuitpy_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "CIRCUITPY")
 
 # Add 300x400/CIRCUITPY to path for the new display
-circuitpy_400x300_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '300x400', 'CIRCUITPY')
+circuitpy_400x300_path = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "300x400", "CIRCUITPY"
+)
 sys.path.insert(0, circuitpy_400x300_path)
 
 # Import shared moon phase functions from 300x400/CIRCUITPY
@@ -31,8 +34,10 @@ def render_250x122_display(temp_c, humidity, csv_data=None, system_status=None):
         os.chdir(circuitpy_path)
 
         # Load weather display module from specific path
-        weather_display_path = os.path.join(circuitpy_path, 'display.py')
-        spec = importlib.util.spec_from_file_location("weather_display", weather_display_path)
+        weather_display_path = os.path.join(circuitpy_path, "display.py")
+        spec = importlib.util.spec_from_file_location(
+            "weather_display", weather_display_path
+        )
         weather_display = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(weather_display)
 
@@ -40,16 +45,20 @@ def render_250x122_display(temp_c, humidity, csv_data=None, system_status=None):
         format_time_short = weather_display.format_time_short
 
         # Process CSV data for averages and graphs
-        averages = get_averages_from_csv(csv_data) if csv_data else get_default_averages()
-        temp_data, humidity_data = get_graph_data_from_csv(csv_data) if csv_data else get_default_graph_data()
+        averages = (
+            get_averages_from_csv(csv_data) if csv_data else get_default_averages()
+        )
+        temp_data, humidity_data = (
+            get_graph_data_from_csv(csv_data) if csv_data else get_default_graph_data()
+        )
 
         # Process system status
         if system_status:
-            sd_status = "SD" if system_status.get('sd_available', False) else "NOD"
-            sd_time = system_status.get('sd_total_time', '0s')
-            uptime = system_status.get('uptime', '0s')
-            power_status = system_status.get('power_status', 'P')
-            battery_status = system_status.get('battery_status', 'B--')
+            sd_status = "SD" if system_status.get("sd_available", False) else "NOD"
+            sd_time = system_status.get("sd_total_time", "0s")
+            uptime = system_status.get("uptime", "0s")
+            power_status = system_status.get("power_status", "P")
+            battery_status = system_status.get("battery_status", "B--")
         else:
             sd_status = "SD"
             sd_time = "2d"
@@ -59,8 +68,16 @@ def render_250x122_display(temp_c, humidity, csv_data=None, system_status=None):
 
         # Create display using EXACT same function as hardware
         display_group = create_complete_display(
-            temp_c, humidity, averages, temp_data, humidity_data,
-            sd_status, sd_time, uptime, power_status, battery_status
+            temp_c,
+            humidity,
+            averages,
+            temp_data,
+            humidity_data,
+            sd_status,
+            sd_time,
+            uptime,
+            power_status,
+            battery_status,
         )
 
     finally:
@@ -80,6 +97,7 @@ def render_400x300_display(text_content):
     try:
         # Add CIRCUITPY directory to Python path for imports
         import sys
+
         if circuitpy_400x300_path not in sys.path:
             sys.path.insert(0, circuitpy_400x300_path)
 
@@ -87,8 +105,10 @@ def render_400x300_display(text_content):
         os.chdir(circuitpy_400x300_path)
 
         # Load text renderer for simple text display
-        text_renderer_path = os.path.join(circuitpy_400x300_path, 'text_renderer.py')
-        spec = importlib.util.spec_from_file_location("text_renderer", text_renderer_path)
+        text_renderer_path = os.path.join(circuitpy_400x300_path, "text_renderer.py")
+        spec = importlib.util.spec_from_file_location(
+            "text_renderer", text_renderer_path
+        )
         text_renderer = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(text_renderer)
 
@@ -106,7 +126,15 @@ def render_400x300_display(text_content):
     return displayio_group_to_pil_image(main_group, width=400, height=300)
 
 
-def render_400x300_weather_layout(current_weather=None, forecast_data=None, weather_desc=None, current_timestamp=None, day_name=None, day_num=None, month_name=None):
+def render_400x300_weather_layout(
+    current_weather=None,
+    forecast_data=None,
+    weather_desc=None,
+    current_timestamp=None,
+    day_name=None,
+    day_num=None,
+    month_name=None,
+):
     """
     Render full 400x300 weather layout with header, forecast, and description
     Returns PIL Image
@@ -116,6 +144,7 @@ def render_400x300_weather_layout(current_weather=None, forecast_data=None, weat
     try:
         # Add CIRCUITPY directory to Python path for imports
         import sys
+
         if circuitpy_400x300_path not in sys.path:
             sys.path.insert(0, circuitpy_400x300_path)
 
@@ -123,7 +152,7 @@ def render_400x300_weather_layout(current_weather=None, forecast_data=None, weat
         os.chdir(circuitpy_400x300_path)
 
         # Load display module
-        display_path = os.path.join(circuitpy_400x300_path, 'display.py')
+        display_path = os.path.join(circuitpy_400x300_path, "display.py")
         spec = importlib.util.spec_from_file_location("display", display_path)
         display_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(display_module)
@@ -136,6 +165,7 @@ def render_400x300_weather_layout(current_weather=None, forecast_data=None, weat
         # Configure forecast row icon loader (required for forecast icons to show)
         try:
             from forecast_row import set_icon_loader
+
             set_icon_loader(True, icon_loader_wrapper)  # Icons available via web loader
         except ImportError:
             pass  # Forecast row module not available
@@ -148,8 +178,42 @@ def render_400x300_weather_layout(current_weather=None, forecast_data=None, weat
             icon_loader=icon_loader_wrapper,  # Use wrapped icon loader
             day_name=day_name,
             day_num=day_num,
-            month_name=month_name
+            month_name=month_name,
         )
+
+        # Add font metrics debugging while in the correct directory
+        try:
+            from adafruit_bitmap_font import bitmap_font
+            from adafruit_display_text import label
+
+            vollkorn_font = bitmap_font.load_font("vollkorn20reg.pcf")
+            hyperl_font = bitmap_font.load_font("hyperl20reg.pcf")
+
+            print("Font metrics comparison:")
+
+            # Test degree symbol specifically
+            v_degree = label.Label(vollkorn_font, text="°", color=0x000000)
+            h_degree = label.Label(hyperl_font, text="°", color=0x000000)
+
+            print(f"Vollkorn '°' bounding box: {v_degree.bounding_box}")
+            print(f"Hyperlegible '°' bounding box: {h_degree.bounding_box}")
+
+            # Test number with degree
+            v_temp = label.Label(vollkorn_font, text="3°", color=0x000000)
+            h_temp = label.Label(hyperl_font, text="3°", color=0x000000)
+
+            print(f"Vollkorn '3°' bounding box: {v_temp.bounding_box}")
+            print(f"Hyperlegible '3°' bounding box: {h_temp.bounding_box}")
+
+            # Test punctuation after degree
+            v_punc = label.Label(vollkorn_font, text="3°.", color=0x000000)
+            h_punc = label.Label(hyperl_font, text="3°.", color=0x000000)
+
+            print(f"Vollkorn '3°.' bounding box: {v_punc.bounding_box}")
+            print(f"Hyperlegible '3°.' bounding box: {h_punc.bounding_box}")
+
+        except Exception as e:
+            print(f"Font metrics debug failed: {e}")
 
     finally:
         # Clean up: remove from path and restore directory
@@ -165,7 +229,9 @@ def load_web_bmp_icon(filename, x=0, y=0):
     """Load BMP icon for web rendering"""
     try:
         # Look in iconz/bmp folder
-        icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'iconz', 'bmp', filename)
+        icon_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "iconz", "bmp", filename
+        )
         if os.path.exists(icon_path):
             # Load image and convert to displayio-like structure
             pil_image = Image.open(icon_path)
@@ -204,6 +270,7 @@ def calculate_web_moon_phase(timestamp=None):
         raise ValueError("timestamp must be provided - no system time allowed")
     return calculate_moon_phase(timestamp)
 
+
 def web_phase_to_icon_name(phase):
     """Convert numeric phase to BMP icon filename for web using shared module"""
     return phase_to_icon_name(phase)
@@ -215,15 +282,25 @@ def get_averages_from_csv(csv_data):
         return get_default_averages()
 
     # Simple averaging - could be enhanced
-    temps = [d['temp'] for d in csv_data[-50:]]  # Last 50 readings
-    humidity_vals = [d['humidity'] for d in csv_data[-50:]]
+    temps = [d["temp"] for d in csv_data[-50:]]  # Last 50 readings
+    humidity_vals = [d["humidity"] for d in csv_data[-50:]]
 
     avg_temp = int(sum(temps) / len(temps)) if temps else 22
     avg_humidity = int(sum(humidity_vals) / len(humidity_vals)) if humidity_vals else 45
 
     return {
-        'temp': {'day': avg_temp, 'week': avg_temp-1, 'month': avg_temp-2, 'year': avg_temp-3},
-        'humidity': {'day': avg_humidity, 'week': avg_humidity+1, 'month': avg_humidity+2, 'year': avg_humidity+3}
+        "temp": {
+            "day": avg_temp,
+            "week": avg_temp - 1,
+            "month": avg_temp - 2,
+            "year": avg_temp - 3,
+        },
+        "humidity": {
+            "day": avg_humidity,
+            "week": avg_humidity + 1,
+            "month": avg_humidity + 2,
+            "year": avg_humidity + 3,
+        },
     }
 
 
@@ -235,8 +312,8 @@ def get_graph_data_from_csv(csv_data, num_points=60):
     # Get last num_points readings
     recent_data = csv_data[-num_points:] if len(csv_data) >= num_points else csv_data
 
-    temp_data = [d['temp'] for d in recent_data]
-    humidity_data = [d['humidity'] for d in recent_data]
+    temp_data = [d["temp"] for d in recent_data]
+    humidity_data = [d["humidity"] for d in recent_data]
 
     # Pad if not enough data
     while len(temp_data) < num_points:
@@ -249,14 +326,15 @@ def get_graph_data_from_csv(csv_data, num_points=60):
 def get_default_averages():
     """Default averages when no CSV data available"""
     return {
-        'temp': {'day': 22, 'week': 21, 'month': 20, 'year': 19},
-        'humidity': {'day': 45, 'week': 46, 'month': 47, 'year': 48}
+        "temp": {"day": 22, "week": 21, "month": 20, "year": 19},
+        "humidity": {"day": 45, "week": 46, "month": 47, "year": 48},
     }
 
 
 def get_default_graph_data(num_points=60):
     """Default graph data when no CSV data available"""
     import math
+
     temp_data = []
     humidity_data = []
 
@@ -272,7 +350,7 @@ def get_default_graph_data(num_points=60):
 
 def displayio_group_to_pil_image(group, width=122, height=250):
     """Convert displayio.Group to PIL Image"""
-    image = Image.new('RGB', (width, height), (255, 255, 255))
+    image = Image.new("RGB", (width, height), (255, 255, 255))
     draw = ImageDraw.Draw(image)
 
     render_group_recursive(draw, group, 0, 0)
@@ -281,20 +359,20 @@ def displayio_group_to_pil_image(group, width=122, height=250):
 
 def render_group_recursive(draw, group, offset_x, offset_y):
     """Recursively render displayio group items"""
-    group_x = getattr(group, 'x', 0) + offset_x
-    group_y = getattr(group, 'y', 0) + offset_y
+    group_x = getattr(group, "x", 0) + offset_x
+    group_y = getattr(group, "y", 0) + offset_y
 
-    if getattr(group, 'hidden', False):
+    if getattr(group, "hidden", False):
         return
 
     for item in group:
         if isinstance(item, displayio.Group):
             render_group_recursive(draw, item, group_x, group_y)
-        elif hasattr(item, '__class__') and 'Rect' in str(type(item)):
+        elif hasattr(item, "__class__") and "Rect" in str(type(item)):
             render_rect(draw, item, group_x, group_y)
-        elif hasattr(item, '__class__') and 'Line' in str(type(item)):
+        elif hasattr(item, "__class__") and "Line" in str(type(item)):
             render_line(draw, item, group_x, group_y)
-        elif hasattr(item, '__class__') and 'TileGrid' in str(type(item)):
+        elif hasattr(item, "__class__") and "TileGrid" in str(type(item)):
             render_tilegrid(draw, item, group_x, group_y)
 
 
@@ -307,12 +385,12 @@ def render_rect(draw, rect, offset_x, offset_y):
 
     # Handle fill
     fill_color = None
-    if hasattr(rect, 'fill') and rect.fill is not None:
+    if hasattr(rect, "fill") and rect.fill is not None:
         fill_color = convert_displayio_color(rect.fill)
 
     # Handle outline
     outline_color = None
-    if hasattr(rect, 'outline') and rect.outline is not None:
+    if hasattr(rect, "outline") and rect.outline is not None:
         outline_color = convert_displayio_color(rect.outline)
 
     # Draw filled rectangle
@@ -325,7 +403,12 @@ def render_rect(draw, rect, offset_x, offset_y):
         coords = [x, y, x + width - 1, y + height - 1]
         stroke_width = 2
         for i in range(stroke_width):
-            outline_coords = [coords[0] - i, coords[1] - i, coords[2] + i, coords[3] + i]
+            outline_coords = [
+                coords[0] - i,
+                coords[1] - i,
+                coords[2] + i,
+                coords[3] + i,
+            ]
             draw.rectangle(outline_coords, outline=outline_color, fill=None)
 
 
@@ -353,7 +436,7 @@ def render_tilegrid(draw, tilegrid, offset_x, offset_y):
     x = tilegrid.x + offset_x
     y = tilegrid.y + offset_y
 
-    if getattr(tilegrid, 'hidden', False):
+    if getattr(tilegrid, "hidden", False):
         return
 
     bitmap = tilegrid.bitmap

@@ -4,6 +4,7 @@ Weather narrative generator - creates intelligent, contextual weather descriptio
 
 import moon_phase
 from date_utils import get_hour_from_timestamp
+from weather_history import compare_with_yesterday
 
 
 def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
@@ -58,6 +59,14 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
         wind_speed,
         wind_gust,
     )
+
+    # Add yesterday comparison if available
+    yesterday_comparison = compare_with_yesterday(
+        current_temp, high_temp, low_temp, current_timestamp
+    )
+    if yesterday_comparison:
+        current_conditions += f", {yesterday_comparison}"
+
     narrative_parts.append(current_conditions)
 
     # 2. Current precipitation status
@@ -97,7 +106,7 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
             forecast_data, weather_desc, current_timestamp
         )
         if tomorrow_info:
-            full_narrative = full_narrative[:-1] + ". " + tomorrow_info + "."
+            full_narrative = full_narrative[:-1] + tomorrow_info + "."
 
     return _truncate_for_display(full_narrative)
 
@@ -141,26 +150,26 @@ def _describe_current_conditions(
             current_temp, feels_like, humidity, wind_speed, wind_gust
         )
         if feels_like_reason:
-            temp_desc = f"<h>{current_temp:g}°</h> (<i>feels like</i> <h>{feels_like:g}°</h> {feels_like_reason})"
+            temp_desc = f"<h>{current_temp:g}</h>° (<i>feels like</i> <h>{feels_like:g}</h>° {feels_like_reason})"
         else:
             temp_desc = (
-                f"<h>{current_temp:g}°</h> (<i>feels like</i> <h>{feels_like:g}°</h>)"
+                f"<h>{current_temp:g}</h>° (<i>feels like</i> <h>{feels_like:g}</h>°)"
             )
     else:
-        temp_desc = f"<h>{current_temp:g}°</h>"
+        temp_desc = f"<h>{current_temp:g}</h>°"
 
     # Add high/low more often - if there's a meaningful range or short text
     temp_range = high_temp - low_temp
     if temp_range >= 15:
         # Very large daily temperature swing - highlight in red
         temp_desc += (
-            f", ranging <red><h>{low_temp:g}°</h> to <h>{high_temp:g}°</h></red>"
+            f", ranging <red><h>{low_temp:g}</h>° to <h>{high_temp:g}</h>°</red>"
         )
     elif temp_range >= 10:
         # Moderate swing - make it bold
-        temp_desc += f", ranging <b><h>{low_temp:g}°</h> to <h>{high_temp:g}°</h></b>"
+        temp_desc += f", ranging <b><h>{low_temp:g}</h>° to <h>{high_temp:g}</h>°</b>"
     elif temp_range >= 3:  # Lower threshold to show range more often
-        temp_desc += f", ranging <h>{low_temp:g}°</h> to <h>{high_temp:g}°</h>"
+        temp_desc += f", ranging <h>{low_temp:g}</h>° to <h>{high_temp:g}</h>°"
 
     # Highlight extreme temperature contexts
     if temp_context:
@@ -255,13 +264,13 @@ def _analyze_temperature_trends(current_temp, feels_like, forecast_data, is_even
     if is_evening:
         # Evening: focus on overnight low
         if min_temp < current_temp - 3:
-            return f"Low of <h>{min_temp:g}°</h> overnight"
+            return f"Low of <h>{min_temp:g}</h>° overnight"
     else:
         # Daytime: focus on high or significant changes
         if max_temp > current_temp + 3:
-            return f"Rising to <h>{max_temp:g}°</h>"
+            return f"Rising to <h>{max_temp:g}</h>°"
         elif temp_range > 5:
-            return f"Ranging <h>{min_temp:g}°</h> to <h>{max_temp:g}°</h>"
+            return f"Ranging <h>{min_temp:g}</h>° to <h>{max_temp:g}</h>°"
 
     return None
 
@@ -301,30 +310,9 @@ def _describe_tomorrow_outlook(
             if item_date == tomorrow_date:
                 tomorrow_items.append(item)
 
-    # Debug: print ALL forecast data first
-    print(f"DEBUG: All forecast data ({len(forecast_data)} items):")
-    for i, item in enumerate(forecast_data):
-        temp = item.get("temp")
-        dt = item.get("dt")
-        desc = item.get("description", "")
-        if dt:
-            item_year, item_month, item_day, _, _, _, _ = _timestamp_to_components(dt)
-            item_date = f"{item_year:04d}-{item_month:02d}-{item_day:02d}"
-        else:
-            item_date = "None"
-        print(f"  All[{i}]: temp={temp}°, dt={dt}, date={item_date}, desc={desc}")
-
     if not tomorrow_items:
         print(f"No forecast items found for tomorrow ({tomorrow_date})")
         return None
-
-    # Debug: print what forecast items we're using for tomorrow
-    print(f"Using {len(tomorrow_items)} forecast items for tomorrow ({tomorrow_date}):")
-    for i, item in enumerate(tomorrow_items):
-        temp = item.get("temp")
-        dt = item.get("dt")
-        desc = item.get("description", "")
-        print(f"  Tomorrow[{i}]: temp={temp}°, dt={dt}, desc={desc}")
 
     # Get all temperatures for tomorrow
     tomorrow_temps = [
@@ -346,16 +334,16 @@ def _describe_tomorrow_outlook(
     if temp_range >= 15:
         # Very large temperature swing - highlight it
         temp_desc = (
-            f"<red>high <h>{tomorrow_high:g}°</h> low <h>{tomorrow_low:g}°</h></red>"
+            f"<red>high <h>{tomorrow_high:g}</h>° low <h>{tomorrow_low:g}</h>°</red>"
         )
     elif temp_range >= 10:
         # Moderate temperature swing
         temp_desc = (
-            f"<b>high <h>{tomorrow_high:g}°</h> low <h>{tomorrow_low:g}°</h></b>"
+            f"<b>high <h>{tomorrow_high:g}</h>° low <h>{tomorrow_low:g}</h>°</b>"
         )
     else:
         # Always show both high and low for tomorrow
-        temp_desc = f"high <h>{tomorrow_high:g}°</h> low <h>{tomorrow_low:g}°</h>"
+        temp_desc = f"high <h>{tomorrow_high:g}</h>° low <h>{tomorrow_low:g}</h>°"
 
     # Analyze tomorrow's conditions from forecast data
     has_snow = any(
@@ -380,20 +368,23 @@ def _describe_tomorrow_outlook(
     )
 
     # Generate contextual description based on actual forecast
+    # Use newline for tomorrow when there's space, but keep compact when needed
+    tomorrow_prefix = "\n\n<b>Tomorrow:</b>"
+
     if has_storms:
-        return f"<b>Tomorrow:</b> <red>thunderstorms expected,</red> {temp_desc}"
+        return f"{tomorrow_prefix} <red>thunderstorms expected,</red> {temp_desc}"
     elif has_snow:
-        return f"<b>Tomorrow:</b> <red>snow likely,</red> {temp_desc}"
+        return f"{tomorrow_prefix} <red>snow likely,</red> {temp_desc}"
     elif has_rain:
-        return f"<b>Tomorrow:</b> rain expected, {temp_desc}"
+        return f"{tomorrow_prefix} rain expected, {temp_desc}"
     elif has_clouds and has_clear:
-        return f"<b>Tomorrow:</b> partly cloudy, {temp_desc}"
+        return f"{tomorrow_prefix} partly cloudy, {temp_desc}"
     elif has_clouds:
-        return f"<b>Tomorrow:</b> mostly cloudy, {temp_desc}"
+        return f"{tomorrow_prefix} mostly cloudy, {temp_desc}"
     elif has_clear:
-        return f"<b>Tomorrow:</b> sunny skies, {temp_desc}"
+        return f"{tomorrow_prefix} sunny skies, {temp_desc}"
     else:
-        return f"<b>Tomorrow:</b> {temp_desc}"
+        return f"{tomorrow_prefix} {temp_desc}"
 
 
 def _explain_feels_like(actual_temp, feels_like, humidity, wind_speed, wind_gust):
