@@ -2,9 +2,8 @@
 Weather narrative generator - creates intelligent, contextual weather descriptions
 """
 
-import time
 import moon_phase
-from date_utils import get_hour_from_timestamp, categorize_time_for_narrative, format_timestamp_to_time
+from date_utils import get_hour_from_timestamp
 
 
 def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
@@ -467,7 +466,7 @@ def _describe_moon_phase(current_timestamp):
         if 'full' in phase_name:
             return "<i>Full moon tonight</i>"
         elif 'new' in phase_name:
-            return "<i>New moon phase</i>"
+            return "<i>New moon tonight</i>"
         # Only mention other phases if they're particularly notable
         # Most phases aren't worth the text space
 

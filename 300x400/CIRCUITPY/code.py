@@ -165,7 +165,7 @@ def update_display_with_weather_layout():
     check_memory()
 
     # Wait for refresh to complete
-    time.sleep(display.time_to_refresh + 2)
+    time.sleep(display.time_to_refresh)
     print("Refresh complete")
 
 def generate_weather_narrative(weather_data):
@@ -256,7 +256,7 @@ def main():
 main()
 
 # Main loop
-print("PinkWeather ready!")
+print("pinkweather ready!")
 while True:
     # Main program loop - currently just maintains the display
     time.sleep(60)
