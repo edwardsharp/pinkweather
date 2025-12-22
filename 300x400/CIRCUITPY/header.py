@@ -3,19 +3,26 @@ Single-line weather header with date and moon phase text
 """
 
 import displayio
-import time
-from adafruit_display_text import label
-from adafruit_display_shapes.rect import Rect
-from adafruit_bitmap_font import bitmap_font
-from text_renderer import WHITE, BLACK
 import moon_phase
+from adafruit_bitmap_font import bitmap_font
+from adafruit_display_shapes.rect import Rect
+from adafruit_display_text import label
 from forecast_row import create_forecast_row, get_forecast_row_height
+from text_renderer import BLACK, WHITE
 from weather_description import create_weather_description
 
 # Load hyperl15reg.pcf font for header
 hyperl15_font = bitmap_font.load_font("hyperl15reg.pcf")
 
-def create_header(current_timestamp=None, y_position=10, icon_loader=None, day_name=None, day_num=None, month_name=None):
+
+def create_header(
+    current_timestamp=None,
+    y_position=10,
+    icon_loader=None,
+    day_name=None,
+    day_num=None,
+    month_name=None,
+):
     """Create single-line header with date and moon phase
 
     Args:
@@ -44,8 +51,8 @@ def create_header(current_timestamp=None, y_position=10, icon_loader=None, day_n
     if current_timestamp:
         moon_info = moon_phase.get_moon_info(current_timestamp)
         if moon_info:
-            moon_phase_str = moon_info['name'].upper()
-            moon_icon_name = moon_phase.phase_to_icon_name(moon_info['phase'])
+            moon_phase_str = moon_info["name"].upper()
+            moon_icon_name = moon_phase.phase_to_icon_name(moon_info["phase"])
         else:
             moon_phase_str = None
             moon_icon_name = None
@@ -80,11 +87,21 @@ def create_header(current_timestamp=None, y_position=10, icon_loader=None, day_n
 
     return header_group
 
+
 def get_header_height():
     """Get the total height needed for the header"""
     return 25
 
-def create_weather_layout(current_timestamp=None, forecast_data=None, weather_desc=None, icon_loader=None, day_name=None, day_num=None, month_name=None):
+
+def create_weather_layout(
+    current_timestamp=None,
+    forecast_data=None,
+    weather_desc=None,
+    icon_loader=None,
+    day_name=None,
+    day_num=None,
+    month_name=None,
+):
     """Create complete weather layout with single-line header, forecast, and description
 
     Args:
@@ -104,7 +121,14 @@ def create_weather_layout(current_timestamp=None, forecast_data=None, weather_de
     main_group = displayio.Group()
 
     # Create header
-    header_group = create_header(current_timestamp, y_position=15, icon_loader=icon_loader, day_name=day_name, day_num=day_num, month_name=month_name)
+    header_group = create_header(
+        current_timestamp,
+        y_position=15,
+        icon_loader=icon_loader,
+        day_name=day_name,
+        day_num=day_num,
+        month_name=month_name,
+    )
     main_group.append(header_group)
 
     # Add forecast row below header

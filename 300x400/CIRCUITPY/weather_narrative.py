@@ -27,15 +27,15 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
     current_hour = get_hour_from_timestamp(current_timestamp)
 
     # Extract key current conditions
-    current_temp = weather_data.get('current_temp', 0)
-    feels_like = weather_data.get('feels_like', current_temp)
-    high_temp = weather_data.get('high_temp', current_temp)
-    low_temp = weather_data.get('low_temp', current_temp)
-    weather_desc = weather_data.get('weather_desc', '').lower()
-    sunset_timestamp = weather_data.get('sunset_timestamp')
-    humidity = weather_data.get('humidity', 0)
-    wind_speed = weather_data.get('wind_speed', 0)
-    wind_gust = weather_data.get('wind_gust', 0)
+    current_temp = weather_data.get("current_temp", 0)
+    feels_like = weather_data.get("feels_like", current_temp)
+    high_temp = weather_data.get("high_temp", current_temp)
+    low_temp = weather_data.get("low_temp", current_temp)
+    weather_desc = weather_data.get("weather_desc", "").lower()
+    sunset_timestamp = weather_data.get("sunset_timestamp")
+    humidity = weather_data.get("humidity", 0)
+    wind_speed = weather_data.get("wind_speed", 0)
+    wind_gust = weather_data.get("wind_gust", 0)
 
     # Determine if it's evening by comparing current time to sunset timestamp
     if sunset_timestamp:
@@ -48,7 +48,16 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
     narrative_parts = []
 
     # 1. Current conditions with temperature context
-    current_conditions = _describe_current_conditions(weather_desc, current_temp, feels_like, high_temp, low_temp, humidity, wind_speed, wind_gust)
+    current_conditions = _describe_current_conditions(
+        weather_desc,
+        current_temp,
+        feels_like,
+        high_temp,
+        low_temp,
+        humidity,
+        wind_speed,
+        wind_gust,
+    )
     narrative_parts.append(current_conditions)
 
     # 2. Current precipitation status
@@ -63,7 +72,9 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
 
     # 4. Tomorrow's forecast (include more often, not just evenings)
     if forecast_data:
-        tomorrow_info = _describe_tomorrow_outlook(forecast_data, weather_desc)
+        tomorrow_info = _describe_tomorrow_outlook(
+            forecast_data, weather_desc, current_timestamp
+        )
         if tomorrow_info:
             narrative_parts.append(tomorrow_info)
 
@@ -77,30 +88,45 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
     full_narrative = ". ".join(narrative_parts) + "."
 
     # If narrative is short and we have tomorrow's forecast, make sure to include it
-    if len(full_narrative) < 200 and forecast_data and not any("Tomorrow:" in part for part in narrative_parts):
-        tomorrow_info = _describe_tomorrow_outlook(forecast_data, weather_desc)
+    if (
+        len(full_narrative) < 200
+        and forecast_data
+        and not any("Tomorrow:" in part for part in narrative_parts)
+    ):
+        tomorrow_info = _describe_tomorrow_outlook(
+            forecast_data, weather_desc, current_timestamp
+        )
         if tomorrow_info:
             full_narrative = full_narrative[:-1] + ". " + tomorrow_info + "."
 
     return _truncate_for_display(full_narrative)
 
 
-def _describe_current_conditions(weather_desc, current_temp, feels_like, high_temp, low_temp, humidity=0, wind_speed=0, wind_gust=0):
+def _describe_current_conditions(
+    weather_desc,
+    current_temp,
+    feels_like,
+    high_temp,
+    low_temp,
+    humidity=0,
+    wind_speed=0,
+    wind_gust=0,
+):
     """Generate opening statement about current conditions with temperature context"""
     # Clean up weather description
-    if 'overcast' in weather_desc:
+    if "overcast" in weather_desc:
         condition = "Overcast"
-    elif 'clear' in weather_desc:
+    elif "clear" in weather_desc:
         condition = "Clear"
-    elif 'partly' in weather_desc or 'scattered' in weather_desc:
+    elif "partly" in weather_desc or "scattered" in weather_desc:
         condition = "Partly cloudy"
-    elif 'cloudy' in weather_desc or 'clouds' in weather_desc:
+    elif "cloudy" in weather_desc or "clouds" in weather_desc:
         condition = "Cloudy"
-    elif 'rain' in weather_desc:
+    elif "rain" in weather_desc:
         condition = "Rainy"
-    elif 'snow' in weather_desc:
+    elif "snow" in weather_desc:
         condition = "Snowy"
-    elif 'fog' in weather_desc or 'mist' in weather_desc:
+    elif "fog" in weather_desc or "mist" in weather_desc:
         condition = "Foggy"
     else:
         condition = weather_desc.title()
@@ -111,31 +137,45 @@ def _describe_current_conditions(weather_desc, current_temp, feels_like, high_te
     # Build temperature description with feels-like explanation
     temp_diff = abs(feels_like - current_temp)
     if temp_diff >= 3:
-        feels_like_reason = _explain_feels_like(current_temp, feels_like, humidity, wind_speed, wind_gust)
+        feels_like_reason = _explain_feels_like(
+            current_temp, feels_like, humidity, wind_speed, wind_gust
+        )
         if feels_like_reason:
-            temp_desc = f"{current_temp}°C (<i>feels like</i> {feels_like}°C {feels_like_reason})"
+            temp_desc = f"<h>{current_temp:g}°</h> (<i>feels like</i> <h>{feels_like:g}°</h> {feels_like_reason})"
         else:
-            temp_desc = f"{current_temp}°C (<i>feels like</i> {feels_like}°C)"
+            temp_desc = (
+                f"<h>{current_temp:g}°</h> (<i>feels like</i> <h>{feels_like:g}°</h>)"
+            )
     else:
-        temp_desc = f"{current_temp}°C"
+        temp_desc = f"<h>{current_temp:g}°</h>"
 
     # Add high/low more often - if there's a meaningful range or short text
     temp_range = high_temp - low_temp
     if temp_range >= 15:
         # Very large daily temperature swing - highlight in red
-        temp_desc += f", ranging <red>{low_temp}°C to {high_temp}°C</red>"
+        temp_desc += (
+            f", ranging <red><h>{low_temp:g}°</h> to <h>{high_temp:g}°</h></red>"
+        )
     elif temp_range >= 10:
         # Moderate swing - make it bold
-        temp_desc += f", ranging <b>{low_temp}°C to {high_temp}°C</b>"
+        temp_desc += f", ranging <b><h>{low_temp:g}°</h> to <h>{high_temp:g}°</h></b>"
     elif temp_range >= 3:  # Lower threshold to show range more often
-        temp_desc += f", ranging {low_temp}°C to {high_temp}°C"
+        temp_desc += f", ranging <h>{low_temp:g}°</h> to <h>{high_temp:g}°</h>"
 
     # Highlight extreme temperature contexts
     if temp_context:
         if temp_context in ["bitterly cold", "freezing", "extremely hot"]:
-            return f"{condition} and <red>{temp_context},</red> {temp_desc}" if temp_desc else f"{condition} and <red>{temp_context}</red>"
-        elif temp_context in ["very cold", "very hot"]:
-            return f"{condition} and <b>{temp_context},</b> {temp_desc}" if temp_desc else f"{condition} and <b>{temp_context}</b>"
+            return (
+                f"{condition} and <red>{temp_context},</red> {temp_desc}"
+                if temp_desc
+                else f"{condition} and <red>{temp_context}</red>"
+            )
+        elif temp_context in ["chilly", "very hot"]:
+            return (
+                f"{condition} and <b>{temp_context},</b> {temp_desc}"
+                if temp_desc
+                else f"{condition} and <b>{temp_context}</b>"
+            )
         else:
             return f"{condition} and {temp_context}, {temp_desc}"
     else:
@@ -148,23 +188,25 @@ def _analyze_precipitation(weather_data, forecast_data, is_evening):
         return None
 
     # Check current conditions
-    current_desc = weather_data.get('weather_desc', '').lower()
-    currently_precipitating = any(word in current_desc for word in ['rain', 'snow', 'drizzle', 'shower'])
+    current_desc = weather_data.get("weather_desc", "").lower()
+    currently_precipitating = any(
+        word in current_desc for word in ["rain", "snow", "drizzle", "shower"]
+    )
 
     # Look at next 24 hours for significant precipitation chances
     next_24h = forecast_data[:8]  # Assuming 3-hour intervals
     significant_precip = []
 
     for item in next_24h:
-        pop = item.get('pop', 0)  # Probability of precipitation (0-1)
-        has_rain = item.get('rain', {}).get('3h', 0) > 0
-        has_snow = item.get('snow', {}).get('3h', 0) > 0
+        pop = item.get("pop", 0)  # Probability of precipitation (0-1)
+        has_rain = item.get("rain", {}).get("3h", 0) > 0
+        has_snow = item.get("snow", {}).get("3h", 0) > 0
 
         if pop >= 0.25 or has_rain or has_snow:  # 25% chance or actual precipitation
-            if has_snow or 'snow' in item.get('weather', {}).get('description', ''):
-                significant_precip.append(('snow', pop))
-            elif has_rain or 'rain' in item.get('weather', {}).get('description', ''):
-                significant_precip.append(('rain', pop))
+            if has_snow or "snow" in item.get("weather", {}).get("description", ""):
+                significant_precip.append(("snow", pop))
+            elif has_rain or "rain" in item.get("weather", {}).get("description", ""):
+                significant_precip.append(("rain", pop))
 
     # Generate precipitation message
     if currently_precipitating:
@@ -178,7 +220,7 @@ def _analyze_precipitation(weather_data, forecast_data, is_evening):
         precip_types = [p[0] for p in significant_precip]
         max_prob = max([p[1] for p in significant_precip])
 
-        if precip_types.count('snow') > precip_types.count('rain'):
+        if precip_types.count("snow") > precip_types.count("rain"):
             precip_type = "snow"
         else:
             precip_type = "rain"
@@ -199,7 +241,7 @@ def _analyze_temperature_trends(current_temp, feels_like, forecast_data, is_even
         return None
 
     # Get next 8-12 hours of temperatures
-    temps = [item.get('temp', current_temp) for item in forecast_data[:4]]
+    temps = [item.get("temp", current_temp) for item in forecast_data[:4]]
 
     if not temps:
         return None
@@ -213,39 +255,85 @@ def _analyze_temperature_trends(current_temp, feels_like, forecast_data, is_even
     if is_evening:
         # Evening: focus on overnight low
         if min_temp < current_temp - 3:
-            return f"Low of {min_temp}°C overnight"
+            return f"Low of <h>{min_temp:g}°</h> overnight"
     else:
         # Daytime: focus on high or significant changes
         if max_temp > current_temp + 3:
-            return f"Rising to {max_temp}°C"
+            return f"Rising to <h>{max_temp:g}°</h>"
         elif temp_range > 5:
-            return f"Ranging {min_temp}°C to {max_temp}°C"
+            return f"Ranging <h>{min_temp:g}°</h> to <h>{max_temp:g}°</h>"
 
     return None
 
 
-def _describe_tomorrow_outlook(forecast_data, current_weather_desc=""):
+def _describe_tomorrow_outlook(
+    forecast_data, current_weather_desc="", current_timestamp=None
+):
     """Generate tomorrow's outlook by analyzing actual forecast data"""
-    if len(forecast_data) < 3:
+    if not forecast_data:
         return None
 
-    # Look at tomorrow's conditions - be more flexible with forecast items
-    # Items 4-12 roughly cover next 12-36 hours (tomorrow's weather)
-    # If we don't have enough items, use what we have
-    if len(forecast_data) >= 8:
-        tomorrow_items = forecast_data[4:12]
-    elif len(forecast_data) >= 6:
-        tomorrow_items = forecast_data[3:6]
-    else:
-        tomorrow_items = forecast_data[2:4]
+    from date_utils import _timestamp_to_components
+
+    # Use the current timestamp passed to the function (already in local time)
+    if current_timestamp is None:
+        return None
+
+    # Calculate tomorrow's timestamp (add 24 hours)
+    tomorrow_timestamp = current_timestamp + 86400
+
+    # Get tomorrow's date in YYYY-MM-DD format using existing utilities
+    year, month, day, hour, minute, second, weekday = _timestamp_to_components(
+        tomorrow_timestamp
+    )
+    tomorrow_date = f"{year:04d}-{month:02d}-{day:02d}"
+
+    # Find all forecast items that are for tomorrow
+    tomorrow_items = []
+    for item in forecast_data:
+        item_timestamp = item.get("dt")
+        if item_timestamp:
+            # Get item's date in YYYY-MM-DD format using existing utilities
+            item_year, item_month, item_day, _, _, _, _ = _timestamp_to_components(
+                item_timestamp
+            )
+            item_date = f"{item_year:04d}-{item_month:02d}-{item_day:02d}"
+            if item_date == tomorrow_date:
+                tomorrow_items.append(item)
+
+    # Debug: print ALL forecast data first
+    print(f"DEBUG: All forecast data ({len(forecast_data)} items):")
+    for i, item in enumerate(forecast_data):
+        temp = item.get("temp")
+        dt = item.get("dt")
+        desc = item.get("description", "")
+        if dt:
+            item_year, item_month, item_day, _, _, _, _ = _timestamp_to_components(dt)
+            item_date = f"{item_year:04d}-{item_month:02d}-{item_day:02d}"
+        else:
+            item_date = "None"
+        print(f"  All[{i}]: temp={temp}°, dt={dt}, date={item_date}, desc={desc}")
 
     if not tomorrow_items:
+        print(f"No forecast items found for tomorrow ({tomorrow_date})")
         return None
 
-    # Analyze tomorrow's weather from forecast icons and conditions
-    tomorrow_temps = [item.get('temp') for item in tomorrow_items if item.get('temp')]
-    tomorrow_icons = [item.get('icon', '') for item in tomorrow_items]
-    tomorrow_descriptions = [item.get('description', '').lower() for item in tomorrow_items]
+    # Debug: print what forecast items we're using for tomorrow
+    print(f"Using {len(tomorrow_items)} forecast items for tomorrow ({tomorrow_date}):")
+    for i, item in enumerate(tomorrow_items):
+        temp = item.get("temp")
+        dt = item.get("dt")
+        desc = item.get("description", "")
+        print(f"  Tomorrow[{i}]: temp={temp}°, dt={dt}, desc={desc}")
+
+    # Get all temperatures for tomorrow
+    tomorrow_temps = [
+        item.get("temp") for item in tomorrow_items if item.get("temp") is not None
+    ]
+    tomorrow_icons = [item.get("icon", "") for item in tomorrow_items]
+    tomorrow_descriptions = [
+        item.get("description", "").lower() for item in tomorrow_items
+    ]
 
     if not tomorrow_temps:
         return None
@@ -257,20 +345,39 @@ def _describe_tomorrow_outlook(forecast_data, current_weather_desc=""):
     temp_range = tomorrow_high - tomorrow_low
     if temp_range >= 15:
         # Very large temperature swing - highlight it
-        temp_desc = f"<red>high {tomorrow_high}°C, low {tomorrow_low}°C</red>"
+        temp_desc = (
+            f"<red>high <h>{tomorrow_high:g}°</h> low <h>{tomorrow_low:g}°</h></red>"
+        )
     elif temp_range >= 10:
         # Moderate temperature swing
-        temp_desc = f"<b>high {tomorrow_high}°C, low {tomorrow_low}°C</b>"
+        temp_desc = (
+            f"<b>high <h>{tomorrow_high:g}°</h> low <h>{tomorrow_low:g}°</h></b>"
+        )
     else:
         # Always show both high and low for tomorrow
-        temp_desc = f"high {tomorrow_high}°C, low {tomorrow_low}°C"
+        temp_desc = f"high <h>{tomorrow_high:g}°</h> low <h>{tomorrow_low:g}°</h>"
 
     # Analyze tomorrow's conditions from forecast data
-    has_snow = any('13' in icon or 'snow' in desc for icon, desc in zip(tomorrow_icons, tomorrow_descriptions))
-    has_rain = any('09' in icon or '10' in icon or 'rain' in desc for icon, desc in zip(tomorrow_icons, tomorrow_descriptions))
-    has_storms = any('11' in icon or 'storm' in desc or 'thunder' in desc for icon, desc in zip(tomorrow_icons, tomorrow_descriptions))
-    has_clouds = any('02' in icon or '03' in icon or '04' in icon or 'cloud' in desc for icon, desc in zip(tomorrow_icons, tomorrow_descriptions))
-    has_clear = any('01' in icon or 'clear' in desc for icon, desc in zip(tomorrow_icons, tomorrow_descriptions))
+    has_snow = any(
+        "13" in icon or "snow" in desc
+        for icon, desc in zip(tomorrow_icons, tomorrow_descriptions)
+    )
+    has_rain = any(
+        "09" in icon or "10" in icon or "rain" in desc
+        for icon, desc in zip(tomorrow_icons, tomorrow_descriptions)
+    )
+    has_storms = any(
+        "11" in icon or "storm" in desc or "thunder" in desc
+        for icon, desc in zip(tomorrow_icons, tomorrow_descriptions)
+    )
+    has_clouds = any(
+        "02" in icon or "03" in icon or "04" in icon or "cloud" in desc
+        for icon, desc in zip(tomorrow_icons, tomorrow_descriptions)
+    )
+    has_clear = any(
+        "01" in icon or "clear" in desc
+        for icon, desc in zip(tomorrow_icons, tomorrow_descriptions)
+    )
 
     # Generate contextual description based on actual forecast
     if has_storms:
@@ -295,15 +402,17 @@ def _explain_feels_like(actual_temp, feels_like, humidity, wind_speed, wind_gust
 
     # Wind chill (feels colder)
     if temp_diff < -3 and wind_gust > 15:  # Strong gusts
-        return f"due to wind gusts"
+        return "due to wind gusts"
     elif temp_diff < -3 and wind_speed > 10:  # Steady wind
-        return f"due to wind"
+        return "due to wind"
 
     # Heat index (feels hotter)
-    elif temp_diff > 3 and actual_temp > 20 and humidity > 70:  # High humidity when warm
-        return f"due to humidity"
+    elif (
+        temp_diff > 3 and actual_temp > 20 and humidity > 70
+    ):  # High humidity when warm
+        return "due to humidity"
     elif temp_diff > 5 and actual_temp > 25 and humidity > 60:  # Very humid when hot
-        return f"due to high humidity"
+        return "due to high humidity"
 
     return None  # No clear explanation, just show feels-like without reason
 
@@ -315,9 +424,9 @@ def _get_temperature_context(temp):
     elif temp <= 0:
         return "freezing"
     elif temp <= 5:
-        return "very cold"
-    elif temp <= 10:
         return "cold"
+    elif temp <= 10:
+        return "chilly"
     elif temp >= 35:
         return "extremely hot"
     elif temp >= 30:
@@ -336,29 +445,40 @@ def _describe_current_precipitation(weather_desc, forecast_data):
 
     # Also check forecast data for current conditions (first item shows current weather icons)
     current_forecast = forecast_data[0] if forecast_data else None
-    current_icon = current_forecast.get('icon', '') if current_forecast else ''
+    current_icon = current_forecast.get("icon", "") if current_forecast else ""
 
     # Check for snow in current conditions or forecast
-    is_snowing = 'snow' in current_desc_lower or '13' in current_icon
-    is_raining = 'rain' in current_desc_lower or 'drizzle' in current_desc_lower or '09' in current_icon or '10' in current_icon
-    is_stormy = 'storm' in current_desc_lower or 'thunder' in current_desc_lower or '11' in current_icon
+    is_snowing = "snow" in current_desc_lower or "13" in current_icon
+    is_raining = (
+        "rain" in current_desc_lower
+        or "drizzle" in current_desc_lower
+        or "09" in current_icon
+        or "10" in current_icon
+    )
+    is_stormy = (
+        "storm" in current_desc_lower
+        or "thunder" in current_desc_lower
+        or "11" in current_icon
+    )
 
     if is_snowing:
         # Check when snow will end
-        clear_time = _find_when_precipitation_ends(forecast_data, ['snow'])
+        clear_time = _find_when_precipitation_ends(forecast_data, ["snow"])
         if clear_time:
             return f"<red>Currently snowing,</red> <i>expected</i> to stop {clear_time}"
         else:
             return "<red>Currently snowing</red>"
     elif is_raining:
         # Check when rain will end
-        clear_time = _find_when_precipitation_ends(forecast_data, ['rain', 'drizzle'])
+        clear_time = _find_when_precipitation_ends(forecast_data, ["rain", "drizzle"])
         if clear_time:
             return f"Currently raining, <i>expected</i> to end {clear_time}"
         else:
             return "Currently raining"
     elif is_stormy:
-        clear_time = _find_when_precipitation_ends(forecast_data, ['storm', 'thunder', 'rain'])
+        clear_time = _find_when_precipitation_ends(
+            forecast_data, ["storm", "thunder", "rain"]
+        )
         if clear_time:
             return f"<red>Thunderstorms ongoing,</red> <i>clearing</i> {clear_time}"
         else:
@@ -376,11 +496,13 @@ def _analyze_upcoming_precipitation(forecast_data):
     near_term = forecast_data[:4]
 
     for i, item in enumerate(near_term):
-        pop = item.get('pop', 0)
-        description = item.get('description', '').lower()
-        timestamp = item.get('dt')
+        pop = item.get("pop", 0)
+        description = item.get("description", "").lower()
+        timestamp = item.get("dt")
 
-        if pop > 0.5 or any(precip in description for precip in ['rain', 'snow', 'storm']):
+        if pop > 0.5 or any(
+            precip in description for precip in ["rain", "snow", "storm"]
+        ):
             time_desc = "later"
             if timestamp:
                 try:
@@ -394,16 +516,16 @@ def _analyze_upcoming_precipitation(forecast_data):
                     elif hour < 12:
                         time_desc = f"around {hour}a"
                     else:
-                        time_desc = f"around {hour-12}p"
+                        time_desc = f"around {hour - 12}p"
                 except:
                     hours = (i + 1) * 3
                     time_desc = f"within {hours} hours"
 
-            if 'snow' in description:
+            if "snow" in description:
                 return f"<red>Snow</red> <i>likely</i> to start {time_desc}"
-            elif 'storm' in description or 'thunder' in description:
+            elif "storm" in description or "thunder" in description:
                 return f"<red>Thunderstorms</red> <i>approaching</i> {time_desc}"
-            elif 'rain' in description or pop > 0.5:
+            elif "rain" in description or pop > 0.5:
                 return f"Rain <i>likely</i> to start {time_desc}"
 
     return None
@@ -415,16 +537,18 @@ def _find_when_precipitation_ends(forecast_data, precip_types):
         return None
 
     for i, item in enumerate(forecast_data):
-        description = item.get('description', '').lower()
-        pop = item.get('pop', 0)
-        timestamp = item.get('dt')
-        icon = item.get('icon', '')
+        description = item.get("description", "").lower()
+        pop = item.get("pop", 0)
+        timestamp = item.get("dt")
+        icon = item.get("icon", "")
 
         # Check both description and icon for precipitation indicators
         has_precip_desc = any(precip in description for precip in precip_types)
-        has_precip_icon = ('snow' in precip_types and '13' in icon) or \
-                         ('rain' in precip_types and ('09' in icon or '10' in icon)) or \
-                         ('storm' in precip_types and '11' in icon)
+        has_precip_icon = (
+            ("snow" in precip_types and "13" in icon)
+            or ("rain" in precip_types and ("09" in icon or "10" in icon))
+            or ("storm" in precip_types and "11" in icon)
+        )
 
         # If no precipitation indicators, it's clearing
         if pop < 0.3 and not has_precip_desc and not has_precip_icon:
@@ -438,7 +562,7 @@ def _find_when_precipitation_ends(forecast_data, precip_types):
                     elif hour == 12:
                         return "around noon"
                     else:
-                        return f"around {hour-12}p"
+                        return f"around {hour - 12}p"
                 except:
                     pass
 
@@ -461,11 +585,11 @@ def _describe_moon_phase(current_timestamp):
         if moon_info is None:
             return None
 
-        phase_name = moon_info.get('name', '').lower()
+        phase_name = moon_info.get("name", "").lower()
 
-        if 'full' in phase_name:
+        if "full" in phase_name:
             return "<i>Full moon tonight</i>"
-        elif 'new' in phase_name:
+        elif "new" in phase_name:
             return "<i>New moon tonight</i>"
         # Only mention other phases if they're particularly notable
         # Most phases aren't worth the text space
@@ -485,18 +609,18 @@ def _truncate_for_display(text, max_length=400):
         return text
 
     # Try to truncate at sentence boundaries
-    sentences = text.split('. ')
+    sentences = text.split(". ")
     truncated = sentences[0]
 
     for sentence in sentences[1:]:
-        test_length = len(truncated + '. ' + sentence)
+        test_length = len(truncated + ". " + sentence)
         if test_length <= max_length:
-            truncated += '. ' + sentence
+            truncated += ". " + sentence
         else:
             break
 
     # If still too long, truncate the last sentence
     if len(truncated) > max_length:
-        truncated = truncated[:max_length-3] + "..."
+        truncated = truncated[: max_length - 3] + "..."
 
     return truncated

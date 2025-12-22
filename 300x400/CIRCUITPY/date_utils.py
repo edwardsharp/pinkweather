@@ -6,9 +6,22 @@ Provides consistent date handling for both CircuitPython hardware and web server
 import adafruit_datetime as datetime
 
 # Constants
-DAY_NAMES = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-               'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+DAY_NAMES = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+MONTH_NAMES = [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC",
+]
+
 
 def utc_to_local(utc_timestamp, timezone_offset_hours=-5):
     """Convert UTC timestamp to local timestamp
@@ -21,6 +34,7 @@ def utc_to_local(utc_timestamp, timezone_offset_hours=-5):
         Unix timestamp adjusted to local time
     """
     return utc_timestamp + (timezone_offset_hours * 3600)
+
 
 def format_timestamp_to_date(timestamp):
     """Convert Unix timestamp to formatted date components
@@ -39,15 +53,18 @@ def format_timestamp_to_date(timestamp):
         }
     """
     # Manual time calculation to avoid datetime timezone issues
-    year, month, day, hour, minute, second, weekday = _timestamp_to_components(timestamp)
+    year, month, day, hour, minute, second, weekday = _timestamp_to_components(
+        timestamp
+    )
 
     return {
-        'day_name': DAY_NAMES[weekday],
-        'day_num': day,
-        'month_name': MONTH_NAMES[month - 1],
-        'year': year,
-        'weekday': weekday
+        "day_name": DAY_NAMES[weekday],
+        "day_num": day,
+        "month_name": MONTH_NAMES[month - 1],
+        "year": year,
+        "weekday": weekday,
     }
+
 
 def format_timestamp_to_time(timestamp, format_12h=True):
     """Convert Unix timestamp to formatted time string
@@ -61,21 +78,23 @@ def format_timestamp_to_time(timestamp, format_12h=True):
         str: Formatted time string
     """
     # Manual time calculation to avoid datetime timezone issues
-    year, month, day, hour, minute, second, weekday = _timestamp_to_components(timestamp)
+    year, month, day, hour, minute, second, weekday = _timestamp_to_components(
+        timestamp
+    )
 
     if format_12h:
         if hour == 0:
             hour_12 = 12
-            suffix = 'a'
+            suffix = "a"
         elif hour < 12:
             hour_12 = hour
-            suffix = 'a'
+            suffix = "a"
         elif hour == 12:
             hour_12 = 12
-            suffix = 'p'
+            suffix = "p"
         else:
             hour_12 = hour - 12
-            suffix = 'p'
+            suffix = "p"
 
         # Include minutes if not zero, like original format: "9:36p"
         if minute == 0:
@@ -84,6 +103,7 @@ def format_timestamp_to_time(timestamp, format_12h=True):
             return f"{hour_12}:{minute:02d}{suffix}"
     else:
         return f"{hour:02d}:{minute:02d}"
+
 
 def format_timestamp_to_hhmm(timestamp):
     """Convert Unix timestamp to HH:MM format (24-hour)
@@ -96,8 +116,11 @@ def format_timestamp_to_hhmm(timestamp):
         str: Time in HH:MM format (e.g. "15:30")
     """
     # Manual time calculation to avoid datetime timezone issues
-    year, month, day, hour, minute, second, weekday = _timestamp_to_components(timestamp)
+    year, month, day, hour, minute, second, weekday = _timestamp_to_components(
+        timestamp
+    )
     return f"{hour:02d}:{minute:02d}"
+
 
 def get_hour_from_timestamp(timestamp):
     """Get hour (0-23) from Unix timestamp
@@ -110,8 +133,11 @@ def get_hour_from_timestamp(timestamp):
         int: Hour in 24-hour format (0-23)
     """
     # Manual time calculation to avoid datetime timezone issues
-    year, month, day, hour, minute, second, weekday = _timestamp_to_components(timestamp)
+    year, month, day, hour, minute, second, weekday = _timestamp_to_components(
+        timestamp
+    )
     return hour
+
 
 def is_nighttime(timestamp):
     """Check if timestamp represents nighttime hours (6pm - 6am)
@@ -126,6 +152,7 @@ def is_nighttime(timestamp):
     hour = get_hour_from_timestamp(timestamp)
     return hour >= 18 or hour <= 6
 
+
 def format_date_header(timestamp):
     """Format timestamp for header display (e.g. "MON 15 DEC")
     NOTE: timestamp should already be in local time
@@ -138,6 +165,7 @@ def format_date_header(timestamp):
     """
     date_info = format_timestamp_to_date(timestamp)
     return f"{date_info['day_name']} {date_info['day_num']} {date_info['month_name']}"
+
 
 def categorize_time_for_narrative(timestamp):
     """Categorize timestamp for weather narrative descriptions
@@ -152,13 +180,13 @@ def categorize_time_for_narrative(timestamp):
     hour = get_hour_from_timestamp(timestamp)
 
     if 0 <= hour <= 8:
-        return 'overnight'
+        return "overnight"
     elif 9 <= hour <= 11:
-        return 'morning'
+        return "morning"
     elif 12 <= hour <= 17:
-        return 'afternoon'
+        return "afternoon"
     else:
-        return 'evening'
+        return "evening"
 
 
 def parse_time_string_to_hour(time_str):
@@ -177,28 +205,29 @@ def parse_time_string_to_hour(time_str):
         # Handle formats like "4:28p", "17:28", "4:28pm"
         time_str = time_str.lower().strip()
 
-        if 'p' in time_str and ':' in time_str:
+        if "p" in time_str and ":" in time_str:
             # PM format like "4:28p"
-            hour_part = time_str.split(':')[0]
+            hour_part = time_str.split(":")[0]
             hour = int(hour_part)
             if hour != 12:
                 hour += 12
             return hour
-        elif 'a' in time_str and ':' in time_str:
+        elif "a" in time_str and ":" in time_str:
             # AM format like "7:31a"
-            hour_part = time_str.split(':')[0]
+            hour_part = time_str.split(":")[0]
             hour = int(hour_part)
             if hour == 12:
                 hour = 0
             return hour
-        elif ':' in time_str:
+        elif ":" in time_str:
             # 24-hour format like "17:28"
-            return int(time_str.split(':')[0])
+            return int(time_str.split(":")[0])
         else:
             # No recognizable format
             return None
     except:
         return None  # Parse failure
+
 
 def _timestamp_to_components(timestamp):
     """Convert Unix timestamp to date/time components using manual calculation
@@ -259,6 +288,7 @@ def _timestamp_to_components(timestamp):
     day = days_since_epoch + 1  # +1 because days start at 1, not 0
 
     return year, month, day, hour, minute, second, weekday
+
 
 def _is_leap_year(year):
     """Check if year is a leap year"""

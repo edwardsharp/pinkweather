@@ -4,11 +4,13 @@ Shared between hardware and web server for consistent moon phase display
 Uses November 20, 2025 new moon as reference point for better accuracy
 """
 
-import time
+import adafruit_datetime as datetime
+
 
 def is_leap_year(year):
     """Check if a year is a leap year"""
     return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+
 
 def days_in_month(year, month):
     """Get number of days in a given month, accounting for leap years"""
@@ -16,6 +18,7 @@ def days_in_month(year, month):
     if month == 2 and is_leap_year(year):
         return 29
     return days[month - 1]
+
 
 def timestamp_to_date(unix_timestamp):
     """Convert Unix timestamp to (year, month, day) with proper leap year handling"""
@@ -53,6 +56,7 @@ def timestamp_to_date(unix_timestamp):
 
     return year, month, day
 
+
 def date_to_julian_day(year, month, day):
     """Convert date to Julian Day Number using the standard algorithm"""
     # Handle January and February as months 13 and 14 of the previous year
@@ -68,6 +72,7 @@ def date_to_julian_day(year, month, day):
     JD = int(365.25 * (year + 4716)) + int(30.6001 * (month + 1)) + day + B - 1524.5
 
     return JD
+
 
 def calculate_moon_phase(unix_timestamp=None, year=None, month=None, day=None):
     """
@@ -110,6 +115,7 @@ def calculate_moon_phase(unix_timestamp=None, year=None, month=None, day=None):
     phase = phase % 1.0
     return phase
 
+
 def phase_to_icon_name(phase):
     """Convert moon phase (0.0-1.0) to icon name"""
     if phase is None:
@@ -143,6 +149,7 @@ def phase_to_icon_name(phase):
         # Waning crescent
         crescent_phase = int((phase - 0.78) / 0.19 * 6) + 1
         return f"moon-waning-crescent-{min(crescent_phase, 6)}"
+
 
 def get_moon_info(unix_timestamp=None, year=None, month=None, day=None):
     """Get complete moon phase information"""
@@ -179,9 +186,4 @@ def get_moon_info(unix_timestamp=None, year=None, month=None, day=None):
 
     print(f"Moon phase name: {name}")
 
-    return {
-        'phase': phase,
-        'name': name,
-        'icon': icon_name,
-        'percentage': percentage
-    }
+    return {"phase": phase, "name": name, "icon": icon_name, "percentage": percentage}
