@@ -8,7 +8,7 @@ from date_utils import get_hour_from_timestamp, categorize_time_for_narrative, f
 
 
 def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
-    """Generate intelligent weather narrative based on current conditions and forecast
+    """Generate dynamic weather narrative based on current conditions and forecast
 
     Args:
         weather_data: Current weather data dict with temp, feels_like, weather, etc.
@@ -16,7 +16,7 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
         current_timestamp: Unix timestamp for current time (in local time)
 
     Returns:
-        String: Rich, contextual weather description
+        String: contextual weather description
     """
     if not weather_data:
         return "Weather data unavailable."

@@ -73,8 +73,8 @@ display = adafruit_ssd1683.SSD1683(
     busy_pin=busy_pin
 )
 
-# Rotate display 180 degrees
-display.rotation = 180
+# rotate the display 0 so the bottom is the side with the 20pin cable
+display.rotation = 0
 
 # Initialize SD card
 sd_available = False
