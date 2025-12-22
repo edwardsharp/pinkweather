@@ -22,6 +22,7 @@ import os
 
 from cached_weather import fetch_weather_data_cached
 from mock_weather_data import generate_scenario_data, get_predefined_scenarios
+from open_meteo_converter import get_historical_data_range
 from simple_web_render import (
     render_250x122_display,
     render_400x300_display,
@@ -62,6 +63,10 @@ class DisplayHandler(BaseHTTPRequestHandler):
             self.serve_index()
         elif self.path.startswith("/current_image.png"):
             self.serve_current_image()
+        elif self.path == "/api/data-ranges":
+            self.serve_data_ranges()
+        elif self.path == "/api/clear-cache":
+            self.clear_cache()
         else:
             self.send_error(404, "File not found")
 
@@ -114,6 +119,74 @@ class DisplayHandler(BaseHTTPRequestHandler):
         self.send_header("Expires", "0")
         self.end_headers()
         self.wfile.write(DisplayHandler.current_image_data)
+
+    def serve_data_ranges(self):
+        """Serve data ranges for historical datasets as JSON."""
+        try:
+            ranges = {}
+
+            # Get New York 2024 data range
+            try:
+                ny_start, ny_end = get_historical_data_range("ny_2024")
+                if ny_start and ny_end:
+                    ranges["ny_2024"] = {
+                        "start": ny_start,
+                        "end": ny_end,
+                        "name": "New York 2024",
+                    }
+            except Exception as e:
+                print(f"Error getting NY data range: {e}")
+
+            # Get Toronto 2025 data range
+            try:
+                toronto_start, toronto_end = get_historical_data_range("toronto_2025")
+                if toronto_start and toronto_end:
+                    ranges["toronto_2025"] = {
+                        "start": toronto_start,
+                        "end": toronto_end,
+                        "name": "Toronto 2025",
+                    }
+            except Exception as e:
+                print(f"Error getting Toronto data range: {e}")
+
+            response = {"success": True, "ranges": ranges}
+
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode("utf-8"))
+
+        except Exception as e:
+            self.send_response(500)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            error_response = {"success": False, "error": str(e)}
+            self.wfile.write(json.dumps(error_response).encode("utf-8"))
+
+    def clear_cache(self):
+        """Clear weather history cache for testing."""
+        try:
+            cache_dir = "web/.cache" if "web" not in os.getcwd() else ".cache"
+            history_file = os.path.join(cache_dir, "weather_history.json")
+
+            if os.path.exists(history_file):
+                os.remove(history_file)
+                message = "Weather history cache cleared"
+            else:
+                message = "No cache file found"
+
+            response = {"success": True, "message": message}
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode("utf-8"))
+
+        except Exception as e:
+            self.send_response(500)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            error_response = {"success": False, "error": str(e)}
+            self.wfile.write(json.dumps(error_response).encode("utf-8"))
 
     def handle_preview_post(self):
         """Handle POST request to generate weather display preview and return JSON."""

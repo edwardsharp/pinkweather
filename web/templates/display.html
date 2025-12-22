@@ -173,6 +173,14 @@
                 <div class="status-info">
                     <h4>Current Display Status</h4>
                     <div id="status-content">Loading...</div>
+                    <div id="timestamp-status" style="margin-top: 10px; font-family: monospace; font-size: 12px;">
+                        <div>Current Time: <span id="current-timestamp">--</span></div>
+                        <div>Data Range: <span id="data-range">--</span></div>
+                        <div id="range-warning" style="color: orange; display: none;">⚠ Outside available data range</div>
+                        <div id="yesterday-status" style="margin-top: 5px; color: #666; display: none;">
+                            Yesterday: <span id="yesterday-data">--</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -272,10 +280,16 @@
                                 name="mock_scenario"
                                 disabled
                             >
+                                <option value="ny_2024" selected>
+                                    New York 2024 Historical Data
+                                </option>
+                                <option value="toronto_2025">
+                                    Toronto 2025 Historical Data
+                                </option>
                                 <option value="winter_clear">
                                     Clear Winter Day
                                 </option>
-                                <option value="winter_storm" selected>
+                                <option value="winter_storm">
                                     Winter Storm
                                 </option>
                                 <option value="winter_mixed">
@@ -302,7 +316,7 @@
                         </div>
                         <div class="form-group">
                             <small
-                                >Use arrow keys: ←→ time (3h), ↑↓ season, Space
+                                >Use arrow keys: ←→ time (3h), ↑↓ week, Space
                                 regenerate</small
                             >
                         </div>
@@ -653,9 +667,13 @@
             // Auto-update timer (off by default)
             let autoUpdateTimer = null;
             let currentTimestamp = Math.floor(Date.now() / 1000);
-            let currentScenario = "winter_storm";
+            let currentScenario = "ny_2024";
             let seasons = ["winter", "spring", "summer", "fall"];
             let currentSeasonIndex = 0;
+            let dataRanges = {};
+
+            // Load data ranges on page load
+            loadDataRanges();
 
             // Keyboard controls
             document.addEventListener("keydown", function (e) {
@@ -693,28 +711,40 @@
             function stepTime(direction) {
                 currentTimestamp += direction * 10800; // 3 hours
                 console.log("Stepping time:", direction, "new timestamp:", currentTimestamp);
+                updateTimestampDisplay();
                 updateDisplay();
             }
 
             function stepSeason(direction) {
-                currentSeasonIndex =
-                    (currentSeasonIndex + direction + seasons.length) %
-                    seasons.length;
-                const season = seasons[currentSeasonIndex];
-                const scenarios = {
-                    winter: "winter_storm",
-                    spring: "spring_rain",
-                    summer: "summer_hot",
-                    fall: "fall_rain",
-                };
-                currentScenario = scenarios[season];
-                document.getElementById("mock_scenario").value =
-                    currentScenario;
-                updateDisplay();
+                // Check if using historical data
+                if (currentScenario === "ny_2024" || currentScenario === "toronto_2025") {
+                    // For historical data, up/down arrows step by one week (7 days = 604800 seconds)
+                    currentTimestamp += direction * 604800;
+                    console.log("Stepping week:", direction, "new timestamp:", currentTimestamp);
+                    updateTimestampDisplay();
+                    updateDisplay();
+                } else {
+                    // For synthetic scenarios, cycle through seasons
+                    currentSeasonIndex =
+                        (currentSeasonIndex + direction + seasons.length) %
+                        seasons.length;
+                    const season = seasons[currentSeasonIndex];
+                    const scenarios = {
+                        winter: "winter_storm",
+                        spring: "spring_rain",
+                        summer: "summer_hot",
+                        fall: "fall_rain",
+                    };
+                    currentScenario = scenarios[season];
+                    document.getElementById("mock_scenario").value =
+                        currentScenario;
+                    updateDisplay();
+                }
             }
 
             function regenerateScenario() {
                 currentTimestamp += Math.floor(Math.random() * 7200) - 3600;
+                updateTimestampDisplay();
                 updateDisplay();
             }
 
@@ -724,7 +754,14 @@
                 document.getElementById("mock_scenario").disabled = !useMock;
                 currentScenario =
                     document.getElementById("mock_scenario").value;
+
+                // Initialize timestamp appropriately when enabling mock weather
+                if (useMock && (currentScenario === "ny_2024" || currentScenario === "toronto_2025")) {
+                    initializeHistoricalTimestamp(currentScenario);
+                }
+
                 console.log("Weather source toggled:", useMock ? "mock" : "real");
+                updateTimestampDisplay();
                 updateDisplay();
             }
 
@@ -732,6 +769,16 @@
             document.getElementById("mock_scenario").addEventListener("change", function() {
                 currentScenario = this.value;
                 console.log("Scenario changed to:", currentScenario);
+
+                // Reset timestamp to appropriate range for historical data
+                if (currentScenario === "ny_2024" || currentScenario === "toronto_2025") {
+                    initializeHistoricalTimestamp(currentScenario);
+                } else {
+                    // Use current time for synthetic scenarios
+                    currentTimestamp = Math.floor(Date.now() / 1000);
+                }
+
+                updateTimestampDisplay();
                 updateDisplay();
             });
 
@@ -758,6 +805,94 @@
                     autoUpdateTimer = setInterval(updateDisplay, 5000);
                 }
             });
+
+            function loadDataRanges() {
+                fetch('/api/data-ranges')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            dataRanges = data.ranges;
+                            console.log("Loaded data ranges:", dataRanges);
+                            updateTimestampDisplay();
+                        } else {
+                            console.error("Failed to load data ranges:", data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error loading data ranges:", error);
+                    });
+            }
+
+            function initializeHistoricalTimestamp(scenario) {
+                if (dataRanges[scenario]) {
+                    currentTimestamp = dataRanges[scenario].start;
+                    console.log(`Initialized timestamp for ${scenario}:`, currentTimestamp);
+                } else {
+                    // Fallback to hardcoded values if ranges not loaded yet
+                    if (scenario === "ny_2024") {
+                        currentTimestamp = 1704085200; // 2024-01-01 00:00:00 UTC
+                    } else if (scenario === "toronto_2025") {
+                        currentTimestamp = 1734480000; // 2024-12-18 00:00:00 UTC
+                    }
+                    console.log(`Fallback timestamp for ${scenario}:`, currentTimestamp);
+                }
+            }
+
+            function updateTimestampDisplay() {
+                const currentTimestampEl = document.getElementById("current-timestamp");
+                const dataRangeEl = document.getElementById("data-range");
+                const rangeWarningEl = document.getElementById("range-warning");
+
+                // Format current timestamp
+                const currentDate = new Date(currentTimestamp * 1000);
+                currentTimestampEl.textContent = currentDate.toISOString().slice(0, 16).replace('T', ' ') + " UTC";
+
+                // Show data range for historical scenarios
+                if (currentScenario === "ny_2024" || currentScenario === "toronto_2025") {
+                    const range = dataRanges[currentScenario];
+                    if (range) {
+                        const startDate = new Date(range.start * 1000);
+                        const endDate = new Date(range.end * 1000);
+                        dataRangeEl.textContent = `${startDate.toISOString().slice(0, 10)} to ${endDate.toISOString().slice(0, 10)}`;
+
+                        // Check if current timestamp is within range
+                        const isInRange = currentTimestamp >= range.start && currentTimestamp <= range.end;
+                        rangeWarningEl.style.display = isInRange ? "none" : "block";
+                    } else {
+                        dataRangeEl.textContent = "Loading...";
+                        rangeWarningEl.style.display = "none";
+                    }
+                } else {
+                    dataRangeEl.textContent = "Synthetic data (all times valid)";
+                    rangeWarningEl.style.display = "none";
+                }
+
+                // Show yesterday status for historical data
+                updateYesterdayStatus();
+            }
+
+            function updateYesterdayStatus() {
+                const yesterdayStatusEl = document.getElementById("yesterday-status");
+                const yesterdayDataEl = document.getElementById("yesterday-data");
+
+                if (currentScenario === "ny_2024" || currentScenario === "toronto_2025") {
+                    // For historical data, show that yesterday data should be available
+                    const yesterdayTimestamp = currentTimestamp - 86400;
+                    const yesterdayDate = new Date(yesterdayTimestamp * 1000);
+                    const range = dataRanges[currentScenario];
+
+                    if (range && yesterdayTimestamp >= range.start && yesterdayTimestamp <= range.end) {
+                        yesterdayDataEl.textContent = `${yesterdayDate.toISOString().slice(0, 10)} (available)`;
+                        yesterdayDataEl.style.color = "#4CAF50"; // Green
+                    } else {
+                        yesterdayDataEl.textContent = `${yesterdayDate.toISOString().slice(0, 10)} (unavailable)`;
+                        yesterdayDataEl.style.color = "#f44336"; // Red
+                    }
+                    yesterdayStatusEl.style.display = "block";
+                } else {
+                    yesterdayStatusEl.style.display = "none";
+                }
+            }
         </script>
     </body>
 </html>
