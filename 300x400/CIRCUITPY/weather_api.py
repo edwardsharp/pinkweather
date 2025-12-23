@@ -431,8 +431,17 @@ def get_display_variables(forecast_data, timezone_offset_hours=None):
         if timezone_offset_hours is None:
             raise ValueError("timezone_offset_hours must be provided")
 
-        # Convert timestamp to date components using centralized utility
+        # Log timestamp in both formats
+        from date_utils import format_timestamp_to_date, format_timestamp_to_time
+
+        readable_time = format_timestamp_to_time(
+            api_timestamp, format_12h=False
+        )  # 24-hour HH:MM
         date_info = format_timestamp_to_date(api_timestamp)
+        readable_date = f"{date_info['year']}-{date_info['month_name']}-{date_info['day_num']:02d} {readable_time}"
+        log(f"Current timestamp: {api_timestamp} ({readable_date})")
+
+        # Convert timestamp to date components using centralized utility
         day_name = date_info["day_name"]
         day_num = date_info["day_num"]
         month_name = date_info["month_name"]

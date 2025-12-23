@@ -18,6 +18,7 @@ import config
 import digitalio
 import displayio
 import fourwire
+import microcontroller
 import socketpool
 import storage
 import weather_api
@@ -337,7 +338,6 @@ def main():
     # Global state for polling
     last_successful_update = 0
     current_weather_data = None
-    consecutive_failures = 0
 
     log("pinkweather starting...")
 
@@ -350,55 +350,30 @@ def main():
                 current_weather_data = initial_data
                 update_display_with_weather_layout(current_weather_data)
                 last_successful_update = time.monotonic()
-                consecutive_failures = 0
                 log("Initial weather fetch successful")
             else:
                 log("Initial weather fetch failed")
-                consecutive_failures = 1
         except Exception as e:
             log(f"Error in initial weather fetch: {e}")
-            consecutive_failures = 1
     else:
         log("WiFi connection failed on boot")
-        consecutive_failures = 1
 
     log("pinkweather ready! Entering main polling loop...")
 
     while True:
         current_time = time.monotonic()
-        hours_since_update = (current_time - last_successful_update) / 3600
 
-        # Smart sleep intervals based on failure count and last success
-        if consecutive_failures == 0:
-            # Success case: sleep for full hour
-            sleep_minutes = 60
-        elif consecutive_failures == 1:
-            # First failure: retry after 5 minutes
-            sleep_minutes = 5
-        elif consecutive_failures <= 4:
-            # Multiple failures: 15 minute intervals
-            sleep_minutes = 15
-        else:
-            # Many failures: back to hourly attempts
-            sleep_minutes = 60
-
-        # Store the calculated sleep time before any processing
-        planned_sleep_minutes = sleep_minutes
-
-        # Check if it's time for an update
+        # Check if it's time for an update (hourly)
         needs_update = False
         if last_successful_update == 0:
-            # Never successfully updated
+            # Never succeeded, try now
             needs_update = True
-        elif consecutive_failures == 0 and hours_since_update >= 1.0:
-            # Normal hourly update
-            needs_update = True
-        elif consecutive_failures > 0:
-            # Failed recently, time for retry
+        elif current_time - last_successful_update >= 3600:  # 60 minutes
+            # Time for hourly update
             needs_update = True
 
         if needs_update:
-            log(f"Time to refresh weather data... (failures: {consecutive_failures})")
+            log("Time to refresh weather data...")
 
             # Re-establish WiFi connection
             wifi_connected = False
@@ -406,7 +381,6 @@ def main():
                 wifi_connected = connect_wifi()
                 if not wifi_connected:
                     log("WiFi connection failed")
-                    consecutive_failures += 1
                 else:
                     # Attempt weather data fetch
                     fresh_data = get_weather_display_data()
@@ -414,25 +388,20 @@ def main():
                         current_weather_data = fresh_data
                         update_display_with_weather_layout(current_weather_data)
                         last_successful_update = current_time
-                        consecutive_failures = 0
                         log("Weather refresh completed successfully")
                     else:
                         log("Weather fetch failed")
-                        consecutive_failures += 1
             except Exception as e:
                 log(f"Error during weather refresh: {e}")
-                consecutive_failures += 1
 
-        # Check for extended error condition
-        if hours_since_update >= 12:
-            log(f"WARNING: No weather updates for {hours_since_update:.1f} hours")
-            # Could display error message on screen here if needed
+        # Sleep for 60 minutes, then reboot for fresh network stack
+        log("Entering deep sleep for 60 minutes...")
+        deep_sleep(60)
 
-        # Enter deep sleep with WiFi power saving
-        log(
-            f"Next update attempt in {planned_sleep_minutes} minutes (consecutive failures: {consecutive_failures})"
-        )
-        deep_sleep(planned_sleep_minutes)
+        # After waking from deep sleep, soft reboot for fresh network stack
+        log("Waking from deep sleep - rebooting for fresh network stack...")
+        time.sleep(1)  # Give log time to write
+        microcontroller.reset()
 
 
 # Run main function

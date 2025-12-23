@@ -175,21 +175,23 @@ def create_weather_layout(
     )
     main_group.append(header_group)
 
-    # Add forecast row below header
+    # Add weather description first (background layer)
     forecast_height = 0
+    if weather_desc:
+        header_height = get_header_height()
+        # Calculate forecast height even if we don't have forecast data yet
+        if forecast_data and len(forecast_data) > 0:
+            forecast_height = get_forecast_row_height()
+        desc_y = header_height + forecast_height - 10  # Move up 10px to fit more lines
+        available_height = 300 - desc_y
+        desc_group = create_weather_description(weather_desc, desc_y, available_height)
+        main_group.append(desc_group)
+
+    # Add forecast row on top of description
     if forecast_data and len(forecast_data) > 0:
         header_height = get_header_height()
         forecast_y = header_height
         forecast_group, cell_count = create_forecast_row(forecast_data, forecast_y)
         main_group.append(forecast_group)
-        forecast_height = get_forecast_row_height()
-
-    # Add weather description below forecast
-    if weather_desc:
-        header_height = get_header_height()
-        desc_y = header_height + forecast_height
-        available_height = 300 - desc_y
-        desc_group = create_weather_description(weather_desc, desc_y, available_height)
-        main_group.append(desc_group)
 
     return main_group
