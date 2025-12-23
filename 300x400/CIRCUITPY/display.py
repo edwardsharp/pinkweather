@@ -3,7 +3,6 @@ main display coordinator/wrapper that combines header, forecast, and description
 """
 
 from header import create_weather_layout as create_header_layout
-from logger import log
 from text_renderer import TextRenderer, get_text_capacity
 
 # Display constants

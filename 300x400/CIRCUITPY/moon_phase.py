@@ -6,7 +6,6 @@ shared between hardware and web preview server
 uses november 20, 2025 new moon as reference point for better accuracy
 """
 
-import adafruit_datetime as datetime
 from logger import log
 
 

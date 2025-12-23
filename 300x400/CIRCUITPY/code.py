@@ -217,11 +217,15 @@ def connect_wifi():
             wifi.radio.enabled = True
 
         # Wait a moment for radio to initialize
-        time.sleep(1)
+        time.sleep(2)
 
         wifi.radio.connect(config.WIFI_SSID, config.WIFI_PASSWORD)
         log(f"Connected to {config.WIFI_SSID}")
         log(f"IP address: {wifi.radio.ipv4_address}")
+
+        # Wait for DNS to be ready after connection
+        time.sleep(3)
+        log("WiFi connection stabilized")
         return True
     except Exception as e:
         log(f"Failed to connect to WiFi: {e}")
@@ -360,6 +364,9 @@ def main():
             # Many failures: back to hourly attempts
             sleep_minutes = 60
 
+        # Store the calculated sleep time before any processing
+        planned_sleep_minutes = sleep_minutes
+
         # Check if it's time for an update
         needs_update = False
         if last_successful_update == 0:
@@ -391,7 +398,6 @@ def main():
                         last_successful_update = current_time
                         consecutive_failures = 0
                         log("Weather refresh completed successfully")
-                        sleep_minutes = 60  # Sleep full hour after success
                     else:
                         log("Weather fetch failed")
                         consecutive_failures += 1
@@ -406,9 +412,9 @@ def main():
 
         # Enter deep sleep with WiFi power saving
         log(
-            f"Next update attempt in {sleep_minutes} minutes (consecutive failures: {consecutive_failures})"
+            f"Next update attempt in {planned_sleep_minutes} minutes (consecutive failures: {consecutive_failures})"
         )
-        deep_sleep(sleep_minutes)
+        deep_sleep(planned_sleep_minutes)
 
 
 # Run main function

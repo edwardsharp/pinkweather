@@ -3,7 +3,6 @@ weather data persistence module for saving/loading api data to sd card
 """
 
 import json
-import os
 
 from logger import log
 

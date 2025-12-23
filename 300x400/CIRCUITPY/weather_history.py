@@ -7,7 +7,7 @@ import json
 import os
 
 from date_utils import _timestamp_to_components
-from logger import log, log_debug, log_error, log_info, log_warning
+from logger import log, log_error
 
 
 def get_date_string(timestamp):
