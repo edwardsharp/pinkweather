@@ -38,17 +38,17 @@ def get_weather_urls(config=None):
 
     return {
         "forecast": f"https://api.openweathermap.org/data/2.5/forecast?{base_params}",
-        "air_quality": f"https://api.openweathermap.org/data/2.5/air_pollution?{aqi_params}",
+        "air_quality": f"https://api.openweathermap.org/data/2.5/air_pollution/forecast?{aqi_params}",
     }
 
 
 def parse_air_quality(aqi_data):
-    """Parse air quality data from OpenWeather API response"""
+    """Parse air quality data from OpenWeather API forecast response"""
     if not aqi_data or "list" not in aqi_data or not aqi_data["list"]:
         return None
 
     try:
-        # Use first (current) air quality measurement
+        # Use first (most recent) air quality measurement from forecast
         current_aqi = aqi_data["list"][0]
         aqi_value = current_aqi["main"]["aqi"]
 

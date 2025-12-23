@@ -18,6 +18,7 @@ import config
 import digitalio
 import displayio
 import fourwire
+import socketpool
 import storage
 import weather_api
 import wifi
@@ -207,28 +208,29 @@ log(
 
 
 def connect_wifi():
-    """Connect to WiFi network"""
+    """Connect to WiFi network with fresh connection"""
     if config.WIFI_SSID is None or config.WIFI_PASSWORD is None:
         log("WiFi credentials not configured, skipping WiFi connection")
         return False
 
     log("Connecting to WiFi...")
     try:
-        # Enable WiFi radio if needed
-        if not wifi.radio.enabled:
-            wifi.radio.enabled = True
+        # Ensure clean state - stop any existing station connection
+        if wifi.radio.connected:
+            wifi.radio.stop_station()
 
-        # Wait a moment for radio to initialize
+        # Reset radio to ensure fresh state
+        wifi.radio.enabled = False
+        time.sleep(1)
+        wifi.radio.enabled = True
         time.sleep(2)
 
         wifi.radio.connect(config.WIFI_SSID, config.WIFI_PASSWORD)
         log(f"Connected to {config.WIFI_SSID}")
         log(f"IP address: {wifi.radio.ipv4_address}")
 
-        # Give extra time for DNS to be ready after deep sleep recovery
-        log("Waiting for network to stabilize...")
-        time.sleep(10)
-        log("Network stabilization complete")
+        # Give a moment for network to be ready
+        time.sleep(2)
         return True
     except Exception as e:
         log(f"Failed to connect to WiFi: {e}")
@@ -239,8 +241,9 @@ def disconnect_wifi():
     """Disconnect WiFi and disable radio to save power"""
     log("Disconnecting WiFi for power saving...")
     try:
-        # Disconnect from network
-        wifi.radio.stop_ap()
+        # Properly disconnect station and disable radio
+        if wifi.radio.connected:
+            wifi.radio.stop_station()
         wifi.radio.enabled = False
         log("WiFi disconnected and radio disabled")
         return True
