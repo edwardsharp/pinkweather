@@ -187,7 +187,7 @@ def create_weather_layout(
     # Add weather description below forecast
     if weather_desc:
         header_height = get_header_height()
-        desc_y = header_height + 2 + forecast_height + 2
+        desc_y = header_height + forecast_height
         available_height = 300 - desc_y
         desc_group = create_weather_description(weather_desc, desc_y, available_height)
         main_group.append(desc_group)

@@ -5,7 +5,7 @@ weather description text rendering for long text content
 from text_renderer import TextRenderer
 
 
-def create_weather_description(weather_desc, y_position=120, available_height=180):
+def create_weather_description(weather_desc, y_position=100, available_height=200):
     """Create weather description text display
 
     Args:
