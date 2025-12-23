@@ -468,7 +468,32 @@ def generate_scenario_data(scenario_name, base_timestamp=None):
         try:
             from open_meteo_converter import generate_historical_weather_data
 
-            return generate_historical_weather_data(base_timestamp, scenario_name)
+            forecast_data = generate_historical_weather_data(
+                base_timestamp, scenario_name
+            )
+
+            # Add fake air quality data for testing
+            fake_air_quality_data = {
+                "list": [
+                    {
+                        "main": {"aqi": 2},  # Fair air quality
+                        "components": {
+                            "co": 233.5,
+                            "no": 0.12,
+                            "no2": 19.2,
+                            "o3": 51.3,
+                            "so2": 4.1,
+                            "pm2_5": 7.2,
+                            "pm10": 10.5,
+                            "nh3": 1.8,
+                        },
+                    }
+                ]
+            }
+
+            # Return data in new format with both forecast and air quality
+            return {"forecast": forecast_data, "air_quality": fake_air_quality_data}
+
         except ImportError:
             print(
                 "Warning: Could not import open_meteo_converter, falling back to synthetic data"
@@ -477,7 +502,28 @@ def generate_scenario_data(scenario_name, base_timestamp=None):
             scenario_name = "winter_clear"
 
     generator = MockWeatherGenerator(base_timestamp)
-    return generator.generate_mock_forecast(scenario_name)
+    forecast_data = generator.generate_mock_forecast(scenario_name)
+
+    # Add fake air quality data for synthetic scenarios too
+    fake_air_quality_data = {
+        "list": [
+            {
+                "main": {"aqi": 1},  # Good air quality for synthetic data
+                "components": {
+                    "co": 200.0,
+                    "no": 0.0,
+                    "no2": 15.5,
+                    "o3": 45.2,
+                    "so2": 2.8,
+                    "pm2_5": 5.1,
+                    "pm10": 7.3,
+                    "nh3": 1.2,
+                },
+            }
+        ]
+    }
+
+    return {"forecast": forecast_data, "air_quality": fake_air_quality_data}
 
 
 # Test function

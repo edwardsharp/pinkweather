@@ -152,6 +152,8 @@ def update_display_with_weather_layout(weather_data):
         day_name=weather_data.get("day_name"),
         day_num=weather_data.get("day_num"),
         month_name=weather_data.get("month_name"),
+        air_quality=weather_data.get("air_quality"),
+        zodiac_sign=weather_data.get("zodiac_sign"),
     )
 
     # Update display

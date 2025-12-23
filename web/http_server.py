@@ -231,7 +231,23 @@ class DisplayHandler(BaseHTTPRequestHandler):
 
                     # Generate mock weather data
                     mock_data = generate_scenario_data(mock_scenario, timestamp)
-                    print(f"Generated mock data for {mock_data['city']['name']}")
+
+                    # Debug mock data structure
+                    print(f"DEBUG: Mock data type: {type(mock_data)}")
+                    print(
+                        f"DEBUG: Mock data keys: {list(mock_data.keys()) if isinstance(mock_data, dict) else 'not a dict'}"
+                    )
+
+                    # Handle city name from different data structures
+                    try:
+                        if isinstance(mock_data, dict) and "forecast" in mock_data:
+                            city_name = mock_data["forecast"]["city"]["name"]
+                        else:
+                            city_name = mock_data["city"]["name"]
+                        print(f"Generated mock data for {city_name}")
+                    except Exception as e:
+                        print(f"DEBUG: Error accessing city name: {e}")
+                        print(f"DEBUG: Mock data structure: {str(mock_data)[:200]}...")
 
                     # Generate weather narrative using real pipeline
                     try:
@@ -248,9 +264,23 @@ class DisplayHandler(BaseHTTPRequestHandler):
                         )
                         from weather_narrative import get_weather_narrative
 
+                        # Extract forecast data if new format
+                        actual_forecast_data = mock_data
+                        air_quality_data = None
+                        if isinstance(mock_data, dict) and "forecast" in mock_data:
+                            actual_forecast_data = mock_data["forecast"]
+                            air_quality_data = mock_data.get("air_quality")
+
                         # Parse weather data
+                        print(
+                            f"DEBUG: About to parse current weather from: {type(actual_forecast_data)}"
+                        )
+                        print(
+                            f"DEBUG: Forecast data keys: {list(actual_forecast_data.keys()) if isinstance(actual_forecast_data, dict) else 'not a dict'}"
+                        )
+
                         current_weather = parse_current_weather_from_forecast(
-                            mock_data, -5
+                            actual_forecast_data, -5
                         )
                         display_vars = get_display_variables(mock_data, -5)
 
@@ -317,8 +347,19 @@ class DisplayHandler(BaseHTTPRequestHandler):
                                 )
                                 from weather_narrative import get_weather_narrative
 
+                                # Extract forecast data if new format
+                                actual_forecast_data = forecast_data
+                                air_quality_data = None
+                                if (
+                                    isinstance(forecast_data, dict)
+                                    and "forecast" in forecast_data
+                                ):
+                                    actual_forecast_data = forecast_data["forecast"]
+                                    air_quality_data = forecast_data.get("air_quality")
+
                                 current_weather = parse_current_weather_from_forecast(
-                                    forecast_data, config["timezone_offset_hours"]
+                                    actual_forecast_data,
+                                    config["timezone_offset_hours"],
                                 )
                                 display_vars = get_display_variables(
                                     forecast_data, config["timezone_offset_hours"]
@@ -456,6 +497,19 @@ class DisplayHandler(BaseHTTPRequestHandler):
                         except Exception as e:
                             print(f"Real weather failed: {e}")
                             weather_desc = f"Real weather API failed: {str(e)}"
+                            # Try to preserve air quality data even if weather parsing failed
+                            preserved_air_quality = None
+                            if isinstance(forecast_data, dict) and forecast_data.get(
+                                "air_quality"
+                            ):
+                                try:
+                                    from weather_api import parse_air_quality
+
+                                    preserved_air_quality = parse_air_quality(
+                                        forecast_data["air_quality"]
+                                    )
+                                except:
+                                    pass
                             forecast_data = None
                             current_timestamp = None
                     else:
@@ -485,6 +539,24 @@ class DisplayHandler(BaseHTTPRequestHandler):
                         else None
                     )
 
+                    # Debug air quality data flow
+                    air_quality_data = None
+                    zodiac_data = None
+                    if "display_vars" in locals():
+                        air_quality_data = display_vars.get("air_quality")
+                        zodiac_data = display_vars.get("zodiac_sign")
+                        print(
+                            f"DEBUG HTTP: display_vars has air_quality: {air_quality_data}"
+                        )
+                        print(f"DEBUG HTTP: display_vars has zodiac: {zodiac_data}")
+                    elif "preserved_air_quality" in locals():
+                        air_quality_data = preserved_air_quality
+                        print(
+                            f"DEBUG HTTP: using preserved air_quality: {air_quality_data}"
+                        )
+                    else:
+                        print("DEBUG HTTP: No air quality data available")
+
                     image = render_400x300_weather_layout(
                         current_weather=current_weather,
                         forecast_data=forecast_data,
@@ -493,6 +565,8 @@ class DisplayHandler(BaseHTTPRequestHandler):
                         day_name=day_name,
                         day_num=day_num,
                         month_name=month_name,
+                        air_quality=air_quality_data,
+                        zodiac_sign=zodiac_data,
                     )
                 else:
                     # Fallback to text renderer if no weather description

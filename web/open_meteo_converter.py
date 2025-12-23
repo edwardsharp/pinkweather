@@ -520,6 +520,8 @@ def generate_historical_weather_data(base_timestamp, dataset="ny_2024"):
     # Also generate and store yesterday's weather history for narrative comparisons
     _store_yesterday_history(converter, base_timestamp)
 
+    # For web preview/historical data, just return the forecast data directly
+    # Air quality will be mocked at a different level if needed
     return weather_data
 
 

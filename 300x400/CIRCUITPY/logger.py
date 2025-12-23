@@ -123,16 +123,17 @@ def log(message):
     Args:
         message: String message to log
     """
-    # Always print to console (preserve existing behavior)
-    print(message)
+    # Get timestamp for both console and file
+    timestamp = _get_timestamp()
+    timestamped_message = f"{timestamp} {message}"
 
-    # Try to write to SD card with timestamp
+    # Print to console with timestamp (same format as log file)
+    print(timestamped_message)
+
+    # Try to write to SD card with same timestamp
     if _check_sd_availability():
-        timestamp = _get_timestamp()
-        log_message = f"{timestamp} {message}"
-
         # Write to SD card
-        if _write_to_sd(log_message):
+        if _write_to_sd(timestamped_message):
             # Occasionally check if we need to truncate (every ~100 calls)
             # Use a simple modulo check based on time to avoid counting calls
             if int(time.monotonic()) % 100 == 0:

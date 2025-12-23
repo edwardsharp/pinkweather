@@ -8,6 +8,7 @@ from adafruit_bitmap_font import bitmap_font
 from adafruit_display_shapes.rect import Rect
 from adafruit_display_text import label
 from forecast_row import create_forecast_row, get_forecast_row_height
+from logger import log
 from text_renderer import BLACK, WHITE
 from weather_description import create_weather_description
 
@@ -22,8 +23,10 @@ def create_header(
     day_name=None,
     day_num=None,
     month_name=None,
+    air_quality=None,
+    zodiac_sign=None,
 ):
-    """Create single-line header with date and moon phase
+    """Create single-line header with date, air quality, and zodiac sign
 
     Args:
         current_timestamp: Unix timestamp from weather API (already in local time)
@@ -32,6 +35,8 @@ def create_header(
         day_name: Pre-calculated day name (e.g. 'MON')
         day_num: Pre-calculated day number (e.g. 15)
         month_name: Pre-calculated month name (e.g. 'DEC')
+        air_quality: Air quality data dict with 'aqi_text' field
+        zodiac_sign: Three-letter zodiac sign abbreviation
 
     Returns:
         DisplayIO group containing the header
@@ -46,12 +51,10 @@ def create_header(
     else:
         date_str = "DATE ERROR"  # Should not happen if called correctly
 
-    # Set local_timestamp for moon phase calculation
     # Get moon phase info using current timestamp (already local)
     if current_timestamp:
         moon_info = moon_phase.get_moon_info(current_timestamp)
         if moon_info:
-            moon_phase_str = moon_info["name"].upper()
             moon_icon_name = moon_phase.phase_to_icon_name(moon_info["phase"])
         else:
             moon_phase_str = None
@@ -59,6 +62,30 @@ def create_header(
     else:
         moon_phase_str = None
         moon_icon_name = None
+
+    # Prepare air quality and zodiac text separately for justified layout
+    log(f"DEBUG: air_quality data: {air_quality}")
+    air_quality_str = None
+    air_quality_color = WHITE
+    zodiac_str = None
+
+    if air_quality and air_quality.get("aqi_text"):
+        aqi_text = air_quality["aqi_text"].upper()
+        aqi_value = air_quality.get("aqi", 1)
+        air_quality_str = f"AQ: {aqi_text}"
+        # Use red color for poor air quality (AQI > 2)
+        air_quality_color = RED if aqi_value > 2 else WHITE
+        log(
+            f"DEBUG: Setting AQ text to: {air_quality_str}, AQI: {aqi_value}, color: {'red' if aqi_value > 2 else 'white'}"
+        )
+    else:
+        log("DEBUG: No air quality data available for header")
+
+    if zodiac_sign:
+        zodiac_str = zodiac_sign.upper()
+        log(f"DEBUG: Setting zodiac text to: {zodiac_str}")
+    else:
+        log("DEBUG: No zodiac sign available for header")
 
     # Black background rectangle behind header text, leaving space for moon icon
     header_bg = Rect(0, 0, 370, 25, fill=BLACK)
@@ -70,14 +97,26 @@ def create_header(
     date_label.y = y_position - 4
     header_group.append(date_label)
 
-    # Moon phase label (right aligned with space for icon)
-    moon_label = label.Label(hyperl15_font, text=moon_phase_str, color=WHITE)
-    moon_label.anchor_point = (1.0, 0.0)
-    moon_label.anchored_position = (360, y_position - 10)
-    header_group.append(moon_label)
+    # Air quality label (centered)
+    if air_quality_str:
+        aq_label = label.Label(
+            hyperl15_font, text=air_quality_str, color=air_quality_color
+        )
+        aq_label.anchor_point = (0.5, 0.0)  # Center anchor
+        aq_label.anchored_position = (200, y_position - 10)  # Center of 400px width
+        header_group.append(aq_label)
+
+    # Zodiac sign label (right aligned, just before moon icon)
+    if zodiac_str:
+        zodiac_label = label.Label(hyperl15_font, text=zodiac_str, color=WHITE)
+        zodiac_label.anchor_point = (1.0, 0.0)  # Right anchor
+        zodiac_label.anchored_position = (
+            370,
+            y_position - 10,
+        )  # Just before moon icon at 375
+        header_group.append(zodiac_label)
 
     # Moon phase icon positioned at far right
-    # Add moon icon if available and moon phase calculation succeeded
     if icon_loader and moon_icon_name:
         moon_icon = icon_loader(f"{moon_icon_name}.bmp")
         if moon_icon:
@@ -101,6 +140,8 @@ def create_weather_layout(
     day_name=None,
     day_num=None,
     month_name=None,
+    air_quality=None,
+    zodiac_sign=None,
 ):
     """Create complete weather layout with single-line header, forecast, and description
 
@@ -112,6 +153,8 @@ def create_weather_layout(
         day_name: Pre-calculated day name (e.g. 'MON')
         day_num: Pre-calculated day number (e.g. 15)
         month_name: Pre-calculated month name (e.g. 'DEC')
+        air_quality: Air quality data dict with 'aqi_text' field
+        zodiac_sign: Three-letter zodiac sign abbreviation
 
     Returns:
         DisplayIO group containing complete weather layout
@@ -127,6 +170,8 @@ def create_weather_layout(
         day_name=day_name,
         day_num=day_num,
         month_name=month_name,
+        air_quality=air_quality,
+        zodiac_sign=zodiac_sign,
     )
     main_group.append(header_group)
 

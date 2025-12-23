@@ -134,6 +134,8 @@ def render_400x300_weather_layout(
     day_name=None,
     day_num=None,
     month_name=None,
+    air_quality=None,
+    zodiac_sign=None,
 ):
     """
     Render full 400x300 weather layout with header, forecast, and description
@@ -179,6 +181,8 @@ def render_400x300_weather_layout(
             day_name=day_name,
             day_num=day_num,
             month_name=month_name,
+            air_quality=air_quality,
+            zodiac_sign=zodiac_sign,
         )
 
         # Add font metrics debugging while in the correct directory

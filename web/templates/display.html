@@ -367,6 +367,9 @@
                     </div>
 
                     <button type="submit" class="button">Update Display</button>
+                    <button type="button" class="button" onclick="resetSettings()" style="margin-left: 10px; background: #ff6666;">
+                        Reset All Settings
+                    </button>
                 </form>
             </div>
 
@@ -430,6 +433,9 @@
                     displayType: document.getElementById("display_type").value,
                     scale2x: document.getElementById("scale2x").checked,
                     autoUpdate: document.getElementById("auto-update").checked,
+                    useMockWeather: document.getElementById("use_mock_weather").checked,
+                    mockScenario: document.getElementById("mock_scenario").value,
+                    currentTimestamp: currentTimestamp,
                 };
                 localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
             }
@@ -459,10 +465,38 @@
                                 settings.autoUpdate;
                         }
 
+                        // Restore mock weather settings
+                        if (settings.useMockWeather !== undefined) {
+                            document.getElementById("use_mock_weather").checked =
+                                settings.useMockWeather;
+                            toggleWeatherSource(); // Update UI accordingly
+                        }
+
+                        if (settings.mockScenario) {
+                            document.getElementById("mock_scenario").value =
+                                settings.mockScenario;
+                            currentScenario = settings.mockScenario;
+                        }
+
+                        // Restore current timestamp
+                        if (settings.currentTimestamp) {
+                            currentTimestamp = settings.currentTimestamp;
+                            updateTimestampDisplay();
+                        }
+
                         console.log("Restored settings:", settings);
                     } catch (e) {
                         console.warn("Failed to parse saved settings:", e);
                     }
+                }
+            }
+
+            // Reset all settings and localStorage
+            function resetSettings() {
+                if (confirm("This will reset all settings and reload the page. Continue?")) {
+                    localStorage.removeItem(SETTINGS_KEY);
+                    console.log("All settings cleared from localStorage");
+                    location.reload();
                 }
             }
 
@@ -481,6 +515,7 @@
 
             form.addEventListener("submit", function (e) {
                 e.preventDefault();
+                saveSettings(); // Save settings on manual update
                 updateDisplay();
             });
 
@@ -712,6 +747,7 @@
                 currentTimestamp += direction * 10800; // 3 hours
                 console.log("Stepping time:", direction, "new timestamp:", currentTimestamp);
                 updateTimestampDisplay();
+                saveSettings(); // Save timestamp changes
                 updateDisplay();
             }
 
@@ -722,6 +758,7 @@
                     currentTimestamp += direction * 604800;
                     console.log("Stepping week:", direction, "new timestamp:", currentTimestamp);
                     updateTimestampDisplay();
+                    saveSettings(); // Save timestamp changes
                     updateDisplay();
                 } else {
                     // For synthetic scenarios, cycle through seasons
@@ -745,6 +782,7 @@
             function regenerateScenario() {
                 currentTimestamp += Math.floor(Math.random() * 7200) - 3600;
                 updateTimestampDisplay();
+                saveSettings(); // Save timestamp changes
                 updateDisplay();
             }
 
@@ -762,6 +800,7 @@
 
                 console.log("Weather source toggled:", useMock ? "mock" : "real");
                 updateTimestampDisplay();
+                saveSettings(); // Save weather source changes
                 updateDisplay();
             }
 
@@ -779,6 +818,7 @@
                 }
 
                 updateTimestampDisplay();
+                saveSettings(); // Save scenario changes
                 updateDisplay();
             });
 

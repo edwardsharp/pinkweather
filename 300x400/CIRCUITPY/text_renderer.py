@@ -3,6 +3,7 @@ core text rendering functionality with markup support and hard word wrapping
 """
 
 import re
+import xml.etree.ElementTree as ET
 
 import displayio
 import terminalio
@@ -91,6 +92,10 @@ class TextRenderer:
         """Determine if a word should be broken based on smart rules"""
         # word_width = self.measure_text_width(word, style)
 
+        # Rule 0: Never break markup tags
+        if word.startswith("<") or word.endswith(">") or "<" in word or ">" in word:
+            return False
+
         # Rule 1: If word is shorter than 5 characters, don't break it
         if len(word) < 5:
             return False
@@ -107,65 +112,73 @@ class TextRenderer:
         for i in range(2, len(word) - 2):  # At least 2 chars before and after
             test_part = word[:i] + "-"
             test_width = self.measure_text_width(test_part, style)
-
             if test_width <= remaining_width:
-                remaining_chars = len(word) - i
-                if remaining_chars >= 3:  # At least 3 chars left for next line
-                    return True
+                continue  # This part fits, keep trying longer
+            else:
+                return True  # Found a viable break point
 
         return False
 
     def parse_markup(self, text):
-        """Parse markup tags and return list of (text, style, color) tuples"""
+        """Parse markup tags and return list of (text, style, color) tuples using XML parser"""
+        log(f"DEBUG: Starting XML markup parsing on text: {text[:100]}...")
         segments = []
-        patterns = {
-            "bi": (r"<bi>(.*?)</bi>", "bold_italic"),
-            "b": (r"<b>(.*?)</b>", "bold"),
-            "i": (r"<i>(.*?)</i>", "italic"),
-            "red": (r"<red>(.*?)</red>", "red"),
-            "h": (r"<h>(.*?)</h>", "header"),
-            "hb": (r"<hb>(.*?)</hb>", "header_bold"),
-        }
 
-        current_pos = 0
-        while current_pos < len(text):
-            # Find the next markup tag
-            next_match = None
-            next_pos = len(text)
-            next_style = None
+        # Wrap text in a root element to make it valid XML
+        # Handle common XML entities that might appear in weather text
+        try:
+            # Escape common characters that might break XML parsing
+            escaped_text = text.replace("&", "&amp;").replace("<°", "&lt;°")
+            wrapped_text = f"<root>{escaped_text}</root>"
+            root = ET.fromstring(wrapped_text)
 
-            for style_name, (pattern, style) in patterns.items():
-                match = re.search(pattern, text[current_pos:])
-                if match and current_pos + match.start() < next_pos:
-                    next_match = match
-                    next_pos = current_pos + match.start()
-                    next_style = style
+            # Parse the XML tree recursively
+            self._parse_element(root, segments, "regular", BLACK)
 
-            # Add text before the next tag (if any)
-            if next_pos > current_pos:
-                plain_text = text[current_pos:next_pos]
-                if plain_text:
-                    segments.append((plain_text, "regular", BLACK))
+        except Exception as e:
+            log(f"DEBUG: XML parsing failed: {e}, falling back to plain text")
+            # If XML parsing fails, treat as plain text
+            segments.append((text, "regular", BLACK))
 
-            # Add the styled text
-            if next_match:
-                styled_text = next_match.group(1)
-                color = RED if next_style == "red" else BLACK
-                font_style = next_style if next_style != "red" else "regular"
-                segments.append((styled_text, font_style, color))
-                current_pos = next_pos + len(next_match.group(0))
-            else:
-                # No more matches, move to end to avoid duplicate processing
-                current_pos = len(text)
-                break
-
-        # Add any remaining text (this should only execute if we stopped mid-text due to matches)
-        if current_pos < len(text):
-            remaining_text = text[current_pos:]
-            if remaining_text:
-                segments.append((remaining_text, "regular", BLACK))
-
+        log(f"DEBUG: XML markup parsing complete. Found {len(segments)} segments")
+        for i, (text_part, style, color) in enumerate(segments):
+            log(f"  Segment {i}: '{text_part[:20]}...' style={style}")
         return segments
+
+    def _parse_element(self, element, segments, current_style, current_color):
+        """Recursively parse XML element and its children"""
+        # Add text before first child
+        if element.text:
+            segments.append((element.text, current_style, current_color))
+
+        # Process each child element
+        for child in element:
+            # Determine style and color for this child
+            child_style = current_style
+            child_color = current_color
+
+            if child.tag == "b":
+                child_style = "bold"
+            elif child.tag == "i":
+                child_style = "italic"
+            elif child.tag == "bi":
+                child_style = "bold_italic"
+            elif child.tag == "h":
+                child_style = "header"
+            elif child.tag == "hb":
+                child_style = "header_bold"
+            elif child.tag == "red":
+                child_color = RED
+                # Keep current style but change color
+
+            log(f"DEBUG: Found {child.tag} tag")
+
+            # Recursively parse child element
+            self._parse_element(child, segments, child_style, child_color)
+
+            # Add tail text (text after the closing tag)
+            if child.tail:
+                segments.append((child.tail, current_style, current_color))
 
     def hard_wrap_text(self, segments):
         """Hard wrap text segments with smart word breaking and hyphenation rules"""
@@ -214,7 +227,15 @@ class TextRenderer:
                         current_width += word_width
                     else:
                         # Word doesn't fit - decide whether to break or wrap
-                        should_break = self.should_break_word(
+                        # Never break markup tags - check if word contains markup characters
+                        is_markup = (
+                            "<" in word
+                            or ">" in word
+                            or word.startswith("<")
+                            or word.endswith(">")
+                        )
+
+                        should_break = not is_markup and self.should_break_word(
                             word, self.width - current_width, style
                         )
 
