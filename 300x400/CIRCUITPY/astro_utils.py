@@ -2,8 +2,6 @@
 astronomical utilities for zodiac signs and celestial calculations
 """
 
-from bisect import bisect
-
 
 def get_zodiac_sign(month, day):
     """Get zodiac sign for given month and day
@@ -33,7 +31,14 @@ def get_zodiac_sign(month, day):
         (12, 31, "Cap"),  # Capricorn starts Dec 23
     ]
 
-    return signs[bisect(signs, (month, day))][2]
+    # i guess no bisect on circuit python ;(
+    # return signs[bisect(signs, (month, day))][2]
+    # Simple loop instead of bisect
+    for sign_month, sign_day, sign_name in signs:
+        if month < sign_month or (month == sign_month and day <= sign_day):
+            return sign_name
+
+    return "Cap"  # Default fallback
 
 
 def get_zodiac_sign_from_timestamp(timestamp):
