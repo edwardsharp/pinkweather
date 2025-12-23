@@ -108,7 +108,7 @@ def create_forecast_row(forecast_data, y_position=50):
         forecast_group.append(time_label)
 
         # Temperature with background
-        temp_str = f"{forecast_item['temp']}°C"
+        temp_str = f"{forecast_item['temp']:.0f}°C"
         temp_text_width = len(temp_str) * 6
 
         temp_bg_bitmap = displayio.Bitmap(temp_text_width + 4, 12, 1)
