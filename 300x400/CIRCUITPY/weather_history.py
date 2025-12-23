@@ -7,6 +7,7 @@ import json
 import os
 
 from date_utils import _timestamp_to_components
+from logger import log, log_debug, log_error, log_info, log_warning
 
 
 def get_date_string(timestamp):
@@ -55,7 +56,7 @@ def load_weather_history():
         # File doesn't exist
         pass
     except Exception as e:
-        print(f"Error loading weather history: {e}")
+        log(f"Error loading weather history: {e}")
 
     return {}
 
@@ -69,7 +70,7 @@ def save_weather_history(history_data):
             json.dump(history_data, f, indent=2)
         return True
     except Exception as e:
-        print(f"Error saving weather history: {e}")
+        log_error(f"Error saving weather history: {e}")
         return False
 
 

@@ -116,7 +116,6 @@ def create_weather_layout(
     Returns:
         DisplayIO group containing complete weather layout
     """
-
     # Create main display group
     main_group = displayio.Group()
 

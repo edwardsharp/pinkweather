@@ -4,6 +4,7 @@ consistent date handling for both CircuitPython hardware and web preview server
 """
 
 import adafruit_datetime as datetime
+from logger import log
 
 # some constants
 DAY_NAMES = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]

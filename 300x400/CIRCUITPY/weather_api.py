@@ -6,6 +6,7 @@ works on both circuitpython hardware and standard python web server
 import json
 
 from date_utils import format_timestamp_to_date, format_timestamp_to_time, utc_to_local
+from logger import log
 
 
 def manual_capitalize(text):
@@ -93,7 +94,7 @@ def parse_current_weather_from_forecast(forecast_data, timezone_offset_hours=Non
         return parsed
 
     except (KeyError, TypeError, ValueError) as e:
-        print(f"Error parsing current weather from forecast: {e}")
+        log(f"Error parsing current weather from forecast: {e}")
         return None
 
 
@@ -120,7 +121,7 @@ def parse_forecast_data(forecast_data, timezone_offset_hours):
         return forecast_items
 
     except (KeyError, TypeError, ValueError) as e:
-        print(f"Error parsing forecast data: {e}")
+        log(f"Error parsing forecast data: {e}")
         return None
 
 
@@ -210,11 +211,11 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
             special_event_times = []
 
             # Today's sunrise/sunset - compare local times
-            print(f"DEBUG: Current time: {current_timestamp}, Sunrise: {sunrise_ts}")
-            print(
+            log(f"DEBUG: Current time: {current_timestamp}, Sunrise: {sunrise_ts}")
+            log(
                 f"DEBUG: Time since sunrise: {(current_timestamp - sunrise_ts) / 3600:.1f} hours"
             )
-            print(f"DEBUG: Future window: {future_window / 3600} hours")
+            log(f"DEBUG: Future window: {future_window / 3600} hours")
 
             if current_timestamp <= sunrise_ts <= current_timestamp + future_window:
                 # Calculate interpolated temperature for sunrise time
@@ -237,8 +238,8 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
                 enhanced_items.append(sunrise_item)
                 special_event_times.append(sunrise_ts)
 
-            print(f"DEBUG: Current time: {current_timestamp}, Sunset: {sunset_ts}")
-            print(
+            log(f"DEBUG: Current time: {current_timestamp}, Sunset: {sunset_ts}")
+            log(
                 f"DEBUG: Time until sunset: {(sunset_ts - current_timestamp) / 3600:.1f} hours"
             )
 
@@ -364,7 +365,7 @@ def get_display_variables(forecast_data, timezone_offset_hours=None):
         forecast_data, timezone_offset_hours
     )
     if not current_weather:
-        print("No current weather data available")
+        log("No current weather data available")
         return None
 
     # Create enhanced forecast with NOW + sunrise/sunset from single API
@@ -373,7 +374,7 @@ def get_display_variables(forecast_data, timezone_offset_hours=None):
             forecast_data, timezone_offset_hours
         )
     else:
-        print("No forecast data available")
+        log("No forecast data available")
         return None
 
     # Get current date info from weather API timestamp for accuracy
@@ -436,12 +437,12 @@ try:
     def fetch_weather_data_circuitpy(config=None):
         """Fetch weather data on CircuitPython hardware - only forecast endpoint needed"""
         if not wifi.radio.connected:
-            print("WiFi not connected")
+            log("WiFi not connected")
             return None
 
         urls = get_weather_urls(config)
         if not urls:
-            print("Weather API configuration incomplete")
+            log("Weather API configuration incomplete")
             return None
 
         pool = socketpool.SocketPool(wifi.radio)
@@ -452,17 +453,17 @@ try:
 
         try:
             # Fetch forecast only (includes current weather in first item)
-            print("Fetching forecast data...")
+            log("Fetching forecast data...")
             response = requests.get(urls["forecast"])
             if response.status_code == 200:
                 forecast_data = response.json()
-                print("Forecast data received")
+                log("Forecast data received")
             else:
-                print(f"Forecast request failed: {response.status_code}")
+                log(f"Forecast request failed: {response.status_code}")
             response.close()
 
         except Exception as e:
-            print(f"Error fetching weather data: {e}")
+            log(f"Error fetching weather data: {e}")
 
         return forecast_data
 
@@ -479,23 +480,23 @@ except ImportError:
             """Fetch weather data using standard Python urllib - only forecast endpoint needed"""
             urls = get_weather_urls(config)
             if not urls:
-                print("Weather API configuration incomplete")
+                log("Weather API configuration incomplete")
                 return None
 
             forecast_data = None
 
             try:
                 # Fetch forecast only (includes current weather in first item)
-                print("Fetching forecast data...")
+                log("Fetching forecast data...")
                 with urllib.request.urlopen(urls["forecast"]) as response:
                     if response.getcode() == 200:
                         forecast_data = json.loads(response.read().decode())
-                        print("Forecast data received")
+                        log("Forecast data received")
                     else:
-                        print(f"Forecast request failed: {response.getcode()}")
+                        log(f"Forecast request failed: {response.getcode()}")
 
             except Exception as e:
-                print(f"Error fetching weather data: {e}")
+                log(f"Error fetching weather data: {e}")
 
             return forecast_data
 
@@ -504,5 +505,5 @@ except ImportError:
 
     except ImportError:
         # o noz! #TODO: something meaningful?
-        print("onoz! weather_api unable to import http library!")
+        log("onoz! weather_api unable to import http library!")
         fetch_weather_data = None

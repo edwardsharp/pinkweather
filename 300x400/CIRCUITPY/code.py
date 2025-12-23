@@ -26,8 +26,9 @@ from digitalio import DigitalInOut
 # shared display functions
 from display import create_weather_layout, get_text_capacity
 from forecast_row import set_icon_loader
+from logger import log
 from weather_narrative import get_weather_narrative
-from weather_persistence import save_weather_data, should_refresh_weather
+from weather_persistence import save_weather_data
 
 # Create weather config from imported settings
 WEATHER_CONFIG = (
@@ -88,11 +89,11 @@ try:
     vfs = storage.VfsFat(sdcard)
     storage.mount(vfs, "/sd")
     sd_available = True
-    print("SD card ready")
+    log("SD card ready")
 
 except Exception as e:
-    print(f"SD card failed: {e}")
-    print("Continuing without SD card...")
+    log(f"SD card failed: {e}")
+    log("Continuing without SD card...")
     sd_available = False
 
 # Display dimensions and colors
@@ -108,7 +109,7 @@ def check_memory():
     gc.collect()
     free_mem = gc.mem_free()
     if free_mem < 2048:  # If less than 2KB free
-        print(f"LOW MEMORY: {free_mem} bytes free")
+        log(f"LOW MEMORY: {free_mem} bytes free")
         gc.collect()
     return free_mem
 
@@ -123,7 +124,7 @@ def load_bmp_icon(filename):
         pic = displayio.OnDiskBitmap(file_path)
         return displayio.TileGrid(pic, pixel_shader=pic.pixel_shader)
     except Exception as e:
-        print(f"Failed to load {filename}: {e}")
+        log(f"Failed to load {filename}: {e}")
         return None
 
 
@@ -132,10 +133,10 @@ def update_display_with_weather_layout(weather_data):
     check_memory()
 
     if not weather_data:
-        print("No weather data available - cannot create display")
+        log("No weather data available - cannot create display")
         return
 
-    print("Creating weather layout...")
+    log("Creating weather layout...")
 
     # Set up icon loader for forecast rows
     set_icon_loader(sd_available, load_bmp_icon)
@@ -159,7 +160,7 @@ def update_display_with_weather_layout(weather_data):
 
     # Wait for refresh to complete
     time.sleep(display.time_to_refresh)
-    print("Refresh complete")
+    log("Refresh complete")
 
 
 def generate_weather_narrative(weather_data):
@@ -187,18 +188,18 @@ def generate_weather_narrative(weather_data):
             current_weather, forecast_data, current_timestamp
         )
 
-        print(f"Generated weather narrative: {narrative[:50]}...")
+        log(f"Generated weather narrative: {narrative[:50]}...")
         return narrative
 
     except Exception as e:
-        print(f"Error generating weather narrative: {e}")
+        log(f"Error generating weather narrative: {e}")
         # Use basic description instead
         return weather_data.get("weather_desc", "Weather information unavailable")
 
 
 # Get text capacity information
 capacity = get_text_capacity()
-print(
+log(
     f"Display: {capacity['chars_per_line']} chars/line, {capacity['lines_per_screen']} lines, {capacity['total_capacity']} total"
 )
 
@@ -206,18 +207,64 @@ print(
 def connect_wifi():
     """Connect to WiFi network"""
     if config.WIFI_SSID is None or config.WIFI_PASSWORD is None:
-        print("WiFi credentials not configured, skipping WiFi connection")
+        log("WiFi credentials not configured, skipping WiFi connection")
         return False
 
-    print("Connecting to WiFi...")
+    log("Connecting to WiFi...")
     try:
+        # Enable WiFi radio if needed
+        if not wifi.radio.enabled:
+            wifi.radio.enabled = True
+
+        # Wait a moment for radio to initialize
+        time.sleep(1)
+
         wifi.radio.connect(config.WIFI_SSID, config.WIFI_PASSWORD)
-        print(f"Connected to {config.WIFI_SSID}")
-        print(f"IP address: {wifi.radio.ipv4_address}")
+        log(f"Connected to {config.WIFI_SSID}")
+        log(f"IP address: {wifi.radio.ipv4_address}")
         return True
     except Exception as e:
-        print(f"Failed to connect to WiFi: {e}")
+        log(f"Failed to connect to WiFi: {e}")
         return False
+
+
+def disconnect_wifi():
+    """Disconnect WiFi and disable radio to save power"""
+    log("Disconnecting WiFi for power saving...")
+    try:
+        # Disconnect from network
+        wifi.radio.stop_ap()
+        wifi.radio.enabled = False
+        log("WiFi disconnected and radio disabled")
+        return True
+    except Exception as e:
+        log(f"Error disconnecting WiFi: {e}")
+        return False
+
+
+def deep_sleep(minutes):
+    """Enter deep sleep mode for specified minutes"""
+    log(f"Entering deep sleep for {minutes} minutes...")
+
+    # Disconnect WiFi to save power
+    disconnect_wifi()
+
+    # Sleep in smaller chunks to allow for monitoring
+    total_seconds = minutes * 60
+    chunk_size = 300  # 5 minute chunks
+    chunks = total_seconds // chunk_size
+    remaining = total_seconds % chunk_size
+
+    for i in range(chunks):
+        if i == 0:
+            log(f"Deep sleep started, will wake in {minutes} minutes")
+        time.sleep(chunk_size)
+
+    if remaining > 0:
+        time.sleep(remaining)
+
+    log("Waking up from deep sleep...")
+    return True
 
 
 def get_weather_display_data():
@@ -225,77 +272,143 @@ def get_weather_display_data():
     timezone_offset = getattr(config, "TIMEZONE_OFFSET_HOURS", -5)
 
     if WEATHER_CONFIG is None:
-        print("Weather API not configured")
+        log("Weather API not configured")
         return None
 
     if not wifi.radio.connected:
-        print("WiFi not connected")
-        return None
+        log("WiFi not connected, attempting to reconnect...")
+        if not connect_wifi():
+            log("WiFi reconnection failed")
+            return None
 
     # Always fetch fresh weather data (since current time is needed anyway)
-    print("Fetching fresh weather data from API")
-    forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG)
-    if forecast_data:
-        display_vars = weather_api.get_display_variables(forecast_data, timezone_offset)
-
-        # Save to SD card for persistence across power cycles
-        if sd_available and display_vars:
-            current_timestamp = display_vars.get("current_timestamp")
-            save_weather_data(
-                display_vars, display_vars.get("forecast_data", []), current_timestamp
+    log("Fetching fresh weather data from API")
+    try:
+        forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG)
+        if forecast_data:
+            display_vars = weather_api.get_display_variables(
+                forecast_data, timezone_offset
             )
 
-        return display_vars
-    else:
-        print("Failed to fetch weather data")
+            # Save to SD card for persistence across power cycles
+            if sd_available and display_vars:
+                current_timestamp = display_vars.get("current_timestamp")
+                save_weather_data(
+                    display_vars,
+                    display_vars.get("forecast_data", []),
+                    current_timestamp,
+                )
+
+            log("Weather data fetch successful")
+            return display_vars
+        else:
+            log("Weather API returned no data")
+            return None
+    except Exception as e:
+        log(f"Weather fetch error: {e}")
         return None
 
 
 # Main execution and loop
 def main():
-    """Main execution with simplified weather refresh logic"""
+    """Main execution with smart deep sleep polling logic"""
     # Global state for polling
     last_successful_update = 0
     current_weather_data = None
+    consecutive_failures = 0
 
-    # Connect to WiFi
+    log("pinkweather starting...")
+
+    # Fetch initial weather data on boot
+    log("Initial weather data fetch on boot...")
     if connect_wifi():
-        print("WiFi connected, will fetch real weather data")
+        try:
+            initial_data = get_weather_display_data()
+            if initial_data:
+                current_weather_data = initial_data
+                update_display_with_weather_layout(current_weather_data)
+                last_successful_update = time.monotonic()
+                consecutive_failures = 0
+                log("Initial weather fetch successful")
+            else:
+                log("Initial weather fetch failed")
+                consecutive_failures = 1
+        except Exception as e:
+            log(f"Error in initial weather fetch: {e}")
+            consecutive_failures = 1
     else:
-        print("WiFi connection failed or skipped")
+        log("WiFi connection failed on boot")
+        consecutive_failures = 1
 
-    print("pinkweather ready!")
+    log("pinkweather ready! Entering main polling loop...")
 
     while True:
         current_time = time.monotonic()
+        hours_since_update = (current_time - last_successful_update) / 3600
 
-        # Check if need to update (every hour or on first boot)
-        needs_update = (current_time - last_successful_update) >= 3600  # 1 hour
+        # Smart sleep intervals based on failure count and last success
+        if consecutive_failures == 0:
+            # Success case: sleep for full hour
+            sleep_minutes = 60
+        elif consecutive_failures == 1:
+            # First failure: retry after 5 minutes
+            sleep_minutes = 5
+        elif consecutive_failures <= 4:
+            # Multiple failures: 15 minute intervals
+            sleep_minutes = 15
+        else:
+            # Many failures: back to hourly attempts
+            sleep_minutes = 60
+
+        # Check if it's time for an update
+        needs_update = False
+        if last_successful_update == 0:
+            # Never successfully updated
+            needs_update = True
+        elif consecutive_failures == 0 and hours_since_update >= 1.0:
+            # Normal hourly update
+            needs_update = True
+        elif consecutive_failures > 0:
+            # Failed recently, time for retry
+            needs_update = True
 
         if needs_update:
-            print("Time to refresh weather data...")
+            log(f"Time to refresh weather data... (failures: {consecutive_failures})")
+
+            # Re-establish WiFi connection
+            wifi_connected = False
             try:
-                # Attempt to fetch fresh weather data
-                fresh_data = get_weather_display_data()
-                if fresh_data:
-                    current_weather_data = fresh_data
-                    update_display_with_weather_layout(current_weather_data)
-                    last_successful_update = current_time
-                    print("Weather refresh completed successfully")
+                wifi_connected = connect_wifi()
+                if not wifi_connected:
+                    log("WiFi connection failed")
+                    consecutive_failures += 1
                 else:
-                    print("Weather fetch failed - will retry in 15 minutes")
+                    # Attempt weather data fetch
+                    fresh_data = get_weather_display_data()
+                    if fresh_data:
+                        current_weather_data = fresh_data
+                        update_display_with_weather_layout(current_weather_data)
+                        last_successful_update = current_time
+                        consecutive_failures = 0
+                        log("Weather refresh completed successfully")
+                        sleep_minutes = 60  # Sleep full hour after success
+                    else:
+                        log("Weather fetch failed")
+                        consecutive_failures += 1
             except Exception as e:
-                print(f"Error fetching weather: {e} - will retry in 15 minutes")
+                log(f"Error during weather refresh: {e}")
+                consecutive_failures += 1
 
-        # Check for error condition (no updates for 12+ hours)
-        hours_since_update = (current_time - last_successful_update) / 3600
+        # Check for extended error condition
         if hours_since_update >= 12:
-            print(f"WARNING: No weather updates for {hours_since_update:.1f} hours")
-            # Could display error message here if needed
+            log(f"WARNING: No weather updates for {hours_since_update:.1f} hours")
+            # Could display error message on screen here if needed
 
-        # Sleep for 15 minutes before next check
-        print("Sleeping for 15 minutes...")
-        time.sleep(15 * 60)
+        # Enter deep sleep with WiFi power saving
+        log(
+            f"Next update attempt in {sleep_minutes} minutes (consecutive failures: {consecutive_failures})"
+        )
+        deep_sleep(sleep_minutes)
 
 
 # Run main function

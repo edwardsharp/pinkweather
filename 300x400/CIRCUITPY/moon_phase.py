@@ -7,6 +7,7 @@ uses november 20, 2025 new moon as reference point for better accuracy
 """
 
 import adafruit_datetime as datetime
+from logger import log
 
 
 def is_leap_year(year):
@@ -155,12 +156,12 @@ def phase_to_icon_name(phase):
 
 def get_moon_info(unix_timestamp=None, year=None, month=None, day=None):
     """Get complete moon phase information"""
-    print(f"Moon phase calculation for timestamp: {unix_timestamp}")
+    log(f"Moon phase calculation for timestamp: {unix_timestamp}")
     phase = calculate_moon_phase(unix_timestamp, year, month, day)
-    print(f"Calculated moon phase value: {phase}")
+    log(f"Calculated moon phase value: {phase}")
 
     if phase is None:
-        print("Moon phase calculation failed - no valid date provided")
+        log("Moon phase calculation failed - no valid date provided")
         return None
 
     icon_name = phase_to_icon_name(phase)
@@ -186,6 +187,6 @@ def get_moon_info(unix_timestamp=None, year=None, month=None, day=None):
     else:
         name = "Waning Crescent"
 
-    print(f"Moon phase name: {name}")
+    log(f"Moon phase name: {name}")
 
     return {"phase": phase, "name": name, "icon": icon_name, "percentage": percentage}

@@ -4,6 +4,7 @@ weather narrative generator - creates contextual weather description text string
 
 import moon_phase
 from date_utils import get_hour_from_timestamp
+from logger import log
 from weather_history import compare_with_yesterday
 
 
@@ -311,7 +312,7 @@ def _describe_tomorrow_outlook(
                 tomorrow_items.append(item)
 
     if not tomorrow_items:
-        print(f"No forecast items found for tomorrow ({tomorrow_date})")
+        log(f"No forecast items found for tomorrow ({tomorrow_date})")
         return None
 
     # Get all temperatures for tomorrow

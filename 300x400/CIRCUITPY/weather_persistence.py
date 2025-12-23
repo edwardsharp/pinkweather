@@ -3,6 +3,9 @@ weather data persistence module for saving/loading api data to sd card
 """
 
 import json
+import os
+
+from logger import log
 
 
 def get_weather_data_path():
@@ -13,7 +16,7 @@ def get_weather_data_path():
 def save_weather_data(weather_data, forecast_data, current_timestamp):
     """Save weather data and forecast to SD card with timestamp"""
     if not current_timestamp:
-        print("No timestamp provided, skipping weather data save")
+        log("No timestamp provided, skipping weather data save")
         return False
 
     data_to_save = {
@@ -25,10 +28,10 @@ def save_weather_data(weather_data, forecast_data, current_timestamp):
     try:
         with open(get_weather_data_path(), "w") as f:
             json.dump(data_to_save, f)
-        print(f"Weather data saved to SD card at timestamp {current_timestamp}")
+        log(f"Weather data saved to SD card at timestamp {current_timestamp}")
         return True
     except Exception as e:
-        print(f"Failed to save weather data: {e}")
+        log(f"Failed to save weather data: {e}")
         return False
 
 
@@ -42,17 +45,17 @@ def load_weather_data():
 
         # Validate data structure
         if "timestamp" in data and "weather_data" in data and "forecast_data" in data:
-            print(f"Weather data loaded from SD card, timestamp: {data['timestamp']}")
+            log(f"Weather data loaded from SD card, timestamp: {data['timestamp']}")
             return data
         else:
-            print("Invalid weather data structure in saved file")
+            log("Invalid weather data structure in saved file")
             return None
 
     except OSError:
-        print("No saved weather data found on SD card")
+        log("No saved weather data found on SD card")
         return None
     except Exception as e:
-        print(f"Error loading weather data: {e}")
+        log(f"Error loading weather data: {e}")
         return None
 
 
@@ -67,9 +70,7 @@ def is_weather_data_stale(saved_timestamp, current_timestamp, max_age_hours=1):
     is_stale = age_seconds >= max_age_seconds
     age_minutes = age_seconds // 60
 
-    print(
-        f"Weather data age: {age_minutes} minutes ({'stale' if is_stale else 'fresh'})"
-    )
+    log(f"Weather data age: {age_minutes} minutes ({'stale' if is_stale else 'fresh'})")
     return is_stale
 
 
@@ -78,14 +79,14 @@ def should_refresh_weather():
     # Load saved weather data
     saved_data = load_weather_data()
     if not saved_data:
-        print("No saved weather data, needs refresh")
+        log("No saved weather data, needs refresh")
         return True
 
     # We can't check staleness without current time, so just check if we have data
     saved_timestamp = saved_data.get("timestamp")
     if not saved_timestamp:
-        print("No timestamp in saved data, needs refresh")
+        log("No timestamp in saved data, needs refresh")
         return True
 
-    print("Saved weather data exists, will use until next scheduled refresh")
+    log("Saved weather data exists, will use until next scheduled refresh")
     return False

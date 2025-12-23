@@ -8,6 +8,7 @@ import displayio
 import terminalio
 from adafruit_bitmap_font import bitmap_font
 from adafruit_display_text import label
+from logger import log
 
 # Display constants
 DISPLAY_WIDTH = 400
@@ -34,7 +35,7 @@ class TextRenderer:
             self.header_font_regular = bitmap_font.load_font("hyperl20reg.pcf")
             self.header_font_bold = bitmap_font.load_font("hyperl20bold.pcf")
         except Exception as e:
-            print(f"ERROR font loading failed: {e}")
+            log(f"ERROR font loading failed: {e}")
             # Fallback to terminal font
             self.font_regular = terminalio.FONT
             self.font_bold = terminalio.FONT
