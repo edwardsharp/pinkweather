@@ -225,9 +225,10 @@ def connect_wifi():
         log(f"Connected to {config.WIFI_SSID}")
         log(f"IP address: {wifi.radio.ipv4_address}")
 
-        # Wait for DNS to be ready after connection
-        time.sleep(3)
-        log("WiFi connection stabilized")
+        # Give extra time for DNS to be ready after deep sleep recovery
+        log("Waiting for network to stabilize...")
+        time.sleep(10)
+        log("Network stabilization complete")
         return True
     except Exception as e:
         log(f"Failed to connect to WiFi: {e}")
@@ -287,32 +288,44 @@ def get_weather_display_data():
             log("WiFi reconnection failed")
             return None
 
-    # Always fetch fresh weather data (since current time is needed anyway)
-    log("Fetching fresh weather data from API")
-    try:
-        forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG)
-        if forecast_data:
-            display_vars = weather_api.get_display_variables(
-                forecast_data, timezone_offset
-            )
-
-            # Save to SD card for persistence across power cycles
-            if sd_available and display_vars:
-                current_timestamp = display_vars.get("current_timestamp")
-                save_weather_data(
-                    display_vars,
-                    display_vars.get("forecast_data", []),
-                    current_timestamp,
+    # Try weather fetch with DNS retry logic
+    for attempt in range(3):
+        log(f"Fetching fresh weather data from API (attempt {attempt + 1}/3)")
+        try:
+            forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG)
+            if forecast_data:
+                display_vars = weather_api.get_display_variables(
+                    forecast_data, timezone_offset
                 )
 
-            log("Weather data fetch successful")
-            return display_vars
-        else:
-            log("Weather API returned no data")
+                # Save to SD card for persistence across power cycles
+                if sd_available and display_vars:
+                    current_timestamp = display_vars.get("current_timestamp")
+                    save_weather_data(
+                        display_vars,
+                        display_vars.get("forecast_data", []),
+                        current_timestamp,
+                    )
+
+                log("Weather data fetch successful")
+                return display_vars
+            else:
+                log("Weather API returned no data")
+                if attempt < 2:
+                    log("Retrying in 5 seconds...")
+                    time.sleep(5)
+                    continue
+                return None
+        except Exception as e:
+            log(f"Weather fetch error (attempt {attempt + 1}): {e}")
+            if attempt < 2 and "Name or service not known" in str(e):
+                log("DNS error detected, waiting 10 seconds before retry...")
+                time.sleep(10)
+                continue
             return None
-    except Exception as e:
-        log(f"Weather fetch error: {e}")
-        return None
+
+    log("All weather fetch attempts failed")
+    return None
 
 
 # Main execution and loop
