@@ -75,8 +75,27 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
     if current_precip:
         narrative_parts.append(current_precip)
 
-    # 3. Upcoming precipitation in next few hours
-    upcoming_precip = _analyze_upcoming_precipitation(forecast_data)
+    # 3. Coordinate precipitation timing to avoid contradictions
+    current_has_precip = (
+        any(
+            precip in weather_desc.lower()
+            for precip in ["rain", "snow", "storm", "drizzle", "shower"]
+        )
+        if weather_desc
+        else False
+    )
+
+    # Get end time if currently precipitating
+    precip_end_time = None
+    if current_has_precip:
+        precip_end_time = _find_when_precipitation_ends(
+            forecast_data, ["rain", "snow", "storm"]
+        )
+
+    # Only look for upcoming precipitation that starts after the end time
+    upcoming_precip = _analyze_upcoming_precipitation(
+        forecast_data, current_has_precip, precip_end_time
+    )
     if upcoming_precip:
         narrative_parts.append(upcoming_precip)
 
@@ -477,46 +496,123 @@ def _describe_current_precipitation(weather_desc, forecast_data):
     return None
 
 
-def _analyze_upcoming_precipitation(forecast_data):
-    """Check for precipitation in the next few hours"""
+def _analyze_upcoming_precipitation(
+    forecast_data, current_has_precip=False, avoid_end_time=None
+):
+    """Check for precipitation in the next few hours, accounting for current conditions"""
     if not forecast_data or len(forecast_data) < 3:
         return None
 
-    # Check next 12 hours (first 4 forecast items)
-    near_term = forecast_data[:4]
+    # Check next 12-18 hours (more forecast items)
+    near_term = forecast_data[:6]
 
-    for i, item in enumerate(near_term):
-        pop = item.get("pop", 0)
-        description = item.get("description", "").lower()
-        timestamp = item.get("dt")
+    # If currently raining, look for significant gaps (at least 6+ hours) followed by new precipitation
+    if current_has_precip:
+        clear_period_start = None
+        clear_period_hours = 0
 
-        if pop > 0.5 or any(
-            precip in description for precip in ["rain", "snow", "storm"]
-        ):
-            time_desc = "later"
-            if timestamp:
-                try:
-                    hour = get_hour_from_timestamp(timestamp)
+        for i, item in enumerate(near_term):
+            pop = item.get("pop", 0)
+            description = item.get("description", "").lower()
+            timestamp = item.get("dt")
 
-                    # Generalize overnight hours (midnight to 8am)
-                    if hour >= 0 and hour <= 8:
-                        time_desc = "overnight"
-                    elif hour == 12:
-                        time_desc = "around noon"
-                    elif hour < 12:
-                        time_desc = f"around {hour}a"
-                    else:
-                        time_desc = f"around {hour - 12}p"
-                except:
-                    hours = (i + 1) * 3
-                    time_desc = f"within {hours} hours"
+            # Check if this period has precipitation
+            has_precip = pop > 0.3 or any(
+                precip in description for precip in ["rain", "snow", "storm"]
+            )
 
-            if "snow" in description:
-                return f"<red>Snow</red> <i>likely</i> to start {time_desc}"
-            elif "storm" in description or "thunder" in description:
-                return f"<red>Thunderstorms</red> <i>approaching</i> {time_desc}"
-            elif "rain" in description or pop > 0.5:
-                return f"Rain <i>likely</i> to start {time_desc}"
+            if not has_precip:
+                # Clear period continues or starts
+                if clear_period_start is None:
+                    clear_period_start = i
+                clear_period_hours = (i - clear_period_start + 1) * 3
+            elif has_precip and clear_period_hours >= 3:
+                # Found precipitation after a meaningful clear period (3+ hours)
+
+                # Skip if this is too close to the reported end time
+                if avoid_end_time and timestamp:
+                    try:
+                        end_hour = None
+                        if "around " in avoid_end_time:
+                            time_part = avoid_end_time.split("around ")[1]
+                            if time_part.endswith("a"):
+                                end_hour = int(time_part[:-1])
+                                if end_hour == 12:
+                                    end_hour = 0
+                            elif time_part.endswith("p"):
+                                end_hour = int(time_part[:-1])
+                                if end_hour != 12:
+                                    end_hour += 12
+
+                        current_hour = get_hour_from_timestamp(timestamp)
+                        if end_hour and abs(current_hour - end_hour) <= 1:
+                            # Too close to end time (within 1 hour), skip to avoid contradiction
+                            continue
+                    except:
+                        pass
+
+                time_desc = "later"
+                if timestamp:
+                    try:
+                        hour = get_hour_from_timestamp(timestamp)
+                        if hour >= 0 and hour <= 8:
+                            time_desc = "overnight"
+                        elif hour == 12:
+                            time_desc = "around noon"
+                        elif hour < 12:
+                            time_desc = f"around {hour}a"
+                        else:
+                            time_desc = f"around {hour - 12}p"
+                    except:
+                        hours = (i + 1) * 3
+                        time_desc = f"within {hours} hours"
+
+                if "snow" in description:
+                    return f"<red>Snow</red> <i>likely</i> to return {time_desc}"
+                elif "storm" in description or "thunder" in description:
+                    return f"<red>Thunderstorms</red> <i>approaching</i> {time_desc}"
+                elif "rain" in description or pop > 0.5:
+                    return f"Rain <i>likely</i> to return {time_desc}"
+            elif has_precip:
+                # Reset clear period tracking
+                clear_period_start = None
+                clear_period_hours = 0
+
+        return None
+    else:
+        # Not currently precipitating, look for any upcoming precipitation
+        for i, item in enumerate(near_term):
+            pop = item.get("pop", 0)
+            description = item.get("description", "").lower()
+            timestamp = item.get("dt")
+
+            if pop > 0.5 or any(
+                precip in description for precip in ["rain", "snow", "storm"]
+            ):
+                time_desc = "later"
+                if timestamp:
+                    try:
+                        hour = get_hour_from_timestamp(timestamp)
+
+                        # Generalize overnight hours (midnight to 8am)
+                        if hour >= 0 and hour <= 8:
+                            time_desc = "overnight"
+                        elif hour == 12:
+                            time_desc = "around noon"
+                        elif hour < 12:
+                            time_desc = f"around {hour}a"
+                        else:
+                            time_desc = f"around {hour - 12}p"
+                    except:
+                        hours = (i + 1) * 3
+                        time_desc = f"within {hours} hours"
+
+                if "snow" in description:
+                    return f"<red>Snow</red> <i>likely</i> to start {time_desc}"
+                elif "storm" in description or "thunder" in description:
+                    return f"<red>Thunderstorms</red> <i>approaching</i> {time_desc}"
+                elif "rain" in description or pop > 0.5:
+                    return f"Rain <i>likely</i> to start {time_desc}"
 
     return None
 
