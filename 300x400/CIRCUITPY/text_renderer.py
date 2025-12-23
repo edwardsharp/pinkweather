@@ -2,11 +2,16 @@
 core text rendering functionality with markup support and hard word wrapping
 """
 
-import re
-import xml.etree.ElementTree as ET
-
+# import re
 import displayio
 import terminalio
+
+# Try to import standard library XML parser first (for web preview)
+# Fall back to local ElementTree for CircuitPython
+try:
+    import xml.etree.ElementTree as ET
+except ImportError:
+    import ElementTree as ET
 from adafruit_bitmap_font import bitmap_font
 from adafruit_display_text import label
 from logger import log
@@ -130,7 +135,13 @@ class TextRenderer:
             # Escape common characters that might break XML parsing
             escaped_text = text.replace("&", "&amp;").replace("<°", "&lt;°")
             wrapped_text = f"<root>{escaped_text}</root>"
-            root = ET.fromstring(wrapped_text)
+            # Use appropriate parsing function based on which library we imported
+            if hasattr(ET, "XML"):
+                # Standard library xml.etree.ElementTree
+                root = ET.XML(wrapped_text)
+            else:
+                # Local ElementTree.py
+                root = ET.fromstring(wrapped_text)
 
             # Parse the XML tree recursively
             self._parse_element(root, segments, "regular", BLACK)
