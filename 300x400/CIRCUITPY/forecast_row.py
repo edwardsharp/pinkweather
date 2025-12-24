@@ -77,25 +77,25 @@ def create_forecast_row(forecast_data, y_position=50):
         forecast_group.append(cell_bg)
 
         # Cell borders
-        bottom_border = Line(
-            cell_x,
-            y_position + row_height - 1,
-            cell_x + cell_width,
-            y_position + row_height - 1,
-            color=BLACK,
-        )
-        forecast_group.append(bottom_border)
+        # bottom_border = Line(
+        #     cell_x,
+        #     y_position + row_height - 1,
+        #     cell_x + cell_width,
+        #     y_position + row_height - 1,
+        #     color=BLACK,
+        # )
+        # forecast_group.append(bottom_border)
 
-        if i < max_cells - 1:
-            right_border = Rect(
-                cell_x + cell_width - 1,
-                y_position,
-                1,
-                row_height,
-                fill=BLACK,
-                outline=None,
-            )
-            forecast_group.append(right_border)
+        # if i < max_cells - 1:
+        #     right_border = Rect(
+        #         cell_x + cell_width - 1,
+        #         y_position,
+        #         3,
+        #         row_height,
+        #         fill=BLACK,
+        #         outline=None,
+        #     )
+        #     forecast_group.append(right_border)
 
         # Weather icon
         if sd_available and load_bmp_icon_func:
