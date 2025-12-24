@@ -53,8 +53,14 @@ def load_weather_history():
         with open(history_path, "r") as f:
             return json.load(f)
     except OSError:
-        # File doesn't exist
-        pass
+        # File doesn't exist, create it
+        log(f"Weather history file not found, creating: {history_path}")
+        empty_history = {}
+        if save_weather_history(empty_history):
+            log("Weather history file created successfully")
+        else:
+            log("Failed to create weather history file")
+        return empty_history
     except Exception as e:
         log(f"Error loading weather history: {e}")
 
