@@ -11,6 +11,19 @@ from adafruit_display_text import label
 from date_utils import format_timestamp_to_hhmm
 from text_renderer import BLACK, WHITE
 
+
+def format_temp(temp):
+    """Format temperature to avoid negative zero"""
+    if temp is None:
+        return "?"
+    # Round to nearest integer
+    rounded = round(temp)
+    # If it rounds to zero, explicitly return "0"
+    if rounded == 0:
+        return "0"
+    return f"{rounded:.0f}"
+
+
 # Global configuration for icon loading
 sd_available = False
 load_bmp_icon_func = None
@@ -108,7 +121,7 @@ def create_forecast_row(forecast_data, y_position=50):
         forecast_group.append(time_label)
 
         # Temperature with background
-        temp_str = f"{forecast_item['temp']:.0f}°C"
+        temp_str = f"{format_temp(forecast_item['temp'])}°C"
         temp_text_width = len(temp_str) * 6
 
         temp_bg_bitmap = displayio.Bitmap(temp_text_width + 4, 12, 1)

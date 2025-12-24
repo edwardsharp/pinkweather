@@ -192,7 +192,7 @@ def generate_weather_narrative(weather_data):
             current_weather, forecast_data, current_timestamp
         )
 
-        log(f"Generated weather narrative: {narrative[:50]}...")
+        log(f"Generated weather narrative: {narrative}")
         return narrative
 
     except Exception as e:

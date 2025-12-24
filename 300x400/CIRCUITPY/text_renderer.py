@@ -152,8 +152,8 @@ class TextRenderer:
             segments.append((text, "regular", BLACK))
 
         log(f"DEBUG: XML markup parsing complete. Found {len(segments)} segments")
-        for i, (text_part, style, color) in enumerate(segments):
-            log(f"  Segment {i}: '{text_part[:20]}...' style={style}")
+        # for i, (text_part, style, color) in enumerate(segments):
+        #     log(f"  Segment {i}: '{text_part[:20]}...' style={style}")
         return segments
 
     def _parse_element(self, element, segments, current_style, current_color):
@@ -182,7 +182,7 @@ class TextRenderer:
                 child_color = RED
                 # Keep current style but change color
 
-            log(f"DEBUG: Found {child.tag} tag")
+            # log(f"DEBUG: Found {child.tag} tag")
 
             # Recursively parse child element
             self._parse_element(child, segments, child_style, child_color)

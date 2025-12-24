@@ -8,6 +8,18 @@ from logger import log
 from weather_history import compare_with_yesterday
 
 
+def format_temp(temp):
+    """Format temperature to avoid negative zero"""
+    if temp is None:
+        return "?"
+    # Round to nearest integer
+    rounded = round(temp)
+    # If it rounds to zero, explicitly return "0"
+    if rounded == 0:
+        return "0"
+    return f"{rounded:.0f}"
+
+
 def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
     """Generate dynamic weather narrative based on current conditions and forecast
 
@@ -170,26 +182,22 @@ def _describe_current_conditions(
             current_temp, feels_like, humidity, wind_speed, wind_gust
         )
         if feels_like_reason:
-            temp_desc = f"<h>{current_temp:.0f}</h>° (<i>feels like</i> <h>{feels_like:.0f}</h>° {feels_like_reason})"
+            temp_desc = f"<h>{format_temp(current_temp)}</h>° (<i>feels like</i> <h>{format_temp(feels_like)}</h>° {feels_like_reason})"
         else:
-            temp_desc = f"<h>{current_temp:.0f}</h>° (<i>feels like</i> <h>{feels_like:.0f}</h>°)"
+            temp_desc = f"<h>{format_temp(current_temp)}</h>° (<i>feels like</i> <h>{format_temp(feels_like)}</h>°)"
     else:
-        temp_desc = f"<h>{current_temp:.0f}</h>°"
+        temp_desc = f"<h>{format_temp(current_temp)}</h>°"
 
     # Add high/low more often - if there's a meaningful range or short text
     temp_range = high_temp - low_temp
     if temp_range >= 15:
         # Very large daily temperature swing - highlight in red
-        temp_desc += (
-            f", ranging <red><h>{low_temp:.0f}</h>° to <h>{high_temp:.0f}</h>°</red>"
-        )
+        temp_desc += f", ranging <red><h>{format_temp(low_temp)}</h>° to <h>{format_temp(high_temp)}</h>°</red>"
     elif temp_range >= 10:
         # Moderate swing - make it bold
-        temp_desc += (
-            f", ranging <b><h>{low_temp:.0f}</h>° to <h>{high_temp:.0f}</h>°</b>"
-        )
+        temp_desc += f", ranging <b><h>{format_temp(low_temp)}</h>° to <h>{format_temp(high_temp)}</h>°</b>"
     elif temp_range >= 3:  # Lower threshold to show range more often
-        temp_desc += f", ranging <h>{low_temp:.0f}</h>° to <h>{high_temp:.0f}</h>°"
+        temp_desc += f", ranging <h>{format_temp(low_temp)}</h>° to <h>{format_temp(high_temp)}</h>°"
 
     # Highlight extreme temperature contexts
     if temp_context:
@@ -284,13 +292,13 @@ def _analyze_temperature_trends(current_temp, feels_like, forecast_data, is_even
     if is_evening:
         # Evening: focus on overnight low
         if min_temp < current_temp - 3:
-            return f"Low of <h>{min_temp:.0f}</h>° overnight"
+            return f"Low of <h>{format_temp(min_temp)}</h>° overnight"
     else:
         # Daytime: focus on high or significant changes
         if max_temp > current_temp + 3:
-            return f"Rising to <h>{max_temp:.0f}</h>°"
+            return f"Rising to <h>{format_temp(max_temp)}</h>°"
         elif temp_range > 5:
-            return f"Ranging <h>{min_temp:.0f}</h>° to <h>{max_temp:.0f}</h>°"
+            return f"Ranging <h>{format_temp(min_temp)}</h>° to <h>{format_temp(max_temp)}</h>°"
 
     return None
 
@@ -353,15 +361,13 @@ def _describe_tomorrow_outlook(
     temp_range = tomorrow_high - tomorrow_low
     if temp_range >= 15:
         # Very large temperature swing - highlight it
-        temp_desc = f"<red>high <h>{tomorrow_high:.0f}</h>° low <h>{tomorrow_low:.0f}</h>°</red>"
+        temp_desc = f"<red>high <h>{format_temp(tomorrow_high)}</h>° low <h>{format_temp(tomorrow_low)}</h>°</red>"
     elif temp_range >= 10:
         # Moderate temperature swing
-        temp_desc = (
-            f"<b>high <h>{tomorrow_high:.0f}</h>° low <h>{tomorrow_low:.0f}</h>°</b>"
-        )
+        temp_desc = f"<b>high <h>{format_temp(tomorrow_high)}</h>° low <h>{format_temp(tomorrow_low)}</h>°</b>"
     else:
         # Always show both high and low for tomorrow
-        temp_desc = f"high <h>{tomorrow_high:.0f}</h>° low <h>{tomorrow_low:.0f}</h>°"
+        temp_desc = f"high <h>{format_temp(tomorrow_high)}</h>° low <h>{format_temp(tomorrow_low)}</h>°"
 
     # Analyze tomorrow's conditions from forecast data
     has_snow = any(
