@@ -120,25 +120,37 @@ def create_forecast_row(forecast_data, y_position=50):
         time_label.y = y_position + 8
         forecast_group.append(time_label)
 
-        # Temperature with background
-        temp_str = f"{format_temp(forecast_item['temp'])}°C"
+        # Temperature with precipitation chance if non-zero
+        temp_str = f"{format_temp(forecast_item['temp'])}°"
+
+        # Add precipitation chance if it exists and is non-zero
+        pop = forecast_item.get("pop", 0)
+        if pop > 0:
+            pop_percent = int(pop * 100)  # Convert 0.59 to 59
+            temp_str += f" {pop_percent}%"
+
+        # TEST temp_str with max chars
+        # note: hardware doesn't seem to render ° symbol?
+        # temp_str = "-10° 100%"
         temp_text_width = len(temp_str) * 6
 
-        temp_bg_bitmap = displayio.Bitmap(temp_text_width + 4, 12, 1)
-        temp_bg_palette = displayio.Palette(1)
-        temp_bg_palette[0] = WHITE
-        temp_bg_grid = displayio.TileGrid(
-            temp_bg_bitmap,
-            pixel_shader=temp_bg_palette,
-            x=cell_x + (cell_width - temp_text_width) // 2 - 2,
-            y=y_position + 53,
-        )
-        forecast_group.append(temp_bg_grid)
+        # temp_bg_bitmap = displayio.Bitmap(temp_text_width + 4, 12, 1)
+        # temp_bg_palette = displayio.Palette(1)
+        # temp_bg_palette[0] = WHITE
+        # temp_bg_grid = displayio.TileGrid(
+        #     temp_bg_bitmap,
+        #     pixel_shader=temp_bg_palette,
+        #     x=cell_x + (cell_width - temp_text_width) // 2 - 2,
+        #     y=y_position + 53,
+        # )
+        # forecast_group.append(temp_bg_grid)
 
         # Temperature label
         temp_label = label.Label(terminal_font, text=temp_str, color=BLACK)
-        temp_label.x = cell_x + (cell_width - temp_text_width) // 2
-        temp_label.y = y_position + 65
+        temp_label.x = (
+            cell_x + (cell_width - temp_text_width) // 2
+        ) + 3  # +3 to nudge a bit right
+        temp_label.y = y_position + 69
         forecast_group.append(temp_label)
     return forecast_group, max_cells
 

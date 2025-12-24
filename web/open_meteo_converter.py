@@ -379,16 +379,27 @@ class OpenMeteoConverter:
                     "gust": wind_gust / 3.6,  # Convert km/h to m/s
                 },
                 "visibility": int(visibility),
-                "pop": 0,  # Precipitation probability - could be enhanced from daily data
                 "sys": {"pod": "d" if is_day else "n"},
                 "dt_txt": datetime.fromtimestamp(timestamp).strftime(
                     "%Y-%m-%d %H:%M:%S"
                 ),
             }
 
-            # Add precipitation data if present
+            # Add precipitation data and calculate probability
             rain = self._safe_float(row["rain (mm)"])
             snow = self._safe_float(row["snowfall (cm)"])
+
+            # Calculate precipitation probability based on amounts
+            pop = 0
+            if rain > 0 or snow > 0:
+                total_precip = rain + (snow * 10)  # Snow is more voluminous
+                if total_precip > 0.1:
+                    pop = min(0.95, 0.3 + (total_precip / 10))  # Scale from 30% to 95%
+                else:
+                    pop = 0.2  # Light precipitation
+
+            item["pop"] = pop
+
             if rain > 0:
                 item["rain"] = {"3h": rain}
             if snow > 0:

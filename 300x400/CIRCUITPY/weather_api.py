@@ -127,7 +127,7 @@ def parse_current_weather_from_forecast(forecast_data, timezone_offset_hours=Non
         return None
 
 
-def parse_forecast_data(forecast_data, timezone_offset_hours):
+def parse_forecast_data(forecast_data, timezone_offset_hours, air_quality_data=None):
     """Parse forecast API response into display variables (skip first item since it's used as current)"""
     if not forecast_data or "list" not in forecast_data:
         return None
@@ -135,15 +135,30 @@ def parse_forecast_data(forecast_data, timezone_offset_hours):
     try:
         forecast_items = []
 
+        # Create air quality lookup by timestamp if available
+        aqi_lookup = {}
+        if air_quality_data and "list" in air_quality_data:
+            for aqi_item in air_quality_data["list"]:
+                if "dt" in aqi_item and "main" in aqi_item:
+                    aqi_timestamp = utc_to_local(aqi_item["dt"], timezone_offset_hours)
+                    aqi_lookup[aqi_timestamp] = aqi_item["main"]["aqi"]
+
         # Skip first item (used as current weather), take remaining items
         for item in forecast_data["list"][1:]:
             # Convert forecast timestamps to local time
+            local_timestamp = utc_to_local(item["dt"], timezone_offset_hours)
+
+            # Find matching air quality data
+            aqi = aqi_lookup.get(local_timestamp, None)
+
             parsed_item = {
-                "dt": utc_to_local(item["dt"], timezone_offset_hours),
+                "dt": local_timestamp,
                 "temp": round(item["main"]["temp"], 1),
                 "feels_like": round(item["main"]["feels_like"], 1),
                 "icon": item["weather"][0]["icon"],
                 "description": item["weather"][0]["description"],
+                "pop": item.get("pop", 0),  # Precipitation probability
+                "aqi": aqi,  # Air quality index
             }
             forecast_items.append(parsed_item)
 
@@ -190,7 +205,9 @@ def interpolate_temperature(target_timestamp, forecast_items):
     return round(interpolated_temp)
 
 
-def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
+def create_enhanced_forecast_data(
+    forecast_data, timezone_offset_hours=None, air_quality_data=None
+):
     """Create enhanced forecast with current weather as 'NOW' plus sunrise/sunset events from single API"""
     if timezone_offset_hours is None:
         raise ValueError("timezone_offset_hours must be provided")
@@ -207,15 +224,33 @@ def create_enhanced_forecast_data(forecast_data, timezone_offset_hours=None):
     current_timestamp = current_weather["current_timestamp"]  # Already in local time
 
     # Get forecast items for temperature interpolation
-    forecast_items = parse_forecast_data(forecast_data, timezone_offset_hours)
+    forecast_items = parse_forecast_data(
+        forecast_data, timezone_offset_hours, air_quality_data
+    )
 
-    # Create "NOW" cell
+    # Create "NOW" cell - get pop and aqi from first forecast item
+    first_item = forecast_data["list"][0]
+    current_pop = first_item.get("pop", 0)
+
+    # Get current air quality from air quality data
+    current_aqi = None
+    if air_quality_data and "list" in air_quality_data:
+        # Find air quality data closest to current timestamp
+        for aqi_item in air_quality_data["list"]:
+            if "dt" in aqi_item and "main" in aqi_item:
+                aqi_timestamp = utc_to_local(aqi_item["dt"], timezone_offset_hours)
+                if abs(aqi_timestamp - current_timestamp) <= 1800:  # Within 30 minutes
+                    current_aqi = aqi_item["main"]["aqi"]
+                    break
+
     now_item = {
         "dt": current_timestamp,  # Use actual current timestamp (already local)
         "temp": current_weather["current_temp"],
         "feels_like": current_weather["feels_like"],
         "icon": current_weather["weather_icon"],
         "description": "Current conditions",
+        "pop": current_pop,
+        "aqi": current_aqi,
         "is_now": True,
     }
     enhanced_items.append(now_item)
@@ -408,7 +443,7 @@ def get_display_variables(forecast_data, timezone_offset_hours=None):
     # Create enhanced forecast with NOW + sunrise/sunset from single API
     if forecast_data:
         forecast_items = create_enhanced_forecast_data(
-            forecast_data, timezone_offset_hours
+            forecast_data, timezone_offset_hours, air_quality_data
         )
     else:
         log("No forecast data available")
