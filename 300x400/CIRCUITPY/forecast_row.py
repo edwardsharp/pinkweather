@@ -38,6 +38,7 @@ def set_icon_loader(sd_available_flag, icon_loader_func):
 
 # Initialize fonts
 hyperl15_font = bitmap_font.load_font("hyperl15reg.pcf")
+hyperl9_font = bitmap_font.load_font("hyperl9reg.pcf")
 terminal_font = terminalio.FONT
 
 
@@ -127,11 +128,11 @@ def create_forecast_row(forecast_data, y_position=50):
         pop = forecast_item.get("pop", 0)
         if pop > 0:
             pop_percent = int(pop * 100)  # Convert 0.59 to 59
-            temp_str += f" {pop_percent}%"
+            # temp_str += f"{pop_percent}%"
 
         # TEST temp_str with max chars
         # note: hardware doesn't seem to render ° symbol?
-        # temp_str = "-10° 100%"
+        # temp_str = "30°99%"
         temp_text_width = len(temp_str) * 6
 
         # temp_bg_bitmap = displayio.Bitmap(temp_text_width + 4, 12, 1)
@@ -146,11 +147,11 @@ def create_forecast_row(forecast_data, y_position=50):
         # forecast_group.append(temp_bg_grid)
 
         # Temperature label
-        temp_label = label.Label(terminal_font, text=temp_str, color=BLACK)
+        temp_label = label.Label(hyperl15_font, text=temp_str, color=BLACK)
         temp_label.x = (
             cell_x + (cell_width - temp_text_width) // 2
-        ) + 3  # +3 to nudge a bit right
-        temp_label.y = y_position + 69
+        )  # - 7  # -7 to nudge a bit left
+        temp_label.y = y_position + 72
         forecast_group.append(temp_label)
     return forecast_group, max_cells
 
