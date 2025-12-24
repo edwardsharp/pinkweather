@@ -9,7 +9,7 @@ from adafruit_display_shapes.line import Line
 from adafruit_display_shapes.rect import Rect
 from adafruit_display_text import label
 from date_utils import format_timestamp_to_hhmm
-from text_renderer import BLACK, WHITE
+from text_renderer import BLACK, RED, WHITE
 
 
 def format_temp(temp):
@@ -125,9 +125,37 @@ def create_forecast_row(forecast_data, y_position=50):
 
         # Add precipitation chance if it exists and is non-zero
         pop = forecast_item.get("pop", 0)
+
         if pop > 0:
-            pop_percent = int(pop * 100)  # Convert 0.59 to 59
-            # temp_str += f"{pop_percent}%"
+            pop_percent = int(pop * 100)  # Convert to percentage
+            # Render pop % in bottom right corner of icon with black background and red text
+            pop_text = f"{pop_percent}%"
+
+            # Create black background for pop text
+            pop_text_width = len(pop_text) * 6
+            pop_bg_bitmap = displayio.Bitmap(pop_text_width + 3, 15, 1)
+            pop_bg_palette = displayio.Palette(1)
+            pop_bg_palette[0] = WHITE
+
+            # Position at bottom right of icon (icon is 32x32, starts at icon_x, icon_y)
+            icon_x = cell_x + (cell_width - 32) // 2 - 9
+            icon_y = y_position + 14
+            pop_bg_x = icon_x + 28  # 28px from left edge of icon (a bit more right)
+            pop_bg_y = icon_y + 34  # 34px from top edge of icon (a bit more down)
+
+            pop_bg_grid = displayio.TileGrid(
+                pop_bg_bitmap,
+                pixel_shader=pop_bg_palette,
+                x=pop_bg_x,
+                y=pop_bg_y,
+            )
+            forecast_group.append(pop_bg_grid)
+
+            # Red text on black background
+            pop_label = label.Label(terminal_font, text=pop_text, color=RED)
+            pop_label.x = pop_bg_x + 1  # 1px padding from background edge
+            pop_label.y = pop_bg_y + 8  # Vertically centered in background
+            forecast_group.append(pop_label)
 
         # TEST temp_str with max chars
         # note: hardware doesn't seem to render ° symbol?
