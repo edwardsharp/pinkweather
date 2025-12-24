@@ -38,7 +38,6 @@ def set_icon_loader(sd_available_flag, icon_loader_func):
 
 # Initialize fonts
 hyperl15_font = bitmap_font.load_font("hyperl15reg.pcf")
-hyperl9_font = bitmap_font.load_font("hyperl9reg.pcf")
 terminal_font = terminalio.FONT
 
 
