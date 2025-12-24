@@ -373,9 +373,14 @@ def render_group_recursive(draw, group, offset_x, offset_y):
         if isinstance(item, displayio.Group):
             render_group_recursive(draw, item, group_x, group_y)
         elif hasattr(item, "__class__") and "Rect" in str(type(item)):
-            render_rect(draw, item, group_x, group_y)
+            # Allow black-filled Rect objects (header background) but skip others
+            if hasattr(item, "fill") and item.fill == 0x000000:
+                render_rect(draw, item, group_x, group_y)  # Render black backgrounds
+            else:
+                pass  # Skip other Rect objects (forecast borders)
         elif hasattr(item, "__class__") and "Line" in str(type(item)):
-            render_line(draw, item, group_x, group_y)
+            # TEMP: Skip ALL Line objects to test
+            pass
         elif hasattr(item, "__class__") and "TileGrid" in str(type(item)):
             render_tilegrid(draw, item, group_x, group_y)
 
