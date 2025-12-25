@@ -217,7 +217,7 @@ class DisplayHandler(BaseHTTPRequestHandler):
                 current_timestamp = None
 
                 if use_mock_weather:
-                    # Use real weather parsing pipeline with mock data
+                    # Use shared weather engine for mock weather
                     mock_scenario = form_data.get("mock_scenario", ["winter_storm"])[0]
                     mock_timestamp = form_data.get("mock_timestamp", [""])[0]
 
@@ -230,121 +230,36 @@ class DisplayHandler(BaseHTTPRequestHandler):
                     except ValueError:
                         raise ValueError("Invalid mock timestamp provided")
 
-                    # Generate mock weather data
-                    mock_data = generate_scenario_data(mock_scenario, timestamp)
-
-                    # Debug mock data structure
-                    print(f"DEBUG: Mock data type: {type(mock_data)}")
-                    print(
-                        f"DEBUG: Mock data keys: {list(mock_data.keys()) if isinstance(mock_data, dict) else 'not a dict'}"
+                    # Use shared weather engine (reusing working logic)
+                    from shared_weather_engine import (
+                        generate_weather_display_for_timestamp,
                     )
 
-                    # Handle city name from different data structures
+                    csv_path = os.path.join(
+                        os.path.dirname(__file__),
+                        "..",
+                        "misc",
+                        "open-meteo-40.65N73.98W25m.csv",
+                    )
+
                     try:
-                        if isinstance(mock_data, dict) and "forecast" in mock_data:
-                            city_name = mock_data["forecast"]["city"]["name"]
-                        else:
-                            city_name = mock_data["city"]["name"]
-                        print(f"Generated mock data for {city_name}")
-                    except Exception as e:
-                        print(f"DEBUG: Error accessing city name: {e}")
-                        print(f"DEBUG: Mock data structure: {str(mock_data)[:200]}...")
-
-                    # Generate weather narrative using real pipeline
-                    try:
-                        # Add 300x400/CIRCUITPY to path for weather modules
-                        circuitpy_path = os.path.join(
-                            os.path.dirname(__file__), "..", "300x400", "CIRCUITPY"
-                        )
-                        if circuitpy_path not in sys.path:
-                            sys.path.insert(0, circuitpy_path)
-
-                        # Parse mock data through OpenWeatherMap module to get proper format
-                        from openweathermap import parse_full_response
-                        from weather_api import (
-                            get_display_variables,
-                            parse_current_weather_from_forecast,
-                        )
-                        from weather_narrative import get_weather_narrative
-
-                        # Extract forecast and air quality data if in wrapper format
-                        if isinstance(mock_data, dict) and "forecast" in mock_data:
-                            forecast_response = mock_data["forecast"]
-                            air_quality_response = mock_data.get("air_quality")
-                        else:
-                            forecast_response = mock_data
-                            air_quality_response = None
-
-                        # Use the same timezone offset as real API calls
-                        timezone_offset = int(os.getenv("TIMEZONE_OFFSET_HOURS", -5))
-
-                        # Parse through OpenWeatherMap module to get provider format
-                        parsed_mock_data = parse_full_response(
-                            forecast_response, air_quality_response, timezone_offset
+                        parsed_mock_data, narrative, display_vars, current_weather = (
+                            generate_weather_display_for_timestamp(csv_path, timestamp)
                         )
 
-                        # Compute mock history from historical data for yesterday comparisons
-                        if parsed_mock_data:
-                            print("DEBUG: Computing mock history from CSV data")
-                            mock_history = compute_mock_history(mock_data)
-                            print(
-                                f"DEBUG: Mock history computed with {len(mock_history)} days"
-                            )
+                        # Store data for full layout rendering
+                        forecast_data = display_vars["forecast_data"]
+                        weather_desc = (
+                            narrative if narrative else "Weather data unavailable"
+                        )
+                        current_timestamp = current_weather.get("current_timestamp")
 
                         print(
-                            f"DEBUG: Parsed mock data keys: {list(parsed_mock_data.keys()) if parsed_mock_data else 'None'}"
+                            f"Generated weather narrative ({len(narrative)} chars): {narrative[:100]}..."
                         )
 
-                        if parsed_mock_data:
-                            current_weather = parse_current_weather_from_forecast(
-                                parsed_mock_data
-                            )
-                            display_vars = get_display_variables(parsed_mock_data)
-                        else:
-                            current_weather = None
-                            display_vars = None
-
-                        if current_weather and display_vars.get("forecast_data"):
-                            # Use mock history for yesterday comparisons
-                            import weather_narrative
-                            from mock_history import compare_with_yesterday_web
-
-                            # Temporarily override comparison function for mock data
-                            original_compare = weather_narrative.compare_with_yesterday
-                            weather_narrative.compare_with_yesterday = (
-                                lambda ct, ht, lt, ts: compare_with_yesterday_web(
-                                    ct, ht, lt, ts, use_mock=True
-                                )
-                            )
-
-                            try:
-                                narrative = get_weather_narrative(
-                                    current_weather,
-                                    display_vars["forecast_data"],
-                                    current_weather.get("current_timestamp"),
-                                )
-                            finally:
-                                # Restore original function
-                                weather_narrative.compare_with_yesterday = (
-                                    original_compare
-                                )
-                            # Store data for full layout rendering
-                            forecast_data = display_vars["forecast_data"]
-                            weather_desc = (
-                                narrative
-                                if narrative is not None
-                                else "Weather data unavailable"
-                            )
-                            current_timestamp = current_weather.get("current_timestamp")
-                            print(
-                                f"Generated weather narrative ({len(narrative)} chars): {narrative[:100]}..."
-                            )
-                        else:
-                            weather_desc = f"Mock weather scenario: {mock_scenario} (weather parsing failed)"
-                            print("Weather parsing returned None - using fallback text")
-
                     except Exception as e:
-                        print(f"Error in weather narrative pipeline: {e}")
+                        print(f"Error in shared weather engine: {e}")
                         import traceback
 
                         traceback.print_exc()

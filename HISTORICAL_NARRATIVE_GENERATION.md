@@ -1,182 +1,219 @@
-# historical narrative generation plan
+# historical narrative generation plan - revised approach
 
-## overview
+## problem assessment
 
-generate comprehensive dataset of weather narratives using historical csv data for testing and refinement. create static html viewer for keyboard navigation through historical weather displays without requiring python server.
+we have TWO systems that should share the same core logic but currently don't:
 
-## data generation pipeline
+1. **web server preview** - WORKS PERFECTLY: loads CSV, generates history, creates narratives with "much warmer than yesterday", renders images with proper air quality/zodiac
+2. **static dataset generation** - BROKEN: duplicated logic, missing features, complex fallbacks
 
-### 1. csv narrative dataset
+## core insight
+
+the web server can already render ONE perfect image from historical CSV data. we need to extract that working logic and reuse it for batch processing, not recreate it.
+
+## current working flow (from web server)
+
+```
+http_server.py receives request with timestamp
+  ↓
+mock_weather_data.py generates weather data from CSV  
+  ↓
+mock_history.py computes 10 days of history from CSV
+  ↓ 
+weather_narrative.py generates narrative WITH history comparisons
+  ↓
+simple_web_render.py renders final image
+```
+
+this WORKS and has:
+- real CSV weather data (no fallbacks)
+- proper weather history ("much warmer than yesterday")  
+- correct air quality (AQI: 2, Fair)
+- correct zodiac signs
+- proper sunrise/sunset times
+- tomorrow forecasts in narratives
+
+## refactoring plan
+
+### phase 1: extract core logic
+
+create shared module that both web server AND static scripts can use:
+
 ```python
-# target csv format
-timestamp,date,hour,narrative_text,text_length_px,text_height_px,line_count,fits_display,temp,weather_desc
-1704067200,2024-01-01,00:00,"clear and cold, 2°...",245,68,3,true,2,clear
+# web/shared_weather_engine.py
+
+def generate_weather_display_for_timestamp(csv_path, timestamp):
+    """
+    Core function that both web server and static scripts call
+    Returns: (weather_data, narrative, display_vars, current_weather)
+    """
+    # use existing mock_weather_data.py logic
+    # use existing mock_history.py logic  
+    # use existing weather_narrative.py logic
+    # return structured data for rendering
+
+def render_weather_to_image(weather_data, narrative, display_vars, current_weather):
+    """
+    Core rendering function 
+    Returns: PIL image
+    """
+    # use existing simple_web_render.py logic
 ```
 
-### 2. image generation
-- generate png files for each hour: `2024-01-01-00-00.png`
-- use existing `simple_web_render.py` pipeline
-- capture actual rendered dimensions from pil
-- store images in `static/images/` directory
-- add new .py and related code in `static/` directory
+### phase 2: refactor web server
 
-### 3. batch processing script
 ```python
-# pseudo-code structure
-def generate_historical_dataset():
-    csv_data = load_historical_csv()
-    results = []
+# http_server.py (simplified)
+
+@POST /preview 
+def handle_preview():
+    timestamp = request.form['mock_timestamp']
+    weather_data, narrative, display_vars, current_weather = generate_weather_display_for_timestamp(CSV_PATH, timestamp)
+    image = render_weather_to_image(weather_data, narrative, display_vars, current_weather)
+    return image
+```
+
+### phase 3: refactor static scripts
+
+```python  
+# static/generate_historical_data.py (simplified)
+
+def generate_dataset(csv_path, max_records=None):
+    csv_records = load_csv_timestamps(csv_path)
     
-    for hour_data in csv_data:
-        # generate weather data structure
-        weather_data = convert_to_weather_format(hour_data)
+    for timestamp in csv_records[:max_records]:
+        # REUSE the working web server logic
+        weather_data, narrative, display_vars, current_weather = generate_weather_display_for_timestamp(csv_path, timestamp)
         
-        # generate narrative
-        narrative = generate_narrative(weather_data)
+        # measure text dimensions
+        metrics = measure_narrative_text(narrative)
         
-        # render to image and measure
-        image, metrics = render_and_measure(weather_data, narrative)
+        # save to results CSV
+        save_result(timestamp, narrative, metrics, weather_data)
         
-        # save image file
-        save_image(image, hour_data.timestamp)
-        
-        # collect metrics
-        results.append({
-            'timestamp': hour_data.timestamp,
-            'narrative': narrative,
-            'metrics': metrics
-        })
-    
-    save_csv(results)
+        # generate image 
+        image = render_weather_to_image(weather_data, narrative, display_vars, current_weather)
+        save_image(image, timestamp)
 ```
 
-## text measurement system
+## key principles
 
-### pil-based metrics
-- use same font loading as `simple_web_render.py`
-- measure actual text bounding boxes
-- account for line wrapping at display width (400px)
-- detect text overflow beyond display height (300px)
+1. **ONE SOURCE OF TRUTH**: core logic lives in shared module, not duplicated
+2. **REUSE EXISTING WORKING CODE**: extract from web server, don't recreate
+3. **MINIMAL CHANGES**: web server should barely change, just call shared functions
+4. **NO FALLBACKS**: use real CSV data only, no +3/-3 calculations
+5. **SEPARATION OF CONCERNS**: 
+   - shared module: weather data generation
+   - web server: HTTP handling
+   - static scripts: batch processing and file I/O
 
-### measurement functions
-```python
-def measure_narrative_text(narrative, fonts):
-    # parse markup and measure each styled segment
-    # calculate line breaks based on display width
-    # return pixel dimensions and overflow status
-    
-def fits_display(text_metrics, display_bounds=(400, 300)):
-    # return boolean if text fits within display constraints
-```
+## implementation steps
 
-### collected metrics
-- total text width/height in pixels
-- number of lines after wrapping
-- overflow status (fits/overflow)
-- character count (for comparison)
-- markup complexity (tag count)
+### step 1: create web/shared_weather_engine.py
+- extract core logic from http_server.py POST handler
+- extract mock weather generation from mock_weather_data.py
+- extract history computation from mock_history.py
+- create clean interface functions
 
-## static html viewer
+### step 2: refactor web server to use shared engine
+- modify http_server.py to call shared functions
+- test that web preview still works identically
+- ensure no regressions in functionality
 
-### file structure
-```
-static/
-├── narratives.csv           # complete dataset
-├── images/                  # hourly png files
-│   ├── 2024-01-01-00-00.png
-│   ├── 2024-01-01-01-00.png
-│   └── ...
-└── viewer.html              # standalone viewer
-```
+### step 3: refactor static scripts to use shared engine  
+- replace weather_data_converter.py with calls to shared engine
+- simplify generate_historical_data.py dramatically
+- remove all duplicated logic and fallback calculations
 
-### html viewer features
-- a very minimal html page, dark theme (use pure black, pure white, and magenta for accent color).
-- keyboard navigation (arrow keys, page up/down)
-- display current image with metadata overlay
-- show narrative text and metrics (can toggle displaying this, default off (hidden))
-- jump to specific dates/times (simple html select form)
-- filter by overflow status (start with just one html select form here with a list of dates that have overflow)
-- progress indicator (current timestamp hour X of Y)
+### step 4: test and validate
+- verify static generation produces same images as web server
+- confirm weather history comparisons work in static generation
+- ensure air quality, zodiac, sunrise/sunset times are correct
 
-### viewer implementation
-```html
-<!-- embedded javascript loads narratives.csv -->
-<!-- preloads image files for smooth navigation -->
-<!-- keyboard event handlers for navigation -->
-<!-- responsive layout for different screen sizes -->
-```
+## expected outcomes
 
-## generation workflow
-
-### phase 1: data extraction
-1. load historical csv files (open-meteo format)
-2. convert hourly data to weather api format
-3. generate weather narratives for each hour
-4. measure text dimensions using pil
-5. save results to csv dataset
-
-### phase 2: image generation
-1. render each hour using `simple_web_render.py`
-2. save png files with timestamp naming
-3. optimize file sizes for web loading
-4. generate thumbnail images (optional)
-
-### phase 3: viewer creation
-1. create standalone html file
-2. embed csv data as javascript
-3. implement keyboard navigation
-4. add filtering and search capabilities
-5. include metadata display overlay
-
-## narrative refinement process
-
-### testing methodology
-1. generate baseline dataset with current narrative code
-2. identify common overflow cases from csv metrics
-3. modify narrative generation logic
-4. regenerate dataset and compare metrics
-5. iterate until overflow rate is minimized
-
-### optimization targets
-- minimize text overflow while maintaining readability
-- balance information density with space constraints
-- test edge cases (extreme weather, long place names)
-- ensure consistent formatting across scenarios
+- static scripts become much simpler (call shared functions vs complex logic)
+- web server barely changes (just calls shared functions)
+- identical output between web preview and static generation
+- single place to fix bugs or add features
+- no more duplicate logic hell
 
 ## implementation considerations
 
+### error handling
+- fail fast approach - throw errors and stop on missing/corrupt data
+- no graceful degradation or partial dataset generation
+- validate CSV structure upfront and abort if fields missing
+
+### testing strategy  
+- test by running web server after changes to ensure still works
+- don't over-engineer - be reasonable and smart about modifications
+- modify in place rather than building parallel systems
+
 ### performance
-- batch processing with progress indicators
-- parallel image generation for speed
-- compressed image formats for storage
-- lazy loading in html viewer
+- don't worry about performance optimization for this tool
+- it's for generating test samples, not production use
+- worry about caching/optimization later if needed
 
-### extensibility
-- configurable display dimensions for testing
-- support for different font combinations
-- plugin system for narrative variations
-- export formats (json, sqlite)
+### backwards compatibility
+- no backwards compatibility concerns
+- this isn't rocket science, don't over-engineer
 
-### validation
-- cross-check generated data with hardware output
-- verify font metrics match actual device
-- test viewer compatibility across browsers
-- validate csv data integrity
+### default values
+- minimize fallbacks where possible, use real CSV data
+- only use defaults when absolutely necessary (like air quality: aqi=1, "Good")
+- avoid adding more UI defaults - want to test against more variable data
 
-## file organization
+## cleanup plan for existing static/ files
+
+### files to KEEP (simplified):
+- `generate_historical_data.py` - rewritten to call shared engine
+- `batch_image_renderer.py` - rewritten to call shared engine  
+- `narrative_measurement.py` - unchanged (text measuring logic)
+- `inject_data.py` - unchanged (HTML template injection)
+- `template.html` - unchanged
+- `narratives.csv` - generated output file
+- `viewer.html` - generated output file
+- `images/` - generated output directory
+
+### files to DELETE (legacy code):
+- `weather_data_converter.py` - ENTIRE FILE DELETED (replaced by shared engine)
+- `__pycache__/` - deleted
+
+### no dead code policy:
+- any function/class not used after refactoring gets deleted immediately
+- no commented out code left behind
+- no "TODO: remove this" comments
+
+## file structure after refactoring
 
 ```
-scripts/
-├── generate_historical_data.py  # main generation script
-├── narrative_measurement.py     # text metrics functions
-├── batch_image_renderer.py      # png generation
-└── html_viewer_generator.py     # static site builder
+web/
+├── shared_weather_engine.py     # NEW: extracted core logic  
+├── http_server.py               # simplified: calls shared functions
+├── mock_weather_data.py         # maybe absorbed into shared engine
+├── mock_history.py              # maybe absorbed into shared engine
+├── weather_narrative.py         # unchanged
+└── simple_web_render.py         # unchanged
+
+web/static/
+├── generate_historical_data.py  # rewritten: calls shared engine
+├── batch_image_renderer.py      # rewritten: calls shared engine  
+├── narrative_measurement.py     # unchanged
+├── inject_data.py              # unchanged
+├── template.html               # unchanged
+├── narratives.csv              # generated output
+├── viewer.html                 # generated output
+└── images/                     # generated output directory
 ```
 
-## success metrics
+## success criteria
 
-- complete hourly coverage for 1+ years of data
-- text overflow rate < 5% of generated narratives
-- viewer loads and navigates smoothly
-- generated images match hardware output visually
-- csv dataset enables rapid iteration on narrative code
+- web preview continues to work exactly as before
+- static generation produces identical images to web preview for same timestamp
+- weather history comparisons appear in static generated narratives
+- air quality shows "AQ: FAIR, AQI: 2" not "AQ: UNKNOWN"
+- zodiac signs appear correctly
+- sunrise/sunset times are realistic, not 6:00/18:00
+- codebase has 90% less duplication
+- adding new features requires changes in only one place
