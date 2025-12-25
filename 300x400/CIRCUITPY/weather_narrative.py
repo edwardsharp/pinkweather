@@ -566,9 +566,9 @@ def _analyze_upcoming_precipitation(
                         elif hour == 12:
                             time_desc = "around noon"
                         elif hour < 12:
-                            time_desc = f"around {hour}a"
+                            time_desc = f"around <h>{hour}</h>a"
                         else:
-                            time_desc = f"around {hour - 12}p"
+                            time_desc = f"around <h>{hour - 12}</h>p"
                     except:
                         hours = (i + 1) * 3
                         time_desc = f"within {hours} hours"
@@ -606,9 +606,9 @@ def _analyze_upcoming_precipitation(
                         elif hour == 12:
                             time_desc = "around noon"
                         elif hour < 12:
-                            time_desc = f"around {hour}a"
+                            time_desc = f"around <h>{hour}</h>a"
                         else:
-                            time_desc = f"around {hour - 12}p"
+                            time_desc = f"around <h>{hour - 12}</h>p"
                     except:
                         hours = (i + 1) * 3
                         time_desc = f"within {hours} hours"
@@ -650,11 +650,11 @@ def _find_when_precipitation_ends(forecast_data, precip_types):
                     if hour == 0:
                         return "around midnight"
                     elif hour < 12:
-                        return f"around {hour}a"
+                        return f"around <h>{hour}</h>a"
                     elif hour == 12:
                         return "around noon"
                     else:
-                        return f"around {hour - 12}p"
+                        return f"around <h>{hour - 12}</h>p"
                 except:
                     pass
 

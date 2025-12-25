@@ -685,6 +685,7 @@
                     .then((response) => response.json())
                     .then((data) => {
                         if (data.success) {
+                          console.log(">>>>ZOMG data",data)
                             // Force image reload by adding timestamp
                             displayImage.src =
                                 data.image_url + "?t=" + Date.now();
@@ -693,7 +694,7 @@
                             if (data.display_type === "400x300") {
                                 statusContent.innerHTML = `
                             <strong>Display:</strong> 400×300 Text Renderer<br>
-                            <strong>Text:</strong> ${data.text_content ? data.text_content.substring(0, 50) + "..." : "No text"}
+                            <strong>Text:</strong> <code>${data.text_content ? data.text_content.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "No text"}</code>
                         `;
                             } else if (data.sensor_data && data.system_status) {
                                 statusContent.innerHTML = `
