@@ -277,13 +277,17 @@ class OpenMeteoConverter:
         }
 
     def _parse_timestamp(self, time_str):
-        """Convert Open-Meteo timestamp to Unix timestamp"""
+        """Convert Open-Meteo timestamp to Unix timestamp (treating as UTC)"""
         try:
+            from datetime import timezone
+
             # Handle both "2024-01-01T00:00" and "2024-01-01" formats
             if "T" in time_str:
                 dt = datetime.fromisoformat(time_str)
             else:
                 dt = datetime.fromisoformat(f"{time_str}T00:00")
+            # Open-Meteo times are UTC, so treat them as such
+            dt = dt.replace(tzinfo=timezone.utc)
             return int(dt.timestamp())
         except:
             return 0

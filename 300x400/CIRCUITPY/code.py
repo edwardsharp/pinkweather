@@ -298,9 +298,7 @@ def get_weather_display_data():
         try:
             forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG)
             if forecast_data:
-                display_vars = weather_api.get_display_variables(
-                    forecast_data, timezone_offset
-                )
+                display_vars = weather_api.get_display_variables(forecast_data)
 
                 # Save to SD card for persistence across power cycles
                 if sd_available and display_vars:

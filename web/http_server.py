@@ -258,31 +258,42 @@ class DisplayHandler(BaseHTTPRequestHandler):
                         if circuitpy_path not in sys.path:
                             sys.path.insert(0, circuitpy_path)
 
+                        # Parse mock data through OpenWeatherMap module to get proper format
+                        from openweathermap import parse_full_response
                         from weather_api import (
                             get_display_variables,
                             parse_current_weather_from_forecast,
                         )
                         from weather_narrative import get_weather_narrative
 
-                        # Extract forecast data if new format
-                        actual_forecast_data = mock_data
-                        air_quality_data = None
+                        # Extract forecast and air quality data if in wrapper format
                         if isinstance(mock_data, dict) and "forecast" in mock_data:
-                            actual_forecast_data = mock_data["forecast"]
-                            air_quality_data = mock_data.get("air_quality")
+                            forecast_response = mock_data["forecast"]
+                            air_quality_response = mock_data.get("air_quality")
+                        else:
+                            forecast_response = mock_data
+                            air_quality_response = None
 
-                        # Parse weather data
-                        print(
-                            f"DEBUG: About to parse current weather from: {type(actual_forecast_data)}"
-                        )
-                        print(
-                            f"DEBUG: Forecast data keys: {list(actual_forecast_data.keys()) if isinstance(actual_forecast_data, dict) else 'not a dict'}"
+                        # Use the same timezone offset as real API calls
+                        timezone_offset = int(os.getenv("TIMEZONE_OFFSET_HOURS", -5))
+
+                        # Parse through OpenWeatherMap module to get provider format
+                        parsed_mock_data = parse_full_response(
+                            forecast_response, air_quality_response, timezone_offset
                         )
 
-                        current_weather = parse_current_weather_from_forecast(
-                            actual_forecast_data, -5
+                        print(
+                            f"DEBUG: Parsed mock data keys: {list(parsed_mock_data.keys()) if parsed_mock_data else 'None'}"
                         )
-                        display_vars = get_display_variables(mock_data, -5)
+
+                        if parsed_mock_data:
+                            current_weather = parse_current_weather_from_forecast(
+                                parsed_mock_data
+                            )
+                            display_vars = get_display_variables(parsed_mock_data)
+                        else:
+                            current_weather = None
+                            display_vars = None
 
                         if current_weather and display_vars.get("forecast_data"):
                             narrative = get_weather_narrative(
@@ -358,12 +369,9 @@ class DisplayHandler(BaseHTTPRequestHandler):
                                     air_quality_data = forecast_data.get("air_quality")
 
                                 current_weather = parse_current_weather_from_forecast(
-                                    actual_forecast_data,
-                                    config["timezone_offset_hours"],
+                                    forecast_data
                                 )
-                                display_vars = get_display_variables(
-                                    forecast_data, config["timezone_offset_hours"]
-                                )
+                                display_vars = get_display_variables(forecast_data)
 
                                 # Store today's temperatures in history for tomorrow's comparison
                                 if current_weather:
@@ -469,23 +477,23 @@ class DisplayHandler(BaseHTTPRequestHandler):
                                             print(f"Font metrics debug failed: {e}")
 
                                         # Check for extra spaces around degree symbols
-                                        if "°" in parsed_text:
-                                            print("Degree symbol analysis:")
-                                            for i, char in enumerate(parsed_text):
-                                                if char == "°":
-                                                    before = (
-                                                        parsed_text[i - 2 : i]
-                                                        if i >= 2
-                                                        else parsed_text[:i]
-                                                    )
-                                                    after = (
-                                                        parsed_text[i + 1 : i + 3]
-                                                        if i < len(parsed_text) - 2
-                                                        else parsed_text[i + 1 :]
-                                                    )
-                                                    print(
-                                                        f"  Position {i}: '{before}°{after}'"
-                                                    )
+                                        # if "°" in parsed_text:
+                                        #     print("Degree symbol analysis:")
+                                        #     for i, char in enumerate(parsed_text):
+                                        #         if char == "°":
+                                        #             before = (
+                                        #                 parsed_text[i - 2 : i]
+                                        #                 if i >= 2
+                                        #                 else parsed_text[:i]
+                                        #             )
+                                        #             after = (
+                                        #                 parsed_text[i + 1 : i + 3]
+                                        #                 if i < len(parsed_text) - 2
+                                        #                 else parsed_text[i + 1 :]
+                                        #             )
+                                        #             print(
+                                        #                 f"  Position {i}: '{before}°{after}'"
+                                        #             )
                                     except Exception as e:
                                         print(f"Tag parsing debug failed: {e}")
                                 else:
