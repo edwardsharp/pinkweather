@@ -86,6 +86,8 @@
                 font-size: 14px;
                 width: 100%;
                 font-weight: bold;
+                max-height: 3em;
+                margin-bottom: 1em;
             }
             .button:hover {
                 background: #cc00cc;
@@ -350,9 +352,12 @@
                             />
                         </div>
                     </div>
+                    <button type="submit" class="button" id="update-display-btn">Update Display</button>
+                    <button type="button" class="button" onclick="resetSettings()" style="background: #ff6666;">
+                        Reset All Settings
+                    </button>
 
-
-                        <div
+                        <!--<div
                             class="specs"
                             style="
                                 font-size: 11px;
@@ -363,59 +368,69 @@
                             Markup: &lt;b&gt;bold&lt;/b&gt;,
                             &lt;i&gt;italic&lt;/i&gt;, &lt;bi&gt;bold
                             italic&lt;/bi&gt;, &lt;red&gt;red text&lt;/red&gt;
-                        </div>
+                        </div>-->
                     </div>
 
-                    <button type="submit" class="button">Update Display</button>
-                    <button type="button" class="button" onclick="resetSettings()" style="margin-left: 10px; background: #ff6666;">
-                        Reset All Settings
-                    </button>
+                    <!--<div class="info-panel">
+
+                        <div class="status-info">
+                            <h4>About</h4>
+                            <p>
+                                This tool previews the weather display layout using the
+                                same rendering logic as the hardware. Test different
+                                scenarios to ensure the display works correctly in
+                                various conditions.
+                            </p>
+                        </div>
+                    </div>-->
+                    <div class="info-panel" id="quick-tests">
+                        <div class="scenario-group" >
+                            <h4>Quick Tests</h4>
+                            <button
+                                type="button"
+                                class="button"
+                                onclick="loadScenario('extreme_cold')"
+                            >
+                                Extreme Cold
+                            </button>
+                            <button
+                                type="button"
+                                class="button"
+                                onclick="loadScenario('extreme_hot')"
+                            >
+                                Extreme Hot
+                            </button>
+                            <button
+                                type="button"
+                                class="button"
+                                onclick="loadScenario('high_humidity')"
+                            >
+                                High Humidity
+                            </button>
+                            <button
+                                type="button"
+                                class="button"
+                                onclick="loadScenario('low_humidity')"
+                            >
+                                Low Humidity
+                            </button>
+                        </div>
+
+                        <!--<div class="status-info">
+                            <h4>About</h4>
+                            <p>
+                                This tool previews the weather display layout using the
+                                same rendering logic as the hardware. Test different
+                                scenarios to ensure the display works correctly in
+                                various conditions.
+                            </p>
+                        </div>-->
+                    </div>
+
                 </form>
             </div>
 
-            <div class="info-panel">
-                <div class="scenario-group" id="quick-tests">
-                    <h4>Quick Tests</h4>
-                    <button
-                        type="button"
-                        class="button"
-                        onclick="loadScenario('extreme_cold')"
-                    >
-                        Extreme Cold
-                    </button>
-                    <button
-                        type="button"
-                        class="button"
-                        onclick="loadScenario('extreme_hot')"
-                    >
-                        Extreme Hot
-                    </button>
-                    <button
-                        type="button"
-                        class="button"
-                        onclick="loadScenario('high_humidity')"
-                    >
-                        High Humidity
-                    </button>
-                    <button
-                        type="button"
-                        class="button"
-                        onclick="loadScenario('low_humidity')"
-                    >
-                        Low Humidity
-                    </button>
-                </div>
 
-                <div class="status-info">
-                    <h4>About</h4>
-                    <p>
-                        This tool previews the weather display layout using the
-                        same rendering logic as the hardware. Test different
-                        scenarios to ensure the display works correctly in
-                        various conditions.
-                    </p>
-                </div>
-            </div>
         </div>
 
         <script>
@@ -573,17 +588,19 @@
                 const sensorControls =
                     document.getElementById("sensor-controls");
                 const quickTests = document.getElementById("quick-tests");
+                const updateButton = document.getElementById("update-display-btn");
 
                 if (displayType === "400x300") {
                     // Switch to 400x300 display
                     img.width = scale2x.checked ? 800 : 400;
                     img.height = scale2x.checked ? 600 : 300;
-                    specs.innerHTML = `Display: 400×300 pixels | Tri-color E-ink | ${scale2x.checked ? "2×" : "1:1"} scale<br />Fonts: Vollkorn 20px (regular, bold, italic, bold-italic)`;
+                    specs.innerHTML = `Display: 400×300 pixels | Tri-color E-ink | ${scale2x.checked ? "2×" : "1:1"} scale<br />Fonts: Vollkorn 20px (regular, bold, italic, bold-italic) + Atkinson Hyperlegible 15px (regular) and 20px (regular, bold) + Terminal 8px (matching hardware)`;
 
                     // Hide weather controls for 400x300
                     weatherControls.style.display = "none";
                     sensorControls.style.display = "none";
                     quickTests.style.display = "none";
+                    updateButton.style.display = "none";
                 } else {
                     // Switch to 250x122 display
                     img.width = scale2x.checked ? 244 : 122;
@@ -594,6 +611,7 @@
                     weatherControls.style.display = "block";
                     sensorControls.style.display = "block";
                     quickTests.style.display = "block";
+                    updateButton.style.display = "inline-block";
                 }
 
                 updateDisplay();
