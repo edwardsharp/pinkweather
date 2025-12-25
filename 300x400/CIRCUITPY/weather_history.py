@@ -132,16 +132,16 @@ def compare_with_yesterday(current_temp, high_temp, low_temp, current_timestamp)
     temp_diff = current_temp - yesterday_current
 
     if temp_diff >= 5:
-        return "<red><bi>much</bi> warmer than yesterday</red>"
+        return "<red><bi>much</bi> warmer than yesterday.</red>"
     elif temp_diff >= 3:
-        return "<red>warmer than yesterday</red>"
+        return "<red>warmer than yesterday.</red>"
     elif temp_diff >= 1:
-        return "<red><i>lil'</i> warmer than yesterday</red>"
+        return "<red><i>lil'</i> warmer than yesterday.</red>"
     elif temp_diff <= -5:
-        return "<red><bi>much</bi> colder than yesterday</red>"
+        return "<red><bi>much</bi> colder than yesterday.</red>"
     elif temp_diff <= -3:
-        return "<red>colder than yesterday</red>"
+        return "<red>colder than yesterday.</red>"
     elif temp_diff <= -1:
-        return "<red><i>lil'</i> colder than yesterday</red>"
+        return "<red><i>lil'</i> colder than yesterday.</red>"
     else:
-        return "about the same as yesterday"
+        return "about the same as yesterday."

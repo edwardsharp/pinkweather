@@ -126,7 +126,24 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
             narrative_parts.append(moon_info)
 
     # Join parts and ensure it fits display constraints
-    full_narrative = ". ".join(narrative_parts) + "."
+    # Handle parts that might already end with periods (like yesterday comparisons)
+    joined_parts = []
+    for i, part in enumerate(narrative_parts):
+        if i == 0:
+            joined_parts.append(part)
+        else:
+            # Check if previous part already ends with a period
+            prev_part = joined_parts[-1]
+            if prev_part.endswith(".") or prev_part.endswith(".</red>"):
+                joined_parts.append(" " + part)
+            else:
+                joined_parts.append(". " + part)
+
+    full_narrative = "".join(joined_parts)
+
+    # Add final period if not already present
+    if not (full_narrative.endswith(".") or full_narrative.endswith(".</red>")):
+        full_narrative += "."
 
     # If narrative is short and we have tomorrow's forecast, make sure to include it
     if (
