@@ -42,34 +42,33 @@ def inject_data_into_template(template_path, data, output_path):
 
 
 def main():
-    if len(sys.argv) < 3:
-        print("Usage: python inject_data.py <csv_file> <output_html> [template.html]")
-        print("Example: python inject_data.py narratives.csv viewer.html")
-        sys.exit(1)
-
-    csv_path = sys.argv[1]
-    output_path = sys.argv[2]
-    template_path = sys.argv[3] if len(sys.argv) > 3 else "template.html"
+    # Use fixed paths in same directory as script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(current_dir, "narratives.csv")
+    output_path = os.path.join(current_dir, "viewer.html")
+    template_path = os.path.join(current_dir, "template.html")
 
     # Check if files exist
     if not os.path.exists(csv_path):
-        print(f"Error: CSV file {csv_path} not found")
+        print(
+            f"Error: narratives.csv not found - run generate_historical_data.py first"
+        )
         sys.exit(1)
 
     if not os.path.exists(template_path):
-        print(f"Error: Template file {template_path} not found")
+        print(f"Error: template.html not found")
         sys.exit(1)
 
     # Load data
-    print(f"Loading data from {csv_path}...")
+    print(f"Loading data from narratives.csv...")
     data = load_csv_data(csv_path)
     print(f"Loaded {len(data)} records")
 
     # Inject data
-    print(f"Injecting data into template {template_path}...")
+    print(f"Injecting data into template...")
     inject_data_into_template(template_path, data, output_path)
 
-    print(f"Generated {output_path} with {len(data)} records")
+    print(f"Generated viewer.html with {len(data)} records")
 
 
 if __name__ == "__main__":

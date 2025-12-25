@@ -6,6 +6,7 @@ Measures text dimensions and line wrapping behavior identical to text_renderer.p
 import os
 import re
 import sys
+from contextlib import contextmanager
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -35,27 +36,42 @@ class NarrativeMeasurer:
         self._calculate_metrics()
 
     def _load_fonts(self):
-        """Load PIL fonts corresponding to the PCF fonts used in text_renderer"""
+        """Load actual PCF fonts used by the text renderer"""
         fonts = {}
 
-        # We need to convert PCF fonts to TTF or use system fonts that are similar
-        # For now, we'll use system fonts as approximation
-        # TODO: Convert PCF fonts to PIL-compatible format or find equivalent TTF fonts
+        @contextmanager
+        def change_to_circuitpy():
+            """Context manager to change to CIRCUITPY directory for font loading"""
+            current_dir = os.getcwd()
+            try:
+                os.chdir(circuitpy_400x300_path)
+                yield
+            finally:
+                os.chdir(current_dir)
 
         try:
-            # Try to load system fonts that approximate the PCF fonts
-            # Vollkorn approximation - use serif font
-            fonts["regular"] = ImageFont.load_default()
-            fonts["bold"] = ImageFont.load_default()
-            fonts["italic"] = ImageFont.load_default()
-            fonts["bold_italic"] = ImageFont.load_default()
+            # Import the actual font loading modules used by the renderer
+            if circuitpy_400x300_path not in sys.path:
+                sys.path.insert(0, circuitpy_400x300_path)
 
-            # Atkinson Hyperlegible approximation - use sans serif
-            fonts["header"] = ImageFont.load_default()
-            fonts["header_bold"] = ImageFont.load_default()
+            from adafruit_bitmap_font import bitmap_font
+            from adafruit_display_text import label
+
+            # Load the actual PCF fonts in the correct directory
+            with change_to_circuitpy():
+                fonts["regular"] = bitmap_font.load_font("vollkorn20reg.pcf")
+                fonts["bold"] = bitmap_font.load_font("vollkorn20black.pcf")
+                fonts["italic"] = bitmap_font.load_font("vollkorn20italic.pcf")
+                fonts["bold_italic"] = bitmap_font.load_font(
+                    "vollkorn20blackitalic.pcf"
+                )
+                fonts["header"] = bitmap_font.load_font("hyperl20reg.pcf")
+                fonts["header_bold"] = bitmap_font.load_font("hyperl20bold.pcf")
+
+            print("Successfully loaded actual PCF fonts for measurement")
 
         except Exception as e:
-            print(f"Warning: Could not load fonts, using default: {e}")
+            print(f"Warning: Could not load PCF fonts, falling back to defaults: {e}")
             # Fallback to default font for all styles
             default_font = ImageFont.load_default()
             fonts = {
@@ -70,49 +86,77 @@ class NarrativeMeasurer:
         return fonts
 
     def _calculate_metrics(self):
-        """Calculate character and line metrics using PIL"""
-        # Create a temporary image for measurement
-        temp_img = Image.new("RGB", (100, 100), WHITE)
-        draw = ImageDraw.Draw(temp_img)
+        """Calculate character and line metrics using actual font rendering"""
+        try:
+            # Import label for measuring actual rendered dimensions
+            from adafruit_display_text import label
 
-        # Measure 'M' character to get baseline metrics
-        test_text = "M"
-        bbox = draw.textbbox((0, 0), test_text, font=self.fonts["regular"])
+            # Use the same method as text_renderer for measuring
+            test_label = label.Label(self.fonts["regular"], text="M", color=0x000000)
+            self.char_width = (
+                test_label.bounding_box[2] if test_label.bounding_box else 10
+            )
+            self.char_height = (
+                test_label.bounding_box[3] if test_label.bounding_box else 16
+            )
+            self.line_height = int(
+                self.char_height * 1.5
+            )  # 50% spacing like text_renderer
 
-        self.char_width = bbox[2] - bbox[0] if bbox else 10
-        self.char_height = bbox[3] - bbox[1] if bbox else 16
-        self.line_height = int(self.char_height * 1.5)  # 50% spacing like text_renderer
+            # Calculate average character width using actual font measurement
+            avg_text = "abcdefghijklmnopqrstuvwxyz"
+            avg_label = label.Label(
+                self.fonts["regular"], text=avg_text, color=0x000000
+            )
+            avg_char_width = (
+                (avg_label.bounding_box[2] / 26)
+                if avg_label.bounding_box
+                else self.char_width
+            )
 
-        # Calculate approximate capacity
-        avg_text = "abcdefghijklmnopqrstuvwxyz"
-        avg_bbox = draw.textbbox((0, 0), avg_text, font=self.fonts["regular"])
-        avg_char_width = (
-            (avg_bbox[2] - avg_bbox[0]) / 26 if avg_bbox else self.char_width
-        )
+            self.chars_per_line = int(self.width // avg_char_width)
+            self.lines_per_screen = self.height // self.line_height
+            self.total_char_capacity = self.chars_per_line * self.lines_per_screen
 
-        self.chars_per_line = int(self.width // avg_char_width)
-        self.lines_per_screen = self.height // self.line_height
-        self.total_char_capacity = self.chars_per_line * self.lines_per_screen
+            print(
+                f"Font metrics: char={self.char_width}px, height={self.char_height}px, line={self.line_height}px"
+            )
+
+        except Exception as e:
+            print(f"Warning: Font metrics calculation failed, using defaults: {e}")
+            # Fallback to reasonable defaults
+            self.char_width = 10
+            self.char_height = 16
+            self.line_height = 24
+            self.chars_per_line = 40
+            self.lines_per_screen = 12
+            self.total_char_capacity = 480
 
     def get_font_for_style(self, style):
         """Get the appropriate font for a style"""
         return self.fonts.get(style, self.fonts["regular"])
 
     def measure_text_width(self, text, style="regular"):
-        """Measure the actual width of text in pixels"""
+        """Measure the actual width of text in pixels using actual font rendering"""
         if not text:
             return 0
 
-        font = self.get_font_for_style(style)
+        try:
+            # Use the same label-based measurement as the renderer
+            from adafruit_display_text import label
 
-        # Create temporary image for measurement
-        temp_img = Image.new("RGB", (1000, 100), WHITE)
-        draw = ImageDraw.Draw(temp_img)
+            font = self.get_font_for_style(style)
+            test_label = label.Label(font, text=text, color=0x000000)
+            width = (
+                test_label.bounding_box[2]
+                if test_label.bounding_box
+                else len(text) * self.char_width
+            )
+            return width
 
-        bbox = draw.textbbox((0, 0), text, font=font)
-        width = bbox[2] - bbox[0] if bbox else len(text) * self.char_width
-
-        return width
+        except Exception as e:
+            # Fallback to estimated width
+            return len(text) * self.char_width
 
     def should_break_word(self, word, remaining_width, style):
         """Determine if a word should be broken based on smart rules"""

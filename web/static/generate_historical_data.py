@@ -7,7 +7,7 @@ Uses existing OpenMeteoConverter for proper CSV parsing
 import csv
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Add paths for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))  # web/static/
@@ -25,6 +25,17 @@ if circuitpy_400x300_path not in sys.path:
 
 from narrative_measurement import NarrativeMeasurer
 from open_meteo_converter import OpenMeteoConverter
+
+# Try to import real weather narrative generator and history
+try:
+    import weather_narrative
+    from mock_history import _mock_history_cache
+
+    USE_REAL_NARRATIVES = True
+    print("Using real weather narrative generator")
+except ImportError:
+    USE_REAL_NARRATIVES = False
+    print("Warning: Could not import weather_narrative, using simple narratives")
 
 
 def load_historical_csv(csv_file_path):
@@ -63,6 +74,8 @@ def load_historical_csv(csv_file_path):
                 "cloud_cover": converter._safe_float(row["cloud_cover (%)"], 50.0),
                 "precipitation": converter._safe_float(row["precipitation (mm)"], 0.0),
                 "visibility": converter._safe_float(row["visibility (m)"], 10000.0),
+                "uv_index": converter._safe_float(row["uv_index ()"], 0.0),
+                "dew_point": converter._safe_float(row["dew_point_2m (°C)"], 0.0),
                 "is_day": converter._safe_int(row["is_day ()"], 1),
             }
 
@@ -116,13 +129,17 @@ def convert_to_weather_format(record):
     return {
         "current_temp": record["temp_c"],
         "feels_like": record["feels_like"],
-        "high_temp": record["temp_c"] + 2,  # Rough estimate for testing
-        "low_temp": record["temp_c"] - 3,  # Rough estimate for testing
+        "high_temp": record.get("daily_high", record["temp_c"] + 2),
+        "low_temp": record.get("daily_low", record["temp_c"] - 3),
         "weather_desc": wmo_code_to_description(record["weather_code"]),
         "humidity": record["humidity"],
         "wind_speed": record["wind_speed"],
         "wind_gust": record["wind_gust"],
+        "dew_point": record["dew_point"],
         "sunset_timestamp": record["timestamp"] + (18 * 3600),  # Rough sunset estimate
+        "weather": wmo_code_to_description(
+            record["weather_code"]
+        ),  # For real generator
     }
 
 
@@ -177,7 +194,144 @@ def generate_simple_narrative(weather_data):
     return ". ".join(narrative_parts) + "."
 
 
-def generate_historical_dataset(csv_file_path, output_file, max_records=100):
+def setup_weather_history(current_record, weather_records):
+    """Setup weather history for narrative generation"""
+    if not USE_REAL_NARRATIVES:
+        return
+
+    try:
+        current_timestamp = int(current_record["timestamp"])
+        current_date = datetime.fromtimestamp(current_timestamp)
+
+        # Clear cache and setup historical data
+        _mock_history_cache.clear()
+
+        for days_back in range(1, 11):
+            historical_date = current_date - timedelta(days=days_back)
+            target_timestamp = int(historical_date.timestamp())
+
+            # Find closest record
+            closest_record = None
+            min_diff = float("inf")
+
+            for record in weather_records:
+                record_timestamp = int(record["timestamp"])
+                diff = abs(record_timestamp - target_timestamp)
+                if diff < min_diff:
+                    min_diff = diff
+                    closest_record = record
+
+            if closest_record and min_diff < 86400:
+                temp = float(closest_record["temp_c"])
+                date_key = historical_date.strftime("%Y-%m-%d")
+                _mock_history_cache[date_key] = {
+                    "current": temp,
+                    "high": float(closest_record.get("daily_high", temp)),
+                    "low": float(closest_record.get("daily_low", temp)),
+                }
+    except Exception:
+        pass
+
+
+def find_future_weather_data(current_record, weather_records):
+    """Find weather data for tomorrow's forecast"""
+    current_timestamp = int(current_record["timestamp"])
+    tomorrow_timestamp = current_timestamp + 86400  # 24 hours later
+
+    # Find records for the next 24 hours
+    future_records = []
+    for record in weather_records:
+        record_timestamp = int(record["timestamp"])
+        if current_timestamp < record_timestamp <= tomorrow_timestamp + 3600:
+            future_records.append(record)
+
+    # If we have future data, use it. Otherwise, generate reasonable forecast
+    if future_records:
+        return future_records[:24]  # Up to 24 hours
+    else:
+        # Generate basic forecast if no future data
+        base_temp = current_record["temp_c"]
+        return [
+            {
+                "temp_c": base_temp + (i * 0.1),
+                "weather_desc": current_record.get("weather_desc", "partly cloudy"),
+                "feels_like": current_record.get("feels_like", base_temp - 2),
+                "humidity": current_record.get("humidity", 60),
+                "wind_speed": current_record.get("wind_speed", 10),
+                "wind_gust": current_record.get("wind_gust", 15),
+            }
+            for i in range(24)
+        ]
+
+
+def generate_real_narrative(weather_data, current_timestamp, future_data):
+    """Generate narrative using the real weather narrative generator with proper forecast"""
+    try:
+        # Create proper forecast data for narrative generator
+        forecast_data = []
+        for i, future_record in enumerate(future_data):
+            if isinstance(future_record, dict):
+                forecast_data.append(
+                    {
+                        "dt": current_timestamp + (i * 3600),
+                        "weather": [
+                            {
+                                "description": future_record.get(
+                                    "weather_desc", "partly cloudy"
+                                )
+                            }
+                        ],
+                        "main": {
+                            "temp": future_record.get(
+                                "temp_c", weather_data["current_temp"]
+                            ),
+                            "feels_like": future_record.get(
+                                "feels_like", weather_data["feels_like"]
+                            ),
+                            "temp_max": weather_data["high_temp"],
+                            "temp_min": weather_data["low_temp"],
+                        },
+                        "wind": {
+                            "speed": future_record.get(
+                                "wind_speed", weather_data["wind_speed"]
+                            ),
+                            "gust": future_record.get(
+                                "wind_gust", weather_data["wind_gust"]
+                            ),
+                        },
+                        "rain": {"3h": future_record.get("precipitation", 0)},
+                        "snow": {},
+                        "clouds": {"all": future_record.get("cloud_cover", 50)},
+                    }
+                )
+
+        return weather_narrative.get_weather_narrative(
+            weather_data, forecast_data, current_timestamp
+        )
+    except Exception as e:
+        print(f"Error generating real narrative: {e}")
+        # Fall back to simple narrative
+        return generate_simple_narrative(weather_data)
+
+
+def calculate_daily_extremes(weather_records):
+    """Calculate daily high/low temperatures from hourly data"""
+    daily_extremes = {}
+
+    for record in weather_records:
+        date = record["date"]
+        temp = record["temp_c"]
+
+        if date not in daily_extremes:
+            daily_extremes[date] = {"high": temp, "low": temp}
+        else:
+            daily_extremes[date]["high"] = max(daily_extremes[date]["high"], temp)
+            daily_extremes[date]["low"] = min(daily_extremes[date]["low"], temp)
+
+    return daily_extremes
+
+
+def generate_historical_dataset(csv_file_path, max_records=None):
     """Generate historical dataset with narratives and measurements"""
     print(f"Loading weather data from {csv_file_path}")
     weather_records = load_historical_csv(csv_file_path)
@@ -186,27 +340,52 @@ def generate_historical_dataset(csv_file_path, output_file, max_records=100):
         print("No weather records found!")
         return []
 
-    print(f"Processing {min(len(weather_records), max_records)} records...")
+    # Calculate daily temperature extremes from all data
+    print("Calculating daily temperature extremes...")
+    daily_extremes = calculate_daily_extremes(weather_records)
+
+    # Add daily extremes to each record
+    for record in weather_records:
+        date = record["date"]
+        if date in daily_extremes:
+            record["daily_high"] = daily_extremes[date]["high"]
+            record["daily_low"] = daily_extremes[date]["low"]
+
+    if max_records and max_records > 0:
+        weather_records = weather_records[:max_records]
+        print(f"Processing first {len(weather_records)} records (limited by count)...")
+    else:
+        print(f"Processing all {len(weather_records)} records...")
 
     # Initialize measurement system
     measurer = NarrativeMeasurer()
 
     results = []
 
-    for i, record in enumerate(weather_records[:max_records]):
-        if i % 10 == 0:
-            print(f"Processing record {i + 1}/{min(len(weather_records), max_records)}")
+    for i, record in enumerate(weather_records):
+        if i % 100 == 0:
+            print(f"Processing record {i + 1}/{len(weather_records)}")
+
+        # Setup weather history for this record
+        setup_weather_history(record, weather_records)
 
         # Convert to weather data format
         weather_data = convert_to_weather_format(record)
 
-        # Generate narrative
-        narrative = generate_simple_narrative(weather_data)
+        # Generate narrative using real or simple generator
+        if USE_REAL_NARRATIVES:
+            # Find future weather data for proper tomorrow forecast
+            future_data = find_future_weather_data(record, weather_records)
+            narrative = generate_real_narrative(
+                weather_data, record["timestamp"], future_data
+            )
+        else:
+            narrative = generate_simple_narrative(weather_data)
 
         # Measure text
         metrics = measurer.measure_narrative_text(narrative)
 
-        # Collect result
+        # Collect result with all real weather data
         result = {
             "timestamp": record["timestamp"],
             "date": record["date"],
@@ -217,14 +396,26 @@ def generate_historical_dataset(csv_file_path, output_file, max_records=100):
             "line_count": metrics["line_count"],
             "fits_display": metrics["fits_display"],
             "temp": record["temp_c"],
+            "feels_like": record["feels_like"],
+            "humidity": record["humidity"],
             "weather_desc": weather_data["weather_desc"],
+            "weather_code": record["weather_code"],
+            "wind_speed": record["wind_speed"],
+            "wind_gust": record["wind_gust"],
+            "cloud_cover": record["cloud_cover"],
+            "precipitation": record["precipitation"],
+            "visibility": record["visibility"],
+            "uv_index": record.get("uv_index", 0),
+            "dew_point": record.get("dew_point", 0),
+            "is_day": record["is_day"],
             "char_count": metrics["char_count"],
             "overflow_lines": metrics["overflow_lines"],
         }
 
         results.append(result)
 
-    # Save to CSV
+    # Save to CSV in static directory
+    output_file = os.path.join(current_dir, "narratives.csv")
     print(f"Saving results to {output_file}")
     fieldnames = [
         "timestamp",
@@ -236,7 +427,18 @@ def generate_historical_dataset(csv_file_path, output_file, max_records=100):
         "line_count",
         "fits_display",
         "temp",
+        "feels_like",
+        "humidity",
         "weather_desc",
+        "weather_code",
+        "wind_speed",
+        "wind_gust",
+        "cloud_cover",
+        "precipitation",
+        "visibility",
+        "uv_index",
+        "dew_point",
+        "is_day",
         "char_count",
         "overflow_lines",
     ]
@@ -260,7 +462,7 @@ def generate_historical_dataset(csv_file_path, output_file, max_records=100):
     )
     print(f"Average lines: {sum(r['line_count'] for r in results) / total_records:.1f}")
 
-    return results
+    return results, output_file
 
 
 def test_single_narrative():
@@ -299,10 +501,11 @@ def test_single_narrative():
     print(f"Fits display: {metrics['fits_display']}")
 
 
-def generate_html_viewer(csv_path, output_html="viewer.html"):
+def generate_html_viewer(csv_path):
     """Generate HTML viewer using template and injection script"""
     template_path = os.path.join(current_dir, "template.html")
     inject_script = os.path.join(current_dir, "inject_data.py")
+    output_html = os.path.join(current_dir, "viewer.html")
 
     # Use the injection script
     import subprocess
@@ -320,29 +523,39 @@ def generate_html_viewer(csv_path, output_html="viewer.html"):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "test":
-            test_single_narrative()
-        else:
-            # Generate dataset from specified CSV
-            csv_path = sys.argv[1]
-            output_path = "narratives.csv"
-            max_records = 50  # Start with small dataset
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        test_single_narrative()
+    elif len(sys.argv) > 1:
+        # Use CSV path from argument
+        csv_path = sys.argv[1]
+        max_records = None
 
-            if not os.path.exists(csv_path):
-                print(f"Error: CSV file {csv_path} not found")
+        # Check for optional count parameter
+        if len(sys.argv) > 2:
+            try:
+                max_records = int(sys.argv[2])
+                print(f"Will process maximum {max_records} records")
+            except ValueError:
+                print(f"Error: Invalid count '{sys.argv[2]}' - must be a number")
                 sys.exit(1)
 
-            results = generate_historical_dataset(csv_path, output_path, max_records)
+        if not os.path.exists(csv_path):
+            print(f"Error: CSV file {csv_path} not found")
+            sys.exit(1)
 
-            # Also generate HTML viewer
-            if results:
-                generate_html_viewer(output_path)
+        results, output_path = generate_historical_dataset(csv_path, max_records)
+
+        # Also generate HTML viewer
+        if results:
+            generate_html_viewer(output_path)
     else:
         print("Usage:")
         print(
-            "  python generate_historical_data.py test                    # Test single record"
+            "  python generate_historical_data.py test                          # Test single narrative"
         )
         print(
-            "  python generate_historical_data.py path/to/weather.csv    # Generate dataset and HTML viewer"
+            "  python generate_historical_data.py path/to/weather.csv          # Generate full dataset"
+        )
+        print(
+            "  python generate_historical_data.py path/to/weather.csv 10       # Generate first 10 records"
         )

@@ -8,6 +8,9 @@ import os
 import sys
 from datetime import datetime
 
+# Set environment variable to reduce logging noise
+os.environ["PINKWEATHER_QUIET"] = "1"
+
 # Add paths for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))  # web/static/
 web_dir = os.path.dirname(current_dir)  # web/
@@ -17,7 +20,7 @@ project_root = os.path.dirname(web_dir)  # project root
 if web_dir not in sys.path:
     sys.path.insert(0, web_dir)
 
-from simple_web_render import render_400x300_display
+from weather_data_converter import render_csv_record_to_image
 
 
 def load_narrative_dataset(csv_path):
@@ -40,26 +43,26 @@ def generate_filename_from_record(record):
     return f"{date}-{hour}.png"
 
 
-def render_narrative_to_image(narrative_text, output_path):
-    """Render narrative text to PNG image"""
-    try:
-        # Use the existing 400x300 render function
-        image = render_400x300_display(narrative_text)
-
-        # Save as PNG
-        image.save(output_path, "PNG")
-        return True
-
-    except Exception as e:
-        print(f"Error rendering {output_path}: {e}")
-        return False
+def render_weather_to_image(record, output_path, csv_data_list=None):
+    """Render full weather display to PNG image using shared converter"""
+    return render_csv_record_to_image(record, output_path, csv_data_list)
 
 
-def batch_render_images(csv_path, images_dir, max_images=None):
-    """Batch render images for all narratives in dataset"""
+def batch_render_images(max_images=None):
+    """Batch render images for narratives in dataset"""
+
+    # Use fixed paths in same directory as script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(current_dir, "narratives.csv")
+    images_dir = os.path.join(current_dir, "images")
 
     # Ensure images directory exists
     os.makedirs(images_dir, exist_ok=True)
+
+    # Check if CSV exists
+    if not os.path.exists(csv_path):
+        print(f"Error: No narratives.csv found - run generate_historical_data.py first")
+        return False
 
     # Load narrative data
     print(f"Loading narrative dataset from {csv_path}")
@@ -70,10 +73,13 @@ def batch_render_images(csv_path, images_dir, max_images=None):
         return False
 
     # Limit number of images if specified
-    if max_images:
+    if max_images and max_images > 0:
         narratives = narratives[:max_images]
-
-    print(f"Rendering {len(narratives)} images to {images_dir}")
+        print(
+            f"Rendering first {len(narratives)} images to {images_dir} (limited by count)"
+        )
+    else:
+        print(f"Rendering all {len(narratives)} images to {images_dir}")
 
     success_count = 0
 
@@ -85,16 +91,12 @@ def batch_render_images(csv_path, images_dir, max_images=None):
         filename = generate_filename_from_record(record)
         output_path = os.path.join(images_dir, filename)
 
-        # Skip if image already exists
+        # Always render (don't skip existing files to avoid stale images)
         if os.path.exists(output_path):
-            print(f"Skipping existing image: {filename}")
-            success_count += 1
-            continue
+            print(f"Overwriting existing image: {filename}")
 
-        # Render narrative to image
-        narrative_text = record["narrative_text"]
-
-        if render_narrative_to_image(narrative_text, output_path):
+        # Render full weather display to image
+        if render_weather_to_image(record, output_path, narratives):
             success_count += 1
         else:
             print(f"Failed to render: {filename}")
@@ -106,8 +108,16 @@ def batch_render_images(csv_path, images_dir, max_images=None):
     return success_count > 0
 
 
-def verify_images(csv_path, images_dir):
+def verify_images():
     """Verify that images exist for all narratives"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(current_dir, "narratives.csv")
+    images_dir = os.path.join(current_dir, "images")
+
+    if not os.path.exists(csv_path):
+        print(f"Error: No narratives.csv found - run generate_historical_data.py first")
+        return False
+
     narratives = load_narrative_dataset(csv_path)
     missing_images = []
     existing_images = []
@@ -132,14 +142,21 @@ def verify_images(csv_path, images_dir):
 
 
 def test_single_render():
-    """Test rendering a single narrative"""
-    print("Testing single narrative render...")
+    """Test rendering a single weather display"""
+    print("Testing single weather display render...")
 
-    # Test with simple narrative
-    test_narrative = "Clear and cold. 5°C. Light winds from the west."
+    # Test with sample record
+    test_record = {
+        "timestamp": "1704067200",
+        "date": "2023-12-31",
+        "hour": "19:00",
+        "narrative_text": "Clear and cold, 5°C. Light winds from the west.",
+        "temp": "5.0",
+        "weather_desc": "clear sky",
+    }
     test_output = "test_render.png"
 
-    if render_narrative_to_image(test_narrative, test_output):
+    if render_weather_to_image(test_record, test_output, None):
         print(f"Successfully rendered test image: {test_output}")
 
         # Check file size
@@ -154,40 +171,25 @@ def test_single_render():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "test":
-            test_single_render()
-        elif sys.argv[1] == "verify":
-            # Verify existing images
-            csv_path = "narratives.csv"
-            images_dir = "images"
-
-            if os.path.exists(csv_path):
-                verify_images(csv_path, images_dir)
-            else:
-                print(f"Error: CSV file {csv_path} not found")
-        else:
-            # Batch render from CSV
-            csv_path = sys.argv[1]
-            images_dir = sys.argv[2] if len(sys.argv) > 2 else "images"
-            max_images = int(sys.argv[3]) if len(sys.argv) > 3 else None
-
-            if not os.path.exists(csv_path):
-                print(f"Error: CSV file {csv_path} not found")
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        test_single_render()
+    else:
+        # Check for optional count parameter
+        max_count = None
+        if len(sys.argv) > 1:
+            try:
+                max_count = int(sys.argv[1])
+                print(f"Will render maximum {max_count} images")
+            except ValueError:
+                print(
+                    f"Error: Invalid count '{sys.argv[1]}' - must be a number or 'test'"
+                )
+                print("Usage:")
+                print("  python batch_image_renderer.py        # Render all images")
+                print(
+                    "  python batch_image_renderer.py 10     # Render first 10 images"
+                )
+                print("  python batch_image_renderer.py test   # Test single render")
                 sys.exit(1)
 
-            batch_render_images(csv_path, images_dir, max_images)
-    else:
-        print("Usage:")
-        print(
-            "  python batch_image_renderer.py test                           # Test single render"
-        )
-        print(
-            "  python batch_image_renderer.py verify                        # Verify existing images"
-        )
-        print(
-            "  python batch_image_renderer.py narratives.csv [images_dir]   # Batch render images"
-        )
-        print(
-            "  python batch_image_renderer.py narratives.csv images 10      # Render first 10 images"
-        )
+        batch_render_images(max_count)

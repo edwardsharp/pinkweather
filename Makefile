@@ -1,7 +1,7 @@
 # Makefile for pinkweather project
 # Provides easy commands for setup, development, and deployment
 
-.PHONY: help install install-dev clean test lint format server deploy-check preview activate
+.PHONY: help install install-dev clean test lint format server deploy-check preview activate generate-dataset
 
 # Default target
 help:
@@ -15,6 +15,7 @@ help:
 	@echo "  server       - Start development web server"
 	@echo "  preview      - Generate weather display preview"
 	@echo "  deploy-check - Check files ready for microcontroller deployment"
+	@echo "  generate-dataset [COUNT] - Generate complete dataset (narratives + viewer + images)"
 	@echo "  venv         - Create virtual environment"
 	@echo "  activate     - Show how to activate virtual environment"
 
@@ -113,6 +114,65 @@ build:
 # Install package in development mode
 install-package:
 	pip install -e .
+
+# Data generation target
+generate-dataset:
+	@if [ "$(COUNT)" ]; then \
+		echo "Generating dataset from NYC weather data (limited to $(COUNT) records)..."; \
+	else \
+		echo "Generating complete dataset from NYC weather data..."; \
+	fi
+	@echo "Step 1/3: Generating narratives.csv..."
+	@if [ -f "venv/bin/activate" ]; then \
+		if [ "$(COUNT)" ]; then \
+			. venv/bin/activate && cd web/static && python generate_historical_data.py ../../misc/open-meteo-40.65N73.98W25m.csv $(COUNT); \
+		else \
+			. venv/bin/activate && cd web/static && python generate_historical_data.py ../../misc/open-meteo-40.65N73.98W25m.csv > /dev/null 2>&1; \
+		fi \
+	else \
+		if [ "$(COUNT)" ]; then \
+			cd web/static && python generate_historical_data.py ../../misc/open-meteo-40.65N73.98W25m.csv $(COUNT); \
+		else \
+			cd web/static && python generate_historical_data.py ../../misc/open-meteo-40.65N73.98W25m.csv > /dev/null 2>&1; \
+		fi \
+	fi
+	@echo "Step 2/3: Updating viewer.html..."
+	@if [ -f "venv/bin/activate" ]; then \
+		if [ "$(COUNT)" ]; then \
+			. venv/bin/activate && cd web/static && python inject_data.py; \
+		else \
+			. venv/bin/activate && cd web/static && python inject_data.py > /dev/null 2>&1; \
+		fi \
+	else \
+		if [ "$(COUNT)" ]; then \
+			cd web/static && python inject_data.py; \
+		else \
+			cd web/static && python inject_data.py > /dev/null 2>&1; \
+		fi \
+	fi
+	@echo "Step 3/3: Generating images..."
+	@if [ -f "venv/bin/activate" ]; then \
+		if [ "$(COUNT)" ]; then \
+			. venv/bin/activate && cd web/static && python batch_image_renderer.py $(COUNT); \
+		else \
+			. venv/bin/activate && cd web/static && python batch_image_renderer.py > /dev/null 2>&1; \
+		fi \
+	else \
+		if [ "$(COUNT)" ]; then \
+			cd web/static && python batch_image_renderer.py $(COUNT); \
+		else \
+			cd web/static && python batch_image_renderer.py > /dev/null 2>&1; \
+		fi \
+	fi
+	@if [ "$(COUNT)" ]; then \
+		echo "Limited dataset generation finished ($(COUNT) records)!"; \
+	else \
+		echo "Complete dataset generation finished!"; \
+	fi
+	@echo "Files created:"
+	@echo "  web/static/narratives.csv - Narrative dataset"
+	@echo "  web/static/viewer.html - Updated viewer"
+	@echo "  web/static/images/ - PNG images for each narrative"
 
 # Show activation instructions
 activate:
