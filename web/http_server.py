@@ -21,6 +21,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import os
 
 from cached_weather import fetch_weather_data_cached
+from mock_history import compute_mock_history, store_real_weather_history
 from mock_weather_data import generate_scenario_data, get_predefined_scenarios
 from open_meteo_converter import get_historical_data_range
 from simple_web_render import (
@@ -166,7 +167,7 @@ class DisplayHandler(BaseHTTPRequestHandler):
     def clear_cache(self):
         """Clear weather history cache for testing."""
         try:
-            cache_dir = "web/.cache" if "web" not in os.getcwd() else ".cache"
+            cache_dir = "web/.cache"
             history_file = os.path.join(cache_dir, "weather_history.json")
 
             if os.path.exists(history_file):
@@ -282,6 +283,14 @@ class DisplayHandler(BaseHTTPRequestHandler):
                             forecast_response, air_quality_response, timezone_offset
                         )
 
+                        # Compute mock history from historical data for yesterday comparisons
+                        if parsed_mock_data:
+                            print("DEBUG: Computing mock history from CSV data")
+                            mock_history = compute_mock_history(mock_data)
+                            print(
+                                f"DEBUG: Mock history computed with {len(mock_history)} days"
+                            )
+
                         print(
                             f"DEBUG: Parsed mock data keys: {list(parsed_mock_data.keys()) if parsed_mock_data else 'None'}"
                         )
@@ -296,11 +305,29 @@ class DisplayHandler(BaseHTTPRequestHandler):
                             display_vars = None
 
                         if current_weather and display_vars.get("forecast_data"):
-                            narrative = get_weather_narrative(
-                                current_weather,
-                                display_vars["forecast_data"],
-                                current_weather.get("current_timestamp"),
+                            # Use mock history for yesterday comparisons
+                            import weather_narrative
+                            from mock_history import compare_with_yesterday_web
+
+                            # Temporarily override comparison function for mock data
+                            original_compare = weather_narrative.compare_with_yesterday
+                            weather_narrative.compare_with_yesterday = (
+                                lambda ct, ht, lt, ts: compare_with_yesterday_web(
+                                    ct, ht, lt, ts, use_mock=True
+                                )
                             )
+
+                            try:
+                                narrative = get_weather_narrative(
+                                    current_weather,
+                                    display_vars["forecast_data"],
+                                    current_weather.get("current_timestamp"),
+                                )
+                            finally:
+                                # Restore original function
+                                weather_narrative.compare_with_yesterday = (
+                                    original_compare
+                                )
                             # Store data for full layout rendering
                             forecast_data = display_vars["forecast_data"]
                             weather_desc = (
@@ -376,11 +403,7 @@ class DisplayHandler(BaseHTTPRequestHandler):
                                 # Store today's temperatures in history for tomorrow's comparison
                                 if current_weather:
                                     try:
-                                        from weather_history import (
-                                            store_today_temperatures,
-                                        )
-
-                                        store_today_temperatures(
+                                        store_real_weather_history(
                                             current_weather.get("current_timestamp"),
                                             current_weather.get("current_temp"),
                                             current_weather.get("high_temp"),
@@ -389,14 +412,47 @@ class DisplayHandler(BaseHTTPRequestHandler):
                                     except Exception as e:
                                         print(f"Failed to store weather history: {e}")
 
-                                if current_weather and display_vars.get(
-                                    "forecast_data"
-                                ):
+                                # For real weather data, monkey-patch weather_narrative directly
+                                import weather_narrative
+                                from mock_history import compare_with_yesterday_web
+
+                                print(
+                                    "DEBUG: About to override compare_with_yesterday in weather_narrative for real weather"
+                                )
+                                # Override the imported function in weather_narrative module
+                                original_compare = (
+                                    weather_narrative.compare_with_yesterday
+                                )
+                                weather_narrative.compare_with_yesterday = (
+                                    lambda ct, ht, lt, ts: compare_with_yesterday_web(
+                                        ct, ht, lt, ts, use_mock=False
+                                    )
+                                )
+
+                                try:
+                                    print(
+                                        "DEBUG: About to call get_weather_narrative for REAL weather"
+                                    )
+                                    print(
+                                        f"DEBUG: current_temp = {current_weather.get('current_temp')}"
+                                    )
+                                    print(
+                                        f"DEBUG: timestamp = {current_weather.get('current_timestamp')}"
+                                    )
                                     narrative = get_weather_narrative(
                                         current_weather,
                                         display_vars["forecast_data"],
                                         current_weather.get("current_timestamp"),
                                     )
+                                finally:
+                                    # Restore original function
+                                    weather_narrative.compare_with_yesterday = (
+                                        original_compare
+                                    )
+
+                                if current_weather and display_vars.get(
+                                    "forecast_data"
+                                ):
                                     # Store data for full layout rendering
                                     forecast_data = display_vars["forecast_data"]
                                     weather_desc = (

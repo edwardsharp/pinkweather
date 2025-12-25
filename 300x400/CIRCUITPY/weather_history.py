@@ -19,35 +19,21 @@ def get_date_string(timestamp):
 def get_history_file_path():
     """Get the appropriate path for weather history file"""
     try:
-        # Try SD card path for hardware
-        try:
-            os.stat("/sd")
-            return "/sd/weather_history.json"
-        except OSError:
-            pass
-    except:
-        pass
-
-    # Fallback to cache directory for web preview
-    # Find the web/.cache directory regardless of current working directory
-    current_dir = os.getcwd()
-    if "web" in current_dir:
-        # Running from web directory
-        cache_dir = ".cache"
-    else:
-        # Running from project root
-        cache_dir = "web/.cache"
-
-    try:
-        os.stat(cache_dir)
+        # Only use SD card path for hardware
+        os.stat("/sd")
+        return "/sd/weather_history.json"
     except OSError:
-        os.makedirs(cache_dir)
-    return cache_dir + "/weather_history.json"
+        # No SD card available - return None for no file storage
+        return None
 
 
 def load_weather_history():
     """Load weather history from file"""
     history_path = get_history_file_path()
+
+    if not history_path:
+        # No storage available (e.g., web preview without SD card)
+        return {}
 
     try:
         with open(history_path, "r") as f:
@@ -71,6 +57,10 @@ def save_weather_history(history_data):
     """Save weather history to file"""
     history_path = get_history_file_path()
 
+    if not history_path:
+        # No storage available
+        return False
+
     try:
         with open(history_path, "w") as f:
             json.dump(history_data, f, indent=2)
@@ -93,10 +83,10 @@ def store_today_temperatures(current_timestamp, current_temp, high_temp, low_tem
     # Store today's data
     history[today_date] = {"current": current_temp, "high": high_temp, "low": low_temp}
 
-    # Keep only last 7 days to save space
+    # Keep only last 10 days to save space
     dates = sorted(history.keys())
-    if len(dates) > 7:
-        for old_date in dates[:-7]:
+    if len(dates) > 10:
+        for old_date in dates[:-10]:
             del history[old_date]
 
     return save_weather_history(history)
@@ -117,15 +107,8 @@ def get_yesterday_temperatures(current_timestamp):
     return history.get(yesterday_date)
 
 
-def compare_with_yesterday(current_temp, high_temp, low_temp, current_timestamp):
-    """Compare today's temperatures with yesterday and return comparison text"""
-    yesterday_data = get_yesterday_temperatures(current_timestamp)
-
-    if not yesterday_data:
-        return None
-
-    # Use current temp for primary comparison
-    yesterday_current = yesterday_data.get("current")
+def generate_temperature_comparison(current_temp, yesterday_current):
+    """Generate temperature comparison text given current and yesterday temps"""
     if yesterday_current is None or current_temp is None:
         return None
 
@@ -145,3 +128,15 @@ def compare_with_yesterday(current_temp, high_temp, low_temp, current_timestamp)
         return "<red><i>lil'</i> colder than yesterday.</red>"
     else:
         return "about the same as yesterday."
+
+
+def compare_with_yesterday(current_temp, high_temp, low_temp, current_timestamp):
+    """Compare today's temperatures with yesterday and return comparison text"""
+    yesterday_data = get_yesterday_temperatures(current_timestamp)
+
+    if not yesterday_data:
+        return None
+
+    # Use the reusable comparison logic
+    yesterday_current = yesterday_data.get("current")
+    return generate_temperature_comparison(current_temp, yesterday_current)
