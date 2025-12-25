@@ -391,7 +391,7 @@ def create_enhanced_forecast_data(
     if forecast_items:
         for item in forecast_items:
             # Skip if forecast time is in the past (compare local times directly)
-            if item["dt"] <= current_timestamp:
+            if item["dt"] < current_timestamp:
                 continue
 
             # Skip if too close to any special event (within 30 minutes) - all in local time
