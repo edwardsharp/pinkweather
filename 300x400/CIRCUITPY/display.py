@@ -29,6 +29,7 @@ def create_weather_layout(
     month_name=None,
     air_quality=None,
     zodiac_sign=None,
+    indoor_temp_humidity=None,
 ):
     """Create weather layout with single-line header
 
@@ -42,6 +43,7 @@ def create_weather_layout(
         month_name: Pre-calculated month name (e.g. 'DEC')
         air_quality: Air quality data dict with 'aqi_text' field
         zodiac_sign: Three-letter zodiac sign abbreviation
+        indoor_temp_humidity: Indoor temperature and humidity string
 
     Returns:
         DisplayIO group containing the complete layout
@@ -56,4 +58,5 @@ def create_weather_layout(
         month_name,
         air_quality,
         zodiac_sign,
+        indoor_temp_humidity,
     )

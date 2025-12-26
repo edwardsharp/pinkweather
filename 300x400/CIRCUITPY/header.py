@@ -25,6 +25,7 @@ def create_header(
     month_name=None,
     air_quality=None,
     zodiac_sign=None,
+    indoor_temp_humidity=None,
 ):
     """Create single-line header with date, air quality, and zodiac sign
 
@@ -93,17 +94,30 @@ def create_header(
 
     # Date label (left aligned)
     date_label = label.Label(hyperl15_font, text=date_str, color=WHITE)
-    date_label.x = 10
+    date_label.x = 5
     date_label.y = y_position - 4
     header_group.append(date_label)
+
+    # indoor temp & humidity
+    if indoor_temp_humidity:
+        indoor_label = label.Label(
+            hyperl15_font, text=indoor_temp_humidity, color=WHITE
+        )
+        indoor_label.x = 120
+        indoor_label.y = y_position - 4
+        # indoor_label.anchor_point = (0.5, 0.0)  # Center anchor
+        # indoor_label.anchored_position = (200, y_position - 10)  # Center of 400px width
+        header_group.append(indoor_label)
 
     # Air quality label (centered)
     if air_quality_str:
         aq_label = label.Label(
             hyperl15_font, text=air_quality_str, color=air_quality_color
         )
-        aq_label.anchor_point = (0.5, 0.0)  # Center anchor
-        aq_label.anchored_position = (200, y_position - 10)  # Center of 400px width
+        aq_label.x = 205
+        aq_label.y = y_position - 4
+        # aq_label.anchor_point = (0.5, 0.0)  # Center anchor
+        # aq_label.anchored_position = (200, y_position - 10)  # Center of 400px width
         header_group.append(aq_label)
 
     # Zodiac sign label (right aligned, just before moon icon)
@@ -142,6 +156,7 @@ def create_weather_layout(
     month_name=None,
     air_quality=None,
     zodiac_sign=None,
+    indoor_temp_humidity=None,
 ):
     """Create complete weather layout with single-line header, forecast, and description
 
@@ -172,6 +187,7 @@ def create_weather_layout(
         month_name=month_name,
         air_quality=air_quality,
         zodiac_sign=zodiac_sign,
+        indoor_temp_humidity=indoor_temp_humidity,
     )
     main_group.append(header_group)
 

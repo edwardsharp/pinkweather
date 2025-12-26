@@ -8,6 +8,7 @@ rd wrapping.
 import gc
 import time
 
+import adafruit_hdc302x
 import adafruit_sdcard
 import adafruit_ssd1683
 import board
@@ -44,6 +45,10 @@ WEATHER_CONFIG = (
     if config.OPENWEATHER_API_KEY and config.LATITUDE and config.LONGITUDE
     else None
 )
+
+# Initialize onboard LED
+led = DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
 
 # Release any previously used displays
 displayio.release_displays()
@@ -98,6 +103,35 @@ except Exception as e:
     log("Continuing without SD card...")
     sd_available = False
 
+# Initialize temperature/humidity sensor
+sensor = None
+try:
+    # GP27 scl
+    # GP26 sda
+    i2c = busio.I2C(scl=board.GP27, sda=board.GP26)
+    sensor = adafruit_hdc302x.HDC302x(i2c)
+    log("Temperature sensor initialized successfully")
+except Exception as e:
+    log(f"Temperature sensor failed to initialize: {e}")
+    log("Continuing without temperature sensor...")
+    sensor = None
+
+
+def get_indoor_temp_humidity():
+    """Read current temperature and humidity from sensor and return formatted string"""
+    if sensor is None:
+        return None
+
+    try:
+        current_temp = int(round(sensor.temperature))
+        current_humidity = int(round(sensor.relative_humidity))
+        log(f"Sensor reading - temp: {current_temp}°C, humidity: {current_humidity}%")
+        return f"{current_temp}° {current_humidity}%"
+    except Exception as e:
+        log(f"Failed to read sensor: {e}")
+        return None
+
+
 # Display dimensions and colors
 DISPLAY_WIDTH = 400
 DISPLAY_HEIGHT = 300
@@ -146,6 +180,9 @@ def update_display_with_weather_layout(weather_data):
     # Generate rich weather narrative
     weather_narrative = generate_weather_narrative(weather_data)
 
+    # Get fresh indoor temperature and humidity reading
+    indoor_temp_humidity = get_indoor_temp_humidity()
+
     main_group = create_weather_layout(
         current_timestamp=weather_data.get("current_timestamp"),
         forecast_data=weather_data["forecast_data"],
@@ -156,6 +193,7 @@ def update_display_with_weather_layout(weather_data):
         month_name=weather_data.get("month_name"),
         air_quality=weather_data.get("air_quality"),
         zodiac_sign=weather_data.get("zodiac_sign"),
+        indoor_temp_humidity=indoor_temp_humidity,
     )
 
     # Update display
@@ -163,7 +201,10 @@ def update_display_with_weather_layout(weather_data):
     display.refresh()
 
     # Wait for refresh to complete
-    time.sleep(display.time_to_refresh)
+    # log(f"display.time_to_refresh: {display.time_to_refresh}")
+    # time.sleep(display.time_to_refresh)
+    # note: display.time_to_refresh is 180 when i looked, which is like way-too-long
+    time.sleep(20)
     log("Refresh complete")
 
 
@@ -257,6 +298,10 @@ def deep_sleep(minutes):
     """Enter deep sleep mode for specified minutes"""
     log(f"Entering deep sleep for {minutes} minutes...")
 
+    # Turn off LED before deep sleep
+    led.value = False
+    log("LED turned off for deep sleep")
+
     # Disconnect WiFi to save power
     disconnect_wifi()
 
@@ -280,7 +325,6 @@ def deep_sleep(minutes):
 
 def get_weather_display_data():
     """Get weather data for display - always fetch fresh data"""
-    timezone_offset = getattr(config, "TIMEZONE_OFFSET_HOURS", -5)
 
     if WEATHER_CONFIG is None:
         log("Weather API not configured")
@@ -338,6 +382,10 @@ def main():
     current_weather_data = None
 
     log("pinkweather starting...")
+
+    # Turn on LED at boot
+    led.value = True
+    log("LED turned on at boot")
 
     # Fetch initial weather data on boot
     log("Initial weather data fetch on boot...")

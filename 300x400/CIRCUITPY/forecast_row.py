@@ -140,7 +140,9 @@ def create_forecast_row(forecast_data, y_position=50):
             # Position at bottom right of icon (icon is 32x32, starts at icon_x, icon_y)
             icon_x = cell_x + (cell_width - 32) // 2 - 9
             icon_y = y_position + 14
-            pop_bg_x = icon_x + 28  # 28px from left edge of icon (a bit more right)
+            pop_bg_x = icon_x + (
+                24 if pop_percent == 100 else 28
+            )  # 28px from left edge of icon (a bit more right)
             pop_bg_y = icon_y + 34  # 34px from top edge of icon (a bit more down)
 
             pop_bg_grid = displayio.TileGrid(
