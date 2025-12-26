@@ -159,6 +159,26 @@ otf2bdf googz/Barlow_Condensed/BarlowCondensed-Regular.ttf -p 60 -o barlowcond60
 
 then use https://adafruit.github.io/web-bdftopcf/ to convert this `.bdf` to a `.pcf` file
 
+## generate static dataset (for some broad analysis)
+
+```sh
+make generate-dataset
+
+# or if in a hurry
+make generate-dataset csv-only
+
+# or if only like 100
+make generate-dataset 100
+
+# or if only like 100 in csv
+make generate-dataset csv-only 100
+```
+
+then see output in:
+
+web/static/narratives.csv
+web/static/viewer.html
+
 ## HARDWARE
 
 - Raspberry Pi Pico 2W
@@ -197,4 +217,5 @@ make clean          # Clean temporary files
 make deploy-check   # Verify files for microcontroller
 make test          # Run tests (when available)
 make format        # Format code
+
 ```

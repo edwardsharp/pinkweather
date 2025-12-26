@@ -39,6 +39,8 @@ import logger
 
 logger.set_silent_mode(True)
 
+import re
+
 from narrative_measurement import NarrativeMeasurer
 
 
@@ -70,8 +72,15 @@ def load_csv_timestamps(dataset_name=None):
     return timestamps, csv_file_path
 
 
-def generate_historical_dataset(dataset_name=None, max_records=None):
-    """Generate historical dataset with images in one pass for maximum performance"""
+def remove_markup_tags(text):
+    """Remove markup tags like <h>, <i>, <b> from narrative text"""
+    # Remove tags like <h>text</h>, <i>text</i>, <b>text</b>
+    clean_text = re.sub(r"<[^>]+>", "", text)
+    return clean_text
+
+
+def generate_historical_dataset(dataset_name=None, max_records=None, csv_only=False):
+    """Generate historical dataset with optional image generation"""
 
     # Load CSV timestamps
     timestamps, csv_file_path = load_csv_timestamps(dataset_name)
@@ -87,12 +96,18 @@ def generate_historical_dataset(dataset_name=None, max_records=None):
         print(f"Processing all {len(timestamps)} records...")
 
     # Import shared engine
-    from shared_weather_engine import generate_complete_weather_display
+    if csv_only:
+        from shared_weather_engine import generate_weather_display_for_timestamp
+    else:
+        from shared_weather_engine import generate_complete_weather_display
 
-    # Initialize text measurement and image output directory
+    # Initialize text measurement
     measurer = NarrativeMeasurer()
-    images_dir = os.path.join(current_dir, "images")
-    os.makedirs(images_dir, exist_ok=True)
+
+    # Only create images directory if generating images
+    if not csv_only:
+        images_dir = os.path.join(current_dir, "images")
+        os.makedirs(images_dir, exist_ok=True)
 
     results = []
     start_time = time.time()
@@ -102,31 +117,63 @@ def generate_historical_dataset(dataset_name=None, max_records=None):
         show_progress(i + 1, len(timestamps), start_time)
 
         try:
-            # Use shared engine - same as web server
-            image, narrative, metrics = generate_complete_weather_display(
-                csv_file_path, timestamp
-            )
+            if csv_only:
+                # Generate weather data and narrative (no image)
+                weather_data, narrative, display_vars, current_weather = (
+                    generate_weather_display_for_timestamp(csv_file_path, timestamp)
+                )
 
-            # Save image
-            dt = datetime.fromtimestamp(timestamp)
-            image_filename = f"{dt.strftime('%Y%m%d_%H%M%S')}.png"
-            image_path = os.path.join(images_dir, image_filename)
-            image.save(image_path)
+                # Remove markup tags from narrative for plain text version
+                plain_narrative = remove_markup_tags(narrative)
 
-            # Measure text dimensions
-            text_metrics = measurer.measure_narrative_text(narrative)
+                # Measure text dimensions using plain text (no markup)
+                text_metrics = measurer.measure_narrative_text(plain_narrative)
 
-            # Combine data for CSV output
-            result = {
-                **metrics,  # timestamp, date, hour, narrative_text, temp, weather_desc
-                "text_length_px": text_metrics["text_width_px"],
-                "text_height_px": text_metrics["text_height_px"],
-                "line_count": text_metrics["line_count"],
-                "fits_display": text_metrics["fits_display"],
-                "char_count": text_metrics["char_count"],
-                "overflow_lines": text_metrics["overflow_lines"],
-                "image_filename": image_filename,
-            }
+                # Create CSV record (no image filename)
+                dt = datetime.fromtimestamp(timestamp)
+                result = {
+                    "timestamp": timestamp,
+                    "date": dt.strftime("%Y-%m-%d"),
+                    "hour": dt.strftime("%H:%M"),
+                    "narrative_text": narrative,
+                    "narrative_text_plain": text_metrics[
+                        "narrative_text_plain_wrapped"
+                    ],
+                    "line_count": text_metrics["line_count"],
+                    "fits_display": text_metrics["fits_display"],
+                    "char_count": len(
+                        plain_narrative
+                    ),  # Character count from plain text
+                    "overflow_lines": text_metrics["overflow_lines"],
+                    "temp": current_weather.get("current_temp"),
+                    "weather_desc": current_weather.get("weather_desc"),
+                }
+            else:
+                # Use shared engine - same as web server
+                image, narrative, metrics = generate_complete_weather_display(
+                    csv_file_path, timestamp
+                )
+
+                # Save image
+                dt = datetime.fromtimestamp(timestamp)
+                image_filename = f"{dt.strftime('%Y%m%d_%H%M%S')}.png"
+                image_path = os.path.join(images_dir, image_filename)
+                image.save(image_path)
+
+                # Measure text dimensions
+                text_metrics = measurer.measure_narrative_text(narrative)
+
+                # Combine data for CSV output
+                result = {
+                    **metrics,  # timestamp, date, hour, narrative_text, temp, weather_desc
+                    "text_length_px": text_metrics["text_width_px"],
+                    "text_height_px": text_metrics["text_height_px"],
+                    "line_count": text_metrics["line_count"],
+                    "fits_display": text_metrics["fits_display"],
+                    "char_count": text_metrics["char_count"],
+                    "overflow_lines": text_metrics["overflow_lines"],
+                    "image_filename": image_filename,
+                }
 
             results.append(result)
 
@@ -137,7 +184,10 @@ def generate_historical_dataset(dataset_name=None, max_records=None):
 
     # Save to CSV
     output_file = os.path.join(current_dir, "narratives.csv")
-    save_results_to_csv(results, output_file)
+    if csv_only:
+        save_csv_only_results(results, output_file)
+    else:
+        save_results_to_csv(results, output_file)
 
     # Generate HTML viewer
     generate_html_viewer(output_file)
@@ -162,9 +212,34 @@ def generate_historical_dataset(dataset_name=None, max_records=None):
     )
     print(f"Files created:")
     print(f"  {output_file}")
-    print(f"  {images_dir}/ ({total_records} images)")
+    if not csv_only:
+        print(f"  {images_dir}/ ({total_records} images)")
 
     return results, output_file
+
+
+def save_csv_only_results(results, output_file):
+    """Save CSV-only results to file"""
+    print(f"Saving results to {output_file}")
+
+    fieldnames = [
+        "timestamp",
+        "date",
+        "hour",
+        "narrative_text",
+        "narrative_text_plain",
+        "line_count",
+        "fits_display",
+        "char_count",
+        "overflow_lines",
+        "temp",
+        "weather_desc",
+    ]
+
+    with open(output_file, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(results)
 
 
 def save_results_to_csv(results, output_file):
@@ -215,56 +290,99 @@ if __name__ == "__main__":
 
     dataset_name = None
     max_records = None
+    csv_only_mode = False
 
     if len(sys.argv) > 1:
         first_arg = sys.argv[1]
 
-        # Check if first arg is a dataset name, CSV path, or count
-        if first_arg.endswith(".csv"):
-            # Legacy CSV path support - convert to dataset name
-            from csv_config import find_dataset_for_csv_path
+        # Check for CSV-only mode flag
+        if first_arg == "--csv-only":
+            csv_only_mode = True
+            # Shift arguments
+            if len(sys.argv) > 2:
+                first_arg = sys.argv[2]
+            else:
+                first_arg = None
 
-            dataset_name = find_dataset_for_csv_path(first_arg)
-            if not dataset_name:
-                print(f"Error: CSV file not recognized as a known dataset: {first_arg}")
-                print("Available datasets:")
+        if first_arg:
+            # Check if first arg is a dataset name, CSV path, or count
+            if first_arg.endswith(".csv"):
+                # Legacy CSV path support - convert to dataset name
+                from csv_config import find_dataset_for_csv_path
+
+                dataset_name = find_dataset_for_csv_path(first_arg)
+                if not dataset_name:
+                    print(
+                        f"Error: CSV file not recognized as a known dataset: {first_arg}"
+                    )
+                    print("Available datasets:")
+                    for name, desc in list_available_datasets().items():
+                        print(f"  {name}: {desc}")
+                    sys.exit(1)
+            elif first_arg.isdigit():
+                # First arg is a count, use default dataset
+                dataset_name = None
+                max_records = int(first_arg)
+            elif first_arg in list_available_datasets():
+                # First arg is a dataset name
+                dataset_name = first_arg
+            else:
+                print(f"Error: Unknown dataset '{first_arg}'. Available datasets:")
                 for name, desc in list_available_datasets().items():
                     print(f"  {name}: {desc}")
+                print("Or provide a number for record count.")
+                print("Use --csv-only flag to skip image generation.")
                 sys.exit(1)
-        elif first_arg.isdigit():
-            # First arg is a count, use default dataset
-            dataset_name = None
-            max_records = int(first_arg)
-        elif first_arg in list_available_datasets():
-            # First arg is a dataset name
-            dataset_name = first_arg
-        else:
-            print(f"Error: Unknown dataset '{first_arg}'. Available datasets:")
-            for name, desc in list_available_datasets().items():
-                print(f"  {name}: {desc}")
-            print("Or provide a number for record count.")
-            sys.exit(1)
 
-        # Check for optional count parameter (if not already set from first arg)
-        if len(sys.argv) > 2 and max_records is None:
+        # Check for optional count parameter
+        next_arg_idx = 3 if csv_only_mode else 2
+        if len(sys.argv) > next_arg_idx and max_records is None:
             try:
-                max_records = int(sys.argv[2])
+                max_records = int(sys.argv[next_arg_idx])
                 print(f"Will process maximum {max_records} records")
             except ValueError:
-                print(f"Error: Invalid count '{sys.argv[2]}' - must be a number")
+                print(
+                    f"Error: Invalid count '{sys.argv[next_arg_idx]}' - must be a number"
+                )
                 sys.exit(1)
 
         try:
-            results, output_path = generate_historical_dataset(
-                dataset_name, max_records
-            )
+            if csv_only_mode:
+                print("Running in CSV-only mode (no images)")
+                results, output_path = generate_historical_dataset(
+                    dataset_name, max_records, csv_only=True
+                )
+            else:
+                results, output_path = generate_historical_dataset(
+                    dataset_name, max_records
+                )
         except Exception as e:
             print(f"Error: {e}")
             sys.exit(1)
     else:
-        # No arguments - use default dataset with all records
+        # No arguments - show usage
+        print("Usage:")
+        print(
+            "  python generate_historical_data.py [--csv-only] [dataset_name] [count]"
+        )
+        print("  python generate_historical_data.py [--csv-only] [count]")
+        print("")
+        print("Options:")
+        print("  --csv-only    Generate CSV without images (fast)")
+        print("")
+        print("Available datasets:")
+        for name, desc in list_available_datasets().items():
+            print(f"  {name}: {desc}")
+        print("")
+        print("Examples:")
+        print("  python generate_historical_data.py --csv-only 10")
+        print("  python generate_historical_data.py ny_2024 100")
+        print("  python generate_historical_data.py --csv-only ny_2024 50")
+
         try:
-            results, output_path = generate_historical_dataset(None, None)
+            # Default: run CSV-only mode with small sample
+            print("Running default: CSV-only mode with 10 records")
+            results, output_path = generate_historical_dataset(None, 10, csv_only=True)
         except Exception as e:
             print(f"Error: {e}")
             sys.exit(1)

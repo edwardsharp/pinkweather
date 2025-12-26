@@ -15,7 +15,7 @@ help:
 	@echo "  server       - Start development web server"
 	@echo "  preview      - Generate weather display preview"
 	@echo "  deploy-check - Check files ready for microcontroller deployment"
-	@echo "  generate-dataset [DATASET] [COUNT] - Generate complete dataset (narratives + viewer + images)"
+	@echo "  generate-dataset [csv-only] [COUNT] - Generate dataset (csv-only for fast iteration)"
 	@echo "  generate-images [COUNT] - Generate images for existing narratives.csv (backup option)"
 	@echo "  venv         - Create virtual environment"
 	@echo "  activate     - Show how to activate virtual environment"
@@ -118,38 +118,29 @@ install-package:
 
 # Data generation target
 generate-dataset:
-	@if [ "$(COUNT)" ]; then \
-		echo "Processing $(COUNT) records from default dataset..."; \
-		if [ -f "venv/bin/activate" ]; then \
-			. venv/bin/activate && cd web/static && python generate_historical_data.py $(COUNT) 2>/dev/null; \
+	@if [ "$(filter csv-only,$(MAKECMDGOALS))" ]; then \
+		if [ "$(COUNT)" ]; then \
+			echo "Generating CSV-only with count $(COUNT)..."; \
+			ARGS="--csv-only $(COUNT)"; \
 		else \
-			cd web/static && python generate_historical_data.py $(COUNT) 2>/dev/null; \
+			echo "Generating CSV-only for all records..."; \
+			ARGS="--csv-only"; \
 		fi; \
+	elif [ "$(COUNT)" ]; then \
+		echo "Generating dataset with count $(COUNT)..."; \
+		ARGS="$(COUNT)"; \
 	else \
-		echo "Processing all records from default dataset..."; \
-		if [ -f "venv/bin/activate" ]; then \
-			. venv/bin/activate && cd web/static && python generate_historical_data.py 2>/dev/null; \
-		else \
-			cd web/static && python generate_historical_data.py 2>/dev/null; \
-		fi; \
+		echo "Generating complete dataset..."; \
+		ARGS=""; \
+	fi; \
+	if [ -f "venv/bin/activate" ]; then \
+		. venv/bin/activate && cd web/static && python generate_historical_data.py $$ARGS; \
+	else \
+		cd web/static && python generate_historical_data.py $$ARGS; \
 	fi
 
-	@echo "Step 2/3: Updating viewer.html..."
-	@if [ -f "venv/bin/activate" ]; then \
-		. venv/bin/activate && cd web/static && python inject_data.py >/dev/null 2>&1; \
-	else \
-		cd web/static && python inject_data.py >/dev/null 2>&1; \
-	fi
-	@echo "Step 2/3: Viewer updated"
-	@if [ "$(COUNT)" ]; then \
-		echo "Dataset generation finished ($(COUNT) records)!"; \
-	else \
-		echo "Dataset generation finished!"; \
-	fi
-	@echo "Files created:"
-	@echo "  web/static/narratives.csv - Narrative dataset"
-	@echo "  web/static/viewer.html - Updated viewer"
-	@echo "  web/static/images/ - PNG images for each narrative"
+csv-only:
+	@# Dummy target for csv-only mode
 
 # Generate images separately (for performance)
 generate-images:

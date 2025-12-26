@@ -307,55 +307,99 @@ class NarrativeMeasurer:
 
     def measure_narrative_text(self, narrative):
         """
-        Measure narrative text and return comprehensive metrics
+        Measure narrative text using real text renderer logic for accuracy
 
         Returns dict with:
-        - text_width_px: maximum line width in pixels
-        - text_height_px: total height in pixels
-        - line_count: number of lines after wrapping
+        - line_count: actual number of lines after wrapping
         - fits_display: boolean if text fits within display bounds
-        - char_count: total character count
+        - char_count: total character count (plain text)
         - overflow_lines: number of lines that overflow
+        - narrative_text_plain_wrapped: plain text with real line breaks
         """
-        # Parse markup
-        segments = self.parse_markup(narrative)
-
-        # Hard wrap the text
-        wrapped_lines = self.hard_wrap_text(segments)
-
-        # Calculate metrics
-        max_width = 0
-        total_height = len(wrapped_lines) * self.line_height
-
-        # Calculate actual width of each line
-        for line_segments in wrapped_lines:
-            line_width = 0
-            for text_content, style, color in line_segments:
-                line_width += self.measure_text_width(text_content, style)
-            max_width = max(max_width, line_width)
-
-        # Check if text fits display
-        fits_width = max_width <= self.width
-        fits_height = total_height <= self.height
-        fits_display = fits_width and fits_height
-
-        # Calculate overflow
-        max_lines_that_fit = self.height // self.line_height
-        overflow_lines = max(0, len(wrapped_lines) - max_lines_that_fit)
-
-        # Character count (excluding markup)
+        # Remove markup tags for character counting
         plain_text = re.sub(r"<[^>]+>", "", narrative)
         char_count = len(plain_text)
 
+        try:
+            # Use actual text renderer logic for accurate measurement
+            wrapped_lines = self._get_actual_wrapped_lines(narrative)
+
+            # Calculate actual dimensions
+            actual_line_count = len(wrapped_lines)
+
+            # Build plain text with real line breaks
+            plain_text_with_breaks = ""
+            for line_segments in wrapped_lines:
+                line_text = ""
+                for text_content, style, color in line_segments:
+                    # Remove markup from each segment
+                    clean_segment = re.sub(r"<[^>]+>", "", text_content)
+                    line_text += clean_segment
+                plain_text_with_breaks += line_text.strip() + "\n"
+
+            # Remove final newline
+            plain_text_with_breaks = plain_text_with_breaks.rstrip("\n")
+
+            # Calculate overflow based on display height
+            max_lines_that_fit = 12  # Conservative estimate for 300px display
+            overflow_lines = max(0, actual_line_count - max_lines_that_fit)
+
+            # Realistic character-based estimation based on actual test data
+            # Your 357-char test only displayed ~150 chars = ~42% efficiency
+            # Using conservative 200-char limit for good accuracy
+            fits_display = char_count <= 200
+
+        except Exception as e:
+            print(f"Warning: Real measurement failed ({e}), using fallback")
+            # Fallback to simple estimation
+            actual_line_count = max(1, (char_count + 19) // 20)  # Round up division
+            overflow_lines = max(0, actual_line_count - 12)
+            fits_display = char_count <= 200
+            plain_text_with_breaks = plain_text  # Just use plain text as fallback
+
         return {
-            "text_width_px": max_width,
-            "text_height_px": total_height,
-            "line_count": len(wrapped_lines),
+            "line_count": actual_line_count,
             "fits_display": fits_display,
             "char_count": char_count,
             "overflow_lines": overflow_lines,
-            "max_lines_that_fit": max_lines_that_fit,
+            "narrative_text_plain_wrapped": plain_text_with_breaks,
         }
+
+    def _get_actual_wrapped_lines(self, narrative):
+        """
+        Use the actual text renderer parsing and wrapping logic
+        This imports and uses the real text_renderer without PIL rendering
+        """
+        try:
+            # Add path to import the actual text renderer
+            import os
+            import sys
+
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            circuitpy_path = os.path.join(
+                current_dir, "..", "..", "300x400", "CIRCUITPY"
+            )
+            if circuitpy_path not in sys.path:
+                sys.path.insert(0, circuitpy_path)
+
+            # Import the actual text renderer
+            from text_renderer import TextRenderer
+
+            # Create a renderer instance (this loads fonts but doesn't render)
+            renderer = TextRenderer(self.width, self.height)
+
+            # Use the real parsing logic
+            segments = renderer.parse_markup(narrative)
+
+            # Use the real wrapping logic
+            wrapped_lines = renderer.hard_wrap_text(segments)
+
+            return wrapped_lines
+
+        except Exception as e:
+            # Fallback to simplified parsing if real renderer fails
+            print(f"Real renderer failed: {e}, using fallback")
+            return self.hard_wrap_text(self.parse_markup(narrative))
 
 
 def fits_display(text_metrics, display_bounds=(400, 300)):
