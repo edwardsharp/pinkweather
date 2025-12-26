@@ -208,14 +208,18 @@ station = WeatherStation(
 need `make` installed, then:
 
 ```bash
-make help           # Show all available commands
-make install        # Install basic dependencies
-make install-dev    # Install development dependencies
-make server         # Start development server
-make preview        # Generate sample images
-make clean          # Clean temporary files
-make deploy-check   # Verify files for microcontroller
-make test          # Run tests (when available)
-make format        # Format code
-
+make install      # Install basic dependencies
+make install-dev  # Install development dependencies
+make clean        # Clean up temporary files
+make test         # Run tests
+make lint         # Run code linting
+make format       # Format code with black
+make server       # Start development web server
+make preview      # Generate weather display preview
+make deploy-check # Check files ready for microcontroller 
+make deployment
+make generate-dataset [csv-only] [COUNT] # Generate dataset make (csv-only for fast iteration)
+make generate-images [COUNT] # Generate images for existing make narratives.csv (backup option)
+make venv         # Create virtual environment
+make activate     # Show how to activate virtual environment
 ```
