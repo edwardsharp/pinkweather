@@ -111,6 +111,9 @@ try:
     i2c = busio.I2C(scl=board.GP27, sda=board.GP26)
     sensor = adafruit_hdc302x.HDC302x(i2c)
     log("Temperature sensor initialized successfully")
+    current_temp = int(round(sensor.temperature))
+    current_humidity = int(round(sensor.relative_humidity))
+    log(f"Sensor reading - temp: {current_temp}°C, humidity: {current_humidity}%")
 except Exception as e:
     log(f"Temperature sensor failed to initialize: {e}")
     log("Continuing without temperature sensor...")

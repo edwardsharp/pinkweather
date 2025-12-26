@@ -9,7 +9,7 @@ from adafruit_display_shapes.rect import Rect
 from adafruit_display_text import label
 from forecast_row import create_forecast_row, get_forecast_row_height
 from logger import log
-from text_renderer import BLACK, WHITE
+from text_renderer import BLACK, RED, WHITE
 from weather_description import create_weather_description
 
 # Load hyperl15reg.pcf font for header
@@ -92,9 +92,12 @@ def create_header(
     header_bg = Rect(0, 0, 370, 25, fill=BLACK)
     header_group.append(header_bg)
 
+    # manually set for test example in web preview:
+    # indoor_temp_humidity = indoor_temp_humidity or "19° 24%"
+
     # Date label (left aligned)
     date_label = label.Label(hyperl15_font, text=date_str, color=WHITE)
-    date_label.x = 5
+    date_label.x = 90 if indoor_temp_humidity else 5
     date_label.y = y_position - 4
     header_group.append(date_label)
 
@@ -103,10 +106,8 @@ def create_header(
         indoor_label = label.Label(
             hyperl15_font, text=indoor_temp_humidity, color=WHITE
         )
-        indoor_label.x = 120
+        indoor_label.x = 5
         indoor_label.y = y_position - 4
-        # indoor_label.anchor_point = (0.5, 0.0)  # Center anchor
-        # indoor_label.anchored_position = (200, y_position - 10)  # Center of 400px width
         header_group.append(indoor_label)
 
     # Air quality label (centered)
@@ -116,8 +117,6 @@ def create_header(
         )
         aq_label.x = 205
         aq_label.y = y_position - 4
-        # aq_label.anchor_point = (0.5, 0.0)  # Center anchor
-        # aq_label.anchored_position = (200, y_position - 10)  # Center of 400px width
         header_group.append(aq_label)
 
     # Zodiac sign label (right aligned, just before moon icon)
@@ -127,7 +126,7 @@ def create_header(
         zodiac_label.anchored_position = (
             370,
             y_position - 10,
-        )  # Just before moon icon at 375
+        )
         header_group.append(zodiac_label)
 
     # Moon phase icon positioned at far right
