@@ -11,7 +11,6 @@ import time
 import adafruit_hdc302x
 import adafruit_sdcard
 import adafruit_ssd1683
-import board
 import busio
 
 # Import configuration and shared modules
@@ -47,28 +46,22 @@ WEATHER_CONFIG = (
 )
 
 # Initialize onboard LED
-led = DigitalInOut(board.LED)
+led = DigitalInOut(config.LED_PIN)
 led.direction = digitalio.Direction.OUTPUT
 
 # Release any previously used displays
 displayio.release_displays()
 
-# Pin assignments for Pico 2W
-# SPI pins: SCK=GP18, MOSI=GP19, MISO=GP16
-# CS pin: GP17, DC pin: GP20
-spi = busio.SPI(clock=board.GP18, MOSI=board.GP19, MISO=board.GP16)
+spi = busio.SPI(
+    clock=config.SPI_SCK_PIN, MOSI=config.SPI_MOSI_PIN, MISO=config.SPI_MISO_PIN
+)
 
-# Pin assignments for FourWire (use Pin objects directly)
-cs_pin = board.GP17
-dc_pin = board.GP20  # You'll need to wire this DC pin!
-
-# Reset and Busy pins (optional but recommended)
-rst_pin = None  # board.GP21
-busy_pin = None  # digitalio.DigitalInOut(board.GP22) if you wire it
-
-# Create the display bus
 display_bus = fourwire.FourWire(
-    spi, command=dc_pin, chip_select=cs_pin, reset=rst_pin, baudrate=1000000
+    spi,
+    command=config.DISPLAY_DC_PIN,
+    chip_select=config.DISPLAY_CS_PIN,
+    reset=config.DISPLAY_RST_PIN,
+    baudrate=1000000,
 )
 
 # Wait a moment for the bus to initialize
@@ -76,22 +69,25 @@ time.sleep(1)
 
 # Create the display
 display = adafruit_ssd1683.SSD1683(
-    display_bus, width=400, height=300, highlight_color=0xFF0000, busy_pin=busy_pin
+    display_bus,
+    width=400,
+    height=300,
+    highlight_color=0xFF0000,
+    busy_pin=config.DISPLAY_BUSY_PIN,
 )
 
-# rotate the display 0 so the bottom is the side with the 20pin cable
-display.rotation = 0
+display.rotation = config.DISPLAY_ROTATION
 
 # Initialize SD card
 sd_available = False
 try:
     # Disable SRAM to avoid SPI conflicts (SRCS -> GP22)
-    srcs_pin = DigitalInOut(board.GP22)
+    srcs_pin = DigitalInOut(config.SD_SRCS_PIN)
     srcs_pin.direction = digitalio.Direction.OUTPUT
     srcs_pin.value = True  # High = SRAM disabled
 
     # Initialize SD card
-    cs_sd = DigitalInOut(board.GP21)
+    cs_sd = DigitalInOut(config.SD_CS_PIN)
     sdcard = adafruit_sdcard.SDCard(spi, cs_sd, baudrate=250000)
     vfs = storage.VfsFat(sdcard)
     storage.mount(vfs, "/sd")
@@ -106,9 +102,7 @@ except Exception as e:
 # Initialize temperature/humidity sensor
 sensor = None
 try:
-    # GP27 scl
-    # GP26 sda
-    i2c = busio.I2C(scl=board.GP27, sda=board.GP26)
+    i2c = busio.I2C(scl=config.I2C_SCL_PIN, sda=config.I2C_SDA_PIN)
     sensor = adafruit_hdc302x.HDC302x(i2c)
     log("Temperature sensor initialized successfully")
     current_temp = int(round(sensor.temperature))
@@ -118,6 +112,14 @@ except Exception as e:
     log(f"Temperature sensor failed to initialize: {e}")
     log("Continuing without temperature sensor...")
     sensor = None
+
+
+# Display dimensions and colors
+DISPLAY_WIDTH = 400
+DISPLAY_HEIGHT = 300
+BLACK = 0x000000
+WHITE = 0xFFFFFF
+RED = 0xFF0000
 
 
 def get_indoor_temp_humidity():
@@ -133,14 +135,6 @@ def get_indoor_temp_humidity():
     except Exception as e:
         log(f"Failed to read sensor: {e}")
         return None
-
-
-# Display dimensions and colors
-DISPLAY_WIDTH = 400
-DISPLAY_HEIGHT = 300
-BLACK = 0x000000
-WHITE = 0xFFFFFF
-RED = 0xFF0000
 
 
 def check_memory():
