@@ -119,16 +119,16 @@ install-package:
 # Data generation target
 generate-dataset:
 	@if [ "$(filter csv-only,$(MAKECMDGOALS))" ]; then \
-		if [ "$(COUNT)" ]; then \
-			echo "Generating CSV-only with count $(COUNT)..."; \
-			ARGS="--csv-only $(COUNT)"; \
+		if [ "$(word 2,$(MAKECMDGOALS))" ] && [ "$(word 2,$(MAKECMDGOALS))" != "generate-dataset" ]; then \
+			echo "Generating CSV-only with count $(word 2,$(MAKECMDGOALS))..."; \
+			ARGS="--csv-only $(word 2,$(MAKECMDGOALS))"; \
 		else \
 			echo "Generating CSV-only for all records..."; \
 			ARGS="--csv-only"; \
 		fi; \
-	elif [ "$(COUNT)" ]; then \
-		echo "Generating dataset with count $(COUNT)..."; \
-		ARGS="$(COUNT)"; \
+	elif [ "$(word 1,$(filter-out generate-dataset,$(MAKECMDGOALS)))" ]; then \
+		echo "Generating dataset with count $(word 1,$(filter-out generate-dataset,$(MAKECMDGOALS)))..."; \
+		ARGS="$(word 1,$(filter-out generate-dataset,$(MAKECMDGOALS)))"; \
 	else \
 		echo "Generating complete dataset..."; \
 		ARGS=""; \
@@ -141,6 +141,10 @@ generate-dataset:
 
 csv-only:
 	@# Dummy target for csv-only mode
+
+# Dummy targets to prevent make from complaining about unknown targets
+%:
+	@:
 
 # Generate images separately (for performance)
 generate-images:

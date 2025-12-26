@@ -80,7 +80,24 @@ def remove_markup_tags(text):
 
 
 def generate_historical_dataset(dataset_name=None, max_records=None, csv_only=False):
-    """Generate historical dataset with optional image generation"""
+    """Generate historical dataset using two-pass approach: CSV first, then images"""
+
+    if csv_only:
+        # Just do CSV generation
+        return _generate_csv_data(dataset_name, max_records)
+    else:
+        # Two-pass approach: CSV first, then images
+        print("Step 1/2: Generating CSV data...")
+        results, output_file = _generate_csv_data(dataset_name, max_records)
+
+        print("Step 2/2: Generating images...")
+        _generate_images_from_csv(output_file, max_records)
+
+        return results, output_file
+
+
+def _generate_csv_data(dataset_name=None, max_records=None):
+    """Generate CSV data quickly without images"""
 
     # Load CSV timestamps
     timestamps, csv_file_path = load_csv_timestamps(dataset_name)
@@ -91,103 +108,59 @@ def generate_historical_dataset(dataset_name=None, max_records=None, csv_only=Fa
     # Limit records if specified
     if max_records and max_records > 0:
         timestamps = timestamps[:max_records]
-        print(f"Processing first {len(timestamps)} records (limited by count)...")
+        print(f"Processing first {len(timestamps)} records...")
     else:
         print(f"Processing all {len(timestamps)} records...")
 
-    # Import shared engine
-    if csv_only:
-        from shared_weather_engine import generate_weather_display_for_timestamp
-    else:
-        from shared_weather_engine import generate_complete_weather_display
+    # Import shared engine for data generation only
+    from shared_weather_engine import generate_weather_display_for_timestamp
 
     # Initialize text measurement
     measurer = NarrativeMeasurer()
 
-    # Only create images directory if generating images
-    if not csv_only:
-        images_dir = os.path.join(current_dir, "images")
-        os.makedirs(images_dir, exist_ok=True)
-
     results = []
     start_time = time.time()
 
-    # Use simple sequential processing - no broken parallel stuff
+    # Generate CSV data only (fast)
     for i, timestamp in enumerate(timestamps):
         show_progress(i + 1, len(timestamps), start_time)
 
         try:
-            if csv_only:
-                # Generate weather data and narrative (no image)
-                weather_data, narrative, display_vars, current_weather = (
-                    generate_weather_display_for_timestamp(csv_file_path, timestamp)
-                )
+            # Generate weather data and narrative (no image)
+            weather_data, narrative, display_vars, current_weather = (
+                generate_weather_display_for_timestamp(csv_file_path, timestamp)
+            )
 
-                # Remove markup tags from narrative for plain text version
-                plain_narrative = remove_markup_tags(narrative)
+            # Remove markup tags from narrative for plain text version
+            plain_narrative = remove_markup_tags(narrative)
 
-                # Measure text dimensions using plain text (no markup)
-                text_metrics = measurer.measure_narrative_text(plain_narrative)
+            # Measure text dimensions
+            text_metrics = measurer.measure_narrative_text(narrative)
 
-                # Create CSV record (no image filename)
-                dt = datetime.fromtimestamp(timestamp)
-                result = {
-                    "timestamp": timestamp,
-                    "date": dt.strftime("%Y-%m-%d"),
-                    "hour": dt.strftime("%H:%M"),
-                    "narrative_text": narrative,
-                    "narrative_text_plain": text_metrics[
-                        "narrative_text_plain_wrapped"
-                    ],
-                    "line_count": text_metrics["line_count"],
-                    "fits_display": text_metrics["fits_display"],
-                    "char_count": len(
-                        plain_narrative
-                    ),  # Character count from plain text
-                    "overflow_lines": text_metrics["overflow_lines"],
-                    "temp": current_weather.get("current_temp"),
-                    "weather_desc": current_weather.get("weather_desc"),
-                }
-            else:
-                # Use shared engine - same as web server
-                image, narrative, metrics = generate_complete_weather_display(
-                    csv_file_path, timestamp
-                )
-
-                # Save image
-                dt = datetime.fromtimestamp(timestamp)
-                image_filename = f"{dt.strftime('%Y%m%d_%H%M%S')}.png"
-                image_path = os.path.join(images_dir, image_filename)
-                image.save(image_path)
-
-                # Measure text dimensions
-                text_metrics = measurer.measure_narrative_text(narrative)
-
-                # Combine data for CSV output
-                result = {
-                    **metrics,  # timestamp, date, hour, narrative_text, temp, weather_desc
-                    "text_length_px": text_metrics["text_width_px"],
-                    "text_height_px": text_metrics["text_height_px"],
-                    "line_count": text_metrics["line_count"],
-                    "fits_display": text_metrics["fits_display"],
-                    "char_count": text_metrics["char_count"],
-                    "overflow_lines": text_metrics["overflow_lines"],
-                    "image_filename": image_filename,
-                }
-
+            # Create CSV record
+            dt = datetime.fromtimestamp(timestamp)
+            result = {
+                "timestamp": timestamp,
+                "date": dt.strftime("%Y-%m-%d"),
+                "hour": dt.strftime("%H:%M"),
+                "narrative_text": narrative,
+                "narrative_text_plain": text_metrics["narrative_text_plain_wrapped"],
+                "line_count": text_metrics["line_count"],
+                "fits_display": text_metrics["fits_display"],
+                "char_count": len(plain_narrative),
+                "overflow_lines": text_metrics["overflow_lines"],
+                "temp": current_weather.get("current_temp"),
+                "weather_desc": current_weather.get("weather_desc"),
+            }
             results.append(result)
 
         except Exception as e:
             print(f"Error processing timestamp {timestamp}: {e}")
-            # Fail fast as requested
             raise
 
     # Save to CSV
     output_file = os.path.join(current_dir, "narratives.csv")
-    if csv_only:
-        save_csv_only_results(results, output_file)
-    else:
-        save_results_to_csv(results, output_file)
+    save_csv_only_results(results, output_file)
 
     # Generate HTML viewer
     generate_html_viewer(output_file)
@@ -195,7 +168,7 @@ def generate_historical_dataset(dataset_name=None, max_records=None, csv_only=Fa
     # Final progress line and completion message
     if sys.stdout.isatty():
         print()  # Add newline after progress line
-    print(f"Dataset Generation Complete!")
+    print(f"CSV Generation Complete!")
 
     total_records = len(results)
     overflow_count = sum(1 for r in results if not r["fits_display"])
@@ -212,10 +185,73 @@ def generate_historical_dataset(dataset_name=None, max_records=None, csv_only=Fa
     )
     print(f"Files created:")
     print(f"  {output_file}")
-    if not csv_only:
-        print(f"  {images_dir}/ ({total_records} images)")
 
     return results, output_file
+
+
+def _generate_images_from_csv(csv_file_path, max_records=None):
+    """Generate images from existing CSV file"""
+
+    import csv
+
+    from shared_weather_engine import (
+        generate_weather_display_for_timestamp,
+        render_weather_to_image,
+    )
+
+    # Create images directory
+    images_dir = os.path.join(current_dir, "images")
+    os.makedirs(images_dir, exist_ok=True)
+
+    # Load CSV data
+    records = []
+    with open(csv_file_path, "r") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            records.append(row)
+
+    # Limit if specified
+    if max_records and max_records > 0:
+        records = records[:max_records]
+
+    print(f"Generating {len(records)} images...")
+    start_time = time.time()
+
+    # Generate images
+    for i, record in enumerate(records):
+        show_progress(i + 1, len(records), start_time)
+
+        try:
+            timestamp = int(record["timestamp"])
+
+            # Load CSV timestamps to get csv_file_path
+            timestamps, csv_file_path = load_csv_timestamps()
+
+            # Generate weather data and narrative
+            weather_data, narrative, display_vars, current_weather = (
+                generate_weather_display_for_timestamp(csv_file_path, timestamp)
+            )
+
+            # Render image
+            image = render_weather_to_image(
+                weather_data, narrative, display_vars, current_weather
+            )
+
+            # Save image
+            dt = datetime.fromtimestamp(timestamp)
+            image_filename = f"{dt.strftime('%Y%m%d_%H%M%S')}.png"
+            image_path = os.path.join(images_dir, image_filename)
+            image.save(image_path)
+
+        except Exception as e:
+            print(f"Error generating image for timestamp {timestamp}: {e}")
+            raise
+
+    if sys.stdout.isatty():
+        print()  # Add newline after progress line
+    print(
+        f"Image generation complete! Generated {len(records)} images in {images_dir}/"
+    )
 
 
 def save_csv_only_results(results, output_file):
@@ -380,9 +416,9 @@ if __name__ == "__main__":
         print("  python generate_historical_data.py --csv-only ny_2024 50")
 
         try:
-            # Default: run CSV-only mode with small sample
-            print("Running default: CSV-only mode with 10 records")
-            results, output_path = generate_historical_dataset(None, 10, csv_only=True)
+            # Default: process all records
+            print("Running default: processing all records")
+            results, output_path = generate_historical_dataset(None, None)
         except Exception as e:
             print(f"Error: {e}")
             sys.exit(1)
