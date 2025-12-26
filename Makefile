@@ -123,14 +123,21 @@ install-package:
 # Data generation target with dataset support
 generate-dataset:
 	@# Parse arguments to extract dataset, csv-only, and count
-	@DATASET=""; CSV_ONLY=""; COUNT=""; \
+	@DATASET=""; CSV_ONLY=""; COUNT=""; UNKNOWN_ARG=""; \
 	for arg in $(filter-out generate-dataset,$(MAKECMDGOALS)); do \
 		case $$arg in \
 			ny_2024|toronto_2025) DATASET=$$arg ;; \
 			csv-only) CSV_ONLY="--csv-only" ;; \
 			[0-9]*) COUNT=$$arg ;; \
+			*) UNKNOWN_ARG=$$arg ;; \
 		esac; \
 	done; \
+	if [ "$$UNKNOWN_ARG" ]; then \
+		echo "Error: Unknown argument '$$UNKNOWN_ARG'"; \
+		echo "Available datasets: ny_2024, toronto_2025"; \
+		echo "Usage: make generate-dataset [DATASET] [csv-only] [COUNT]"; \
+		exit 1; \
+	fi; \
 	if [ "$$CSV_ONLY" ]; then \
 		if [ "$$COUNT" ]; then \
 			echo "Generating CSV-only for dataset $${DATASET:-ny_2024} with count $$COUNT..."; \

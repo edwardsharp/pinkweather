@@ -237,18 +237,26 @@ def _generate_images_from_csv(csv_file_path, max_records=None):
     print(f"Generating {len(records)} images...")
     start_time = time.time()
 
+    # Load CSV timestamps once for the source dataset
+    source_csv_filename = os.path.basename(csv_file_path)
+    if "nyc" in source_csv_filename:
+        source_dataset = "ny_2024"
+    elif "toronto" in source_csv_filename:
+        source_dataset = "toronto_2025"
+    else:
+        source_dataset = None
+
+    timestamps, source_csv_path = load_csv_timestamps(source_dataset)
+
     # Generate images
     for i, record in enumerate(records):
         show_progress(i + 1, len(records), start_time)
 
         timestamp = int(record["timestamp"])
         try:
-            # Load CSV timestamps to get csv_file_path
-            timestamps, csv_file_path = load_csv_timestamps()
-
-            # Generate weather data and narrative
+            # Generate weather data and narrative using pre-loaded CSV path
             weather_data, narrative, display_vars, current_weather = (
-                generate_weather_display_for_timestamp(csv_file_path, timestamp)
+                generate_weather_display_for_timestamp(source_csv_path, timestamp)
             )
 
             # Render image

@@ -359,35 +359,62 @@
                         return `${year}${month}${day}_${hours}${minutes}${seconds}.png`;
                     })();
 
-                // Use dataset-specific image directory
-                const imageDir = currentDataset
-                    ? `images/${currentDataset}`
-                    : "images";
-                const imagePath = `${imageDir}/${imageFilename}`;
-
                 // Update the date select to show current date
                 const dateSelect = document.getElementById("date-select");
                 dateSelect.value = record.date;
 
-                // Try to load the actual image
-                const img = new Image();
-                img.onload = function () {
-                    display.innerHTML = `<img src="${imagePath}" alt="Weather display for ${record.date} ${record.hour}">`;
-                };
-                img.onerror = function () {
-                    display.innerHTML = `
-                    <div class="no-image">
-                        <div>
-                            <strong>${record.date} ${record.hour}</strong><br>
-                            ${record.weather_desc}<br>
-                            ${record.temp}°C<br>
-                            <br>
-                            Image not found: ${imagePath}
+                // Try multiple image path formats for better compatibility
+                function tryImagePaths(paths, index = 0) {
+                    if (index >= paths.length) {
+                        // All paths failed, show error
+                        display.innerHTML = `
+                        <div class="no-image">
+                            <div>
+                                <strong>${record.date} ${record.hour}</strong><br>
+                                ${record.weather_desc}<br>
+                                ${record.temp}°C<br>
+                                <br>
+                                Image not found in any of these locations:<br>
+                                ${paths.join("<br>")}
+                            </div>
                         </div>
-                    </div>
-                `;
-                };
-                img.src = imagePath;
+                    `;
+                        return;
+                    }
+
+                    const img = new Image();
+                    img.onload = function () {
+                        display.innerHTML = `<img src="${paths[index]}" alt="Weather display for ${record.date} ${record.hour}">`;
+                    };
+                    img.onerror = function () {
+                        // Try next path
+                        tryImagePaths(paths, index + 1);
+                    };
+                    img.src = paths[index];
+                }
+
+                // Generate possible image paths
+                const possiblePaths = [];
+                if (currentDataset) {
+                    // Try dataset key format first (e.g., images/ny_2024/)
+                    possiblePaths.push(
+                        `images/${currentDataset}/${imageFilename}`,
+                    );
+
+                    // Try alternative formats based on dataset
+                    if (currentDataset === "ny_2024") {
+                        possiblePaths.push(`images/nyc_2024/${imageFilename}`);
+                    } else if (currentDataset === "toronto_2025") {
+                        possiblePaths.push(
+                            `images/toronto_2025/${imageFilename}`,
+                        );
+                    }
+                } else {
+                    possiblePaths.push(`images/${imageFilename}`);
+                }
+
+                // Try loading the image with fallback paths
+                tryImagePaths(possiblePaths);
 
                 updateMetadata(record);
             }
