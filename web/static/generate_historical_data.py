@@ -68,7 +68,7 @@ def load_csv_timestamps(dataset_name=None):
         if timestamp:
             timestamps.append(int(timestamp))
 
-    print(f"Loaded {len(timestamps)} timestamps from {dataset_name}")
+    # print(f"Loaded {len(timestamps)} timestamps from {dataset_name}")
     return timestamps, csv_file_path
 
 

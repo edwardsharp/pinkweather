@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Weather Narrative Viewer</title>
+        <title>pinkweather viewer</title>
         <style>
             * {
                 margin: 0;
@@ -37,7 +37,7 @@
             }
 
             .title {
-                color: #ff00ff;
+                color: white;
                 font-weight: bold;
                 font-size: 16px;
             }
@@ -88,7 +88,6 @@
                 flex: 1;
                 background-color: #111111;
                 margin: 20px;
-                border: 2px solid #ff00ff;
                 position: relative;
                 display: flex;
                 justify-content: center;
@@ -125,7 +124,6 @@
                 width: 350px;
                 background-color: #111111;
                 margin: 20px 0 20px 0;
-                border: 2px solid #ff00ff;
                 padding: 20px;
                 overflow-y: auto;
                 display: block;
@@ -221,7 +219,9 @@
     <body>
         <div class="container">
             <div class="header">
-                <div class="title">Weather Narrative Viewer</div>
+                <div class="title">
+                    <b style="color: magenta">pink</b>weather
+                </div>
                 <div class="controls">
                     <div class="control-group">
                         <label for="date-select">Jump to:</label>
@@ -262,9 +262,7 @@
                     <h3>Keyboard Controls</h3>
                     <ul>
                         <li><span class="key">←/→</span> Previous/Next hour</li>
-                        <li>
-                            <span class="key">Page Up/Down</span> Jump 24 hours
-                        </li>
+                        <li><span class="key">ꜛ/ꜜ</span> Jump 24 hours</li>
                         <li>
                             <span class="key">Home/End</span> First/Last record
                         </li>
@@ -508,11 +506,11 @@
                         navigate("prev");
                         e.preventDefault();
                         break;
-                    case "PageUp":
+                    case "ArrowUp":
                         navigate("pageup");
                         e.preventDefault();
                         break;
-                    case "PageDown":
+                    case "ArrowDown":
                         navigate("pagedown");
                         e.preventDefault();
                         break;
