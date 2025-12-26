@@ -158,8 +158,18 @@ def _generate_csv_data(dataset_name=None, max_records=None):
             print(f"Error processing timestamp {timestamp}: {e}")
             raise
 
-    # Save to CSV
-    output_file = os.path.join(current_dir, "narratives.csv")
+    # Save to CSV with dataset-specific filename
+    from csv_config import DEFAULT_DATASET
+
+    dataset_suffix = dataset_name or DEFAULT_DATASET
+    if dataset_suffix == "ny_2024":
+        csv_suffix = "nyc"
+    elif dataset_suffix == "toronto_2025":
+        csv_suffix = "toronto"
+    else:
+        csv_suffix = dataset_suffix
+
+    output_file = os.path.join(current_dir, f"narratives_{csv_suffix}.csv")
     save_csv_only_results(results, output_file)
 
     # Generate HTML viewer
@@ -185,6 +195,7 @@ def _generate_csv_data(dataset_name=None, max_records=None):
     )
     print(f"Files created:")
     print(f"  {output_file}")
+    print(f"Dataset: {dataset_name or DEFAULT_DATASET}")
 
     return results, output_file
 
@@ -199,8 +210,17 @@ def _generate_images_from_csv(csv_file_path, max_records=None):
         render_weather_to_image,
     )
 
-    # Create images directory
-    images_dir = os.path.join(current_dir, "images")
+    # Determine dataset from CSV filename for dataset-specific image directory
+    csv_filename = os.path.basename(csv_file_path)
+    if "nyc" in csv_filename:
+        dataset_suffix = "nyc_2024"
+    elif "toronto" in csv_filename:
+        dataset_suffix = "toronto_2025"
+    else:
+        dataset_suffix = "default"
+
+    # Create dataset-specific images directory
+    images_dir = os.path.join(current_dir, "images", dataset_suffix)
     os.makedirs(images_dir, exist_ok=True)
 
     # Load CSV data
@@ -221,9 +241,8 @@ def _generate_images_from_csv(csv_file_path, max_records=None):
     for i, record in enumerate(records):
         show_progress(i + 1, len(records), start_time)
 
+        timestamp = int(record["timestamp"])
         try:
-            timestamp = int(record["timestamp"])
-
             # Load CSV timestamps to get csv_file_path
             timestamps, csv_file_path = load_csv_timestamps()
 
@@ -250,8 +269,9 @@ def _generate_images_from_csv(csv_file_path, max_records=None):
     if sys.stdout.isatty():
         print()  # Add newline after progress line
     print(
-        f"Image generation complete! Generated {len(records)} images in {images_dir}/"
+        f"Image generation complete! Generated {len(records)} images in images/{dataset_suffix}/"
     )
+    print(f"Dataset: {dataset_suffix}")
 
 
 def save_csv_only_results(results, output_file):
@@ -413,7 +433,8 @@ if __name__ == "__main__":
         print("Examples:")
         print("  python generate_historical_data.py --csv-only 10")
         print("  python generate_historical_data.py ny_2024 100")
-        print("  python generate_historical_data.py --csv-only ny_2024 50")
+        print("  python generate_historical_data.py toronto_2025 50")
+        print("  python generate_historical_data.py --csv-only toronto_2025 20")
 
         try:
             # Default: process all records

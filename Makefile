@@ -15,8 +15,12 @@ help:
 	@echo "  server       - Start development web server"
 	@echo "  preview      - Generate weather display preview"
 	@echo "  deploy-check - Check files ready for microcontroller deployment"
-	@echo "  generate-dataset [csv-only] [COUNT] - Generate dataset (csv-only for fast iteration)"
-	@echo "  generate-images [COUNT] - Generate images for existing narratives.csv (backup option)"
+	@echo "  generate-dataset [DATASET] [csv-only] [COUNT] - Generate dataset (csv-only for fast iteration)"
+	@echo "    Available datasets: ny_2024 (default), toronto_2025"
+	@echo "    Examples: make generate-dataset toronto_2025 csv-only 50"
+	@echo "              make generate-dataset ny_2024 100"
+	@echo "  generate-images [COUNT] - Generate images for existing narratives_*.csv (backup option)"
+	@echo "    Images saved to images/DATASET/ directories (e.g. images/nyc_2024/)"
 	@echo "  venv         - Create virtual environment"
 	@echo "  activate     - Show how to activate virtual environment"
 
@@ -116,31 +120,39 @@ build:
 install-package:
 	pip install -e .
 
-# Data generation target
+# Data generation target with dataset support
 generate-dataset:
-	@if [ "$(filter csv-only,$(MAKECMDGOALS))" ]; then \
-		if [ "$(word 2,$(MAKECMDGOALS))" ] && [ "$(word 2,$(MAKECMDGOALS))" != "generate-dataset" ]; then \
-			echo "Generating CSV-only with count $(word 2,$(MAKECMDGOALS))..."; \
-			ARGS="--csv-only $(word 2,$(MAKECMDGOALS))"; \
+	@# Parse arguments to extract dataset, csv-only, and count
+	@DATASET=""; CSV_ONLY=""; COUNT=""; \
+	for arg in $(filter-out generate-dataset,$(MAKECMDGOALS)); do \
+		case $$arg in \
+			ny_2024|toronto_2025) DATASET=$$arg ;; \
+			csv-only) CSV_ONLY="--csv-only" ;; \
+			[0-9]*) COUNT=$$arg ;; \
+		esac; \
+	done; \
+	if [ "$$CSV_ONLY" ]; then \
+		if [ "$$COUNT" ]; then \
+			echo "Generating CSV-only for dataset $${DATASET:-ny_2024} with count $$COUNT..."; \
 		else \
-			echo "Generating CSV-only for all records..."; \
-			ARGS="--csv-only"; \
+			echo "Generating CSV-only for dataset $${DATASET:-ny_2024} (all records)..."; \
 		fi; \
-	elif [ "$(word 1,$(filter-out generate-dataset,$(MAKECMDGOALS)))" ]; then \
-		echo "Generating dataset with count $(word 1,$(filter-out generate-dataset,$(MAKECMDGOALS)))..."; \
-		ARGS="$(word 1,$(filter-out generate-dataset,$(MAKECMDGOALS)))"; \
+	elif [ "$$COUNT" ]; then \
+		echo "Generating complete dataset for $${DATASET:-ny_2024} with count $$COUNT..."; \
 	else \
-		echo "Generating complete dataset..."; \
-		ARGS=""; \
+		echo "Generating complete dataset for $${DATASET:-ny_2024} (all records)..."; \
 	fi; \
+	ARGS="$$CSV_ONLY"; \
+	[ "$$DATASET" ] && ARGS="$$ARGS $$DATASET"; \
+	[ "$$COUNT" ] && ARGS="$$ARGS $$COUNT"; \
 	if [ -f "venv/bin/activate" ]; then \
 		. venv/bin/activate && cd web/static && python generate_historical_data.py $$ARGS; \
 	else \
 		cd web/static && python generate_historical_data.py $$ARGS; \
 	fi
 
-csv-only:
-	@# Dummy target for csv-only mode
+csv-only ny_2024 toronto_2025:
+	@# Dummy targets for argument parsing
 
 # Dummy targets to prevent make from complaining about unknown targets
 %:

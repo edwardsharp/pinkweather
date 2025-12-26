@@ -224,6 +224,12 @@
                 </div>
                 <div class="controls">
                     <div class="control-group">
+                        <label for="dataset-select">Dataset:</label>
+                        <select id="dataset-select">
+                            <option value="">Loading...</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
                         <label for="date-select">Jump to:</label>
                         <select id="date-select">
                             <option value="">Select date...</option>
@@ -279,8 +285,8 @@
                             font-size: 12px;
                         "
                     >
-                        Use dropdown controls to jump to specific dates or
-                        filter by overflow status.
+                        Use dropdown controls to switch datasets, jump to
+                        specific dates, or filter by overflow status.
                     </p>
                 </div>
             </div>
@@ -289,8 +295,26 @@
         <script>
             // DATA_PLACEHOLDER - will be replaced with actual data
             const narrativeData = [];
+            const availableDatasets = {};
+            const allDatasetsData = {};
+            let currentDataset = "";
             let filteredData = [];
             let currentIndex = 0;
+
+            function populateDatasetSelect() {
+                const select = document.getElementById("dataset-select");
+                select.innerHTML = "";
+
+                Object.entries(availableDatasets).forEach(([key, dataset]) => {
+                    const option = document.createElement("option");
+                    option.value = key;
+                    option.textContent = dataset.name;
+                    option.selected = key === currentDataset;
+                    select.appendChild(option);
+                });
+
+                select.addEventListener("change", switchDataset);
+            }
 
             function populateDateSelect() {
                 const select = document.getElementById("date-select");
@@ -334,7 +358,12 @@
                         );
                         return `${year}${month}${day}_${hours}${minutes}${seconds}.png`;
                     })();
-                const imagePath = `images/${imageFilename}`;
+
+                // Use dataset-specific image directory
+                const imageDir = currentDataset
+                    ? `images/${currentDataset}`
+                    : "images";
+                const imagePath = `${imageDir}/${imageFilename}`;
 
                 // Update the date select to show current date
                 const dateSelect = document.getElementById("date-select");
@@ -495,6 +524,53 @@
                 help.style.display = isVisible ? "none" : "flex";
             }
 
+            function switchDataset() {
+                const select = document.getElementById("dataset-select");
+                const selectedDataset = select.value;
+
+                if (!selectedDataset || selectedDataset === currentDataset) {
+                    return;
+                }
+
+                try {
+                    // Show loading
+                    document.getElementById("weather-display").innerHTML =
+                        '<div class="no-image">Loading dataset...</div>';
+
+                    // Use embedded dataset data
+                    const newData = allDatasetsData[selectedDataset] || [];
+
+                    if (newData.length === 0) {
+                        throw new Error(
+                            `No data found for dataset: ${selectedDataset}`,
+                        );
+                    }
+
+                    // Update global data
+                    narrativeData.length = 0;
+                    narrativeData.push(...newData);
+                    currentDataset = selectedDataset;
+
+                    // Reinitialize
+                    currentIndex = 0;
+                    filteredData = narrativeData.slice();
+                    populateDateSelect();
+                    filterData(); // Reapply current filter
+                    updateDisplay();
+                    updateProgress();
+
+                    console.log(
+                        `Switched to ${availableDatasets[selectedDataset].name}: ${newData.length} records`,
+                    );
+                } catch (error) {
+                    console.error("Error loading dataset:", error);
+                    document.getElementById("weather-display").innerHTML =
+                        '<div class="no-image">Error loading dataset: ' +
+                        error.message +
+                        "</div>";
+                }
+            }
+
             // Event listeners
             document.addEventListener("keydown", (e) => {
                 switch (e.key) {
@@ -553,6 +629,11 @@
 
             // Initialize
             function init() {
+                // Initialize dataset selector if available
+                if (Object.keys(availableDatasets).length > 0) {
+                    populateDatasetSelect();
+                }
+
                 if (narrativeData.length === 0) {
                     document.getElementById("weather-display").innerHTML =
                         '<div class="no-image">No data loaded</div>';
