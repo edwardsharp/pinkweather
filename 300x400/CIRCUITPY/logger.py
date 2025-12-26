@@ -12,6 +12,7 @@ LOG_FILE_PATH = "/sd/log.txt"
 MAX_LOG_LINES = 100000
 TRUNCATE_TO_LINES = 80000  # When we hit max, truncate to this many lines
 _sd_available = None
+_silent_mode = False  # When True, suppress all print() output
 
 
 def _check_sd_availability():
@@ -67,8 +68,9 @@ def _write_to_sd(message):
             f.write(message + "\n")
         return True
     except Exception as e:
-        # Print to console if SD write fails, but don't recurse
-        print(f"SD log write failed: {e}")
+        # Print to console if SD write fails, but don't recurse (respect silent mode)
+        if not _silent_mode:
+            print(f"SD log write failed: {e}")
         return False
 
 
@@ -93,7 +95,8 @@ def _truncate_log_if_needed():
 
         # If we exceed max lines, truncate to keep last TRUNCATE_TO_LINES
         if line_count > MAX_LOG_LINES:
-            print(f"Truncating log file: {line_count} -> {TRUNCATE_TO_LINES} lines")
+            if not _silent_mode:
+                print(f"Truncating log file: {line_count} -> {TRUNCATE_TO_LINES} lines")
 
             # Read the last TRUNCATE_TO_LINES lines
             with open(LOG_FILE_PATH, "r") as f:
@@ -114,7 +117,8 @@ def _truncate_log_if_needed():
                 )
 
     except Exception as e:
-        print(f"Log truncation failed: {e}")
+        if not _silent_mode:
+            print(f"Log truncation failed: {e}")
 
 
 def log(message):
@@ -127,8 +131,9 @@ def log(message):
     timestamp = _get_timestamp()
     timestamped_message = f"{timestamp} {message}"
 
-    # Print to console with timestamp (same format as log file)
-    print(timestamped_message)
+    # Print to console with timestamp (same format as log file) unless silenced
+    if not _silent_mode:
+        print(timestamped_message)
 
     # Try to write to SD card with same timestamp
     if _check_sd_availability():
@@ -231,6 +236,25 @@ def test_logger():
         log("Could not retrieve log stats (SD card not available)")
 
     log("Logger test completed")
+
+
+def set_silent_mode(silent):
+    """Enable or disable silent mode for logger
+
+    Args:
+        silent (bool): If True, suppress all print() output from logger
+    """
+    global _silent_mode
+    _silent_mode = silent
+
+
+def is_silent_mode():
+    """Check if logger is in silent mode
+
+    Returns:
+        bool: True if silent mode is enabled
+    """
+    return _silent_mode
 
 
 if __name__ == "__main__":

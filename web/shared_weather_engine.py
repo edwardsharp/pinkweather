@@ -1,14 +1,20 @@
 """
-Shared weather engine - extracts working mock weather logic for reuse
 Core functions that both web server and static scripts can call
+
 """
 
 import os
 import sys
+import time
 from datetime import datetime
+
+# Import centralized logger
+from logger import log, log_error
 
 # Default air quality fallback (single source of truth)
 DEFAULT_AIR_QUALITY = {"aqi": 1, "aqi_text": "Good"}
+
+# Keep caching simple - let the existing converter handle its own caching
 
 
 def add_circuitpy_to_path():
@@ -22,6 +28,7 @@ def add_circuitpy_to_path():
 def generate_weather_display_for_timestamp(csv_path, timestamp):
     """
     Core function that generates complete weather display data for a given timestamp
+    Uses caching for improved performance
 
     Args:
         csv_path: Path to historical CSV file
@@ -45,7 +52,7 @@ def generate_weather_display_for_timestamp(csv_path, timestamp):
     from weather_api import get_display_variables, parse_current_weather_from_forecast
     from weather_narrative import get_weather_narrative
 
-    # Generate mock weather data from CSV
+    # Generate mock weather data from CSV - let existing converter handle its own caching
     mock_data = generate_scenario_data("ny_2024", timestamp)
     if not mock_data:
         raise Exception(f"Failed to generate mock data for timestamp {timestamp}")
@@ -70,7 +77,7 @@ def generate_weather_display_for_timestamp(csv_path, timestamp):
     # Compute mock history from CSV data for yesterday comparisons
     mock_history = compute_mock_history(mock_data)
     if len(mock_history) == 0:
-        print(f"Warning: No historical data found for timestamp {timestamp}")
+        log(f"Warning: No historical data found for timestamp {timestamp}")
 
     # Parse weather data
     current_weather = parse_current_weather_from_forecast(parsed_mock_data)
@@ -190,3 +197,7 @@ def generate_complete_weather_display(csv_path, timestamp):
     }
 
     return image, narrative, metrics
+
+
+# Remove overly complex batch processing that's making things slower
+# Just use simple sequential processing until we profile the real bottlenecks

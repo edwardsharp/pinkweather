@@ -7,6 +7,7 @@ import os
 import sys
 
 import displayio
+from logger import log
 from PIL import Image, ImageDraw, ImageFont
 
 # Add CIRCUITPY to path so we can use the shared display module
@@ -193,31 +194,31 @@ def render_400x300_weather_layout(
             vollkorn_font = bitmap_font.load_font("vollkorn20reg.pcf")
             hyperl_font = bitmap_font.load_font("hyperl20reg.pcf")
 
-            print("Font metrics comparison:")
+            log("Font metrics comparison:")
 
             # Test degree symbol specifically
             v_degree = label.Label(vollkorn_font, text="°", color=0x000000)
             h_degree = label.Label(hyperl_font, text="°", color=0x000000)
 
-            print(f"Vollkorn '°' bounding box: {v_degree.bounding_box}")
-            print(f"Hyperlegible '°' bounding box: {h_degree.bounding_box}")
+            log(f"Vollkorn '°' bounding box: {v_degree.bounding_box}")
+            log(f"Hyperlegible '°' bounding box: {h_degree.bounding_box}")
 
             # Test number with degree
             v_temp = label.Label(vollkorn_font, text="3°", color=0x000000)
             h_temp = label.Label(hyperl_font, text="3°", color=0x000000)
 
-            print(f"Vollkorn '3°' bounding box: {v_temp.bounding_box}")
-            print(f"Hyperlegible '3°' bounding box: {h_temp.bounding_box}")
+            log(f"Vollkorn '3°' bounding box: {v_temp.bounding_box}")
+            log(f"Hyperlegible '3°' bounding box: {h_temp.bounding_box}")
 
             # Test punctuation after degree
             v_punc = label.Label(vollkorn_font, text="3°.", color=0x000000)
             h_punc = label.Label(hyperl_font, text="3°.", color=0x000000)
 
-            print(f"Vollkorn '3°.' bounding box: {v_punc.bounding_box}")
-            print(f"Hyperlegible '3°.' bounding box: {h_punc.bounding_box}")
+            log(f"Vollkorn '3°.' bounding box: {v_punc.bounding_box}")
+            log(f"Hyperlegible '3°.' bounding box: {h_punc.bounding_box}")
 
         except Exception as e:
-            print(f"Font metrics debug failed: {e}")
+            log(f"Font metrics debug failed: {e}")
 
     finally:
         # Clean up: remove from path and restore directory
@@ -264,7 +265,7 @@ def load_web_bmp_icon(filename, x=0, y=0):
             tilegrid.y = y
             return tilegrid
     except Exception as e:
-        print(f"Failed to load web icon {filename}: {e}")
+        log(f"Failed to load web icon {filename}: {e}")
     return None
 
 

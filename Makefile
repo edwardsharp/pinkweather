@@ -15,7 +15,8 @@ help:
 	@echo "  server       - Start development web server"
 	@echo "  preview      - Generate weather display preview"
 	@echo "  deploy-check - Check files ready for microcontroller deployment"
-	@echo "  generate-dataset [COUNT] - Generate complete dataset (narratives + viewer + images)"
+	@echo "  generate-dataset [DATASET] [COUNT] - Generate complete dataset (narratives + viewer + images)"
+	@echo "  generate-images [COUNT] - Generate images for existing narratives.csv (backup option)"
 	@echo "  venv         - Create virtual environment"
 	@echo "  activate     - Show how to activate virtual environment"
 
@@ -118,61 +119,60 @@ install-package:
 # Data generation target
 generate-dataset:
 	@if [ "$(COUNT)" ]; then \
-		echo "Generating dataset from NYC weather data (limited to $(COUNT) records)..."; \
-	else \
-		echo "Generating complete dataset from NYC weather data..."; \
-	fi
-	@echo "Step 1/3: Generating narratives.csv..."
-	@if [ -f "venv/bin/activate" ]; then \
-		if [ "$(COUNT)" ]; then \
-			. venv/bin/activate && cd web/static && python generate_historical_data.py ../../misc/open-meteo-40.65N73.98W25m.csv $(COUNT); \
+		echo "Processing $(COUNT) records from default dataset..."; \
+		if [ -f "venv/bin/activate" ]; then \
+			. venv/bin/activate && cd web/static && python generate_historical_data.py $(COUNT) 2>/dev/null; \
 		else \
-			. venv/bin/activate && cd web/static && python generate_historical_data.py ../../misc/open-meteo-40.65N73.98W25m.csv > /dev/null 2>&1; \
-		fi \
+			cd web/static && python generate_historical_data.py $(COUNT) 2>/dev/null; \
+		fi; \
 	else \
-		if [ "$(COUNT)" ]; then \
-			cd web/static && python generate_historical_data.py ../../misc/open-meteo-40.65N73.98W25m.csv $(COUNT); \
+		echo "Processing all records from default dataset..."; \
+		if [ -f "venv/bin/activate" ]; then \
+			. venv/bin/activate && cd web/static && python generate_historical_data.py 2>/dev/null; \
 		else \
-			cd web/static && python generate_historical_data.py ../../misc/open-meteo-40.65N73.98W25m.csv > /dev/null 2>&1; \
-		fi \
+			cd web/static && python generate_historical_data.py 2>/dev/null; \
+		fi; \
 	fi
+
 	@echo "Step 2/3: Updating viewer.html..."
 	@if [ -f "venv/bin/activate" ]; then \
-		if [ "$(COUNT)" ]; then \
-			. venv/bin/activate && cd web/static && python inject_data.py; \
-		else \
-			. venv/bin/activate && cd web/static && python inject_data.py > /dev/null 2>&1; \
-		fi \
+		. venv/bin/activate && cd web/static && python inject_data.py >/dev/null 2>&1; \
 	else \
-		if [ "$(COUNT)" ]; then \
-			cd web/static && python inject_data.py; \
-		else \
-			cd web/static && python inject_data.py > /dev/null 2>&1; \
-		fi \
+		cd web/static && python inject_data.py >/dev/null 2>&1; \
 	fi
-	@echo "Step 3/3: Generating images..."
-	@if [ -f "venv/bin/activate" ]; then \
-		if [ "$(COUNT)" ]; then \
-			. venv/bin/activate && cd web/static && python batch_image_renderer.py $(COUNT); \
-		else \
-			. venv/bin/activate && cd web/static && python batch_image_renderer.py > /dev/null 2>&1; \
-		fi \
-	else \
-		if [ "$(COUNT)" ]; then \
-			cd web/static && python batch_image_renderer.py $(COUNT); \
-		else \
-			cd web/static && python batch_image_renderer.py > /dev/null 2>&1; \
-		fi \
-	fi
+	@echo "Step 2/3: Viewer updated"
 	@if [ "$(COUNT)" ]; then \
-		echo "Limited dataset generation finished ($(COUNT) records)!"; \
+		echo "Dataset generation finished ($(COUNT) records)!"; \
 	else \
-		echo "Complete dataset generation finished!"; \
+		echo "Dataset generation finished!"; \
 	fi
 	@echo "Files created:"
 	@echo "  web/static/narratives.csv - Narrative dataset"
 	@echo "  web/static/viewer.html - Updated viewer"
 	@echo "  web/static/images/ - PNG images for each narrative"
+
+# Generate images separately (for performance)
+generate-images:
+	@if [ "$(COUNT)" ]; then \
+		echo "Generating images for first $(COUNT) records..."; \
+	else \
+		echo "Generating images for all records in narratives.csv..."; \
+	fi
+	@echo "Reading from web/static/narratives.csv..."
+	@if [ -f "venv/bin/activate" ]; then \
+		if [ "$(COUNT)" ]; then \
+			. venv/bin/activate && cd web/static && python batch_image_renderer.py $(COUNT); \
+		else \
+			. venv/bin/activate && cd web/static && python batch_image_renderer.py; \
+		fi \
+	else \
+		if [ "$(COUNT)" ]; then \
+			cd web/static && python batch_image_renderer.py $(COUNT); \
+		else \
+			cd web/static && python batch_image_renderer.py; \
+		fi \
+	fi
+	@echo "Images generated in web/static/images/"
 
 # Show activation instructions
 activate:

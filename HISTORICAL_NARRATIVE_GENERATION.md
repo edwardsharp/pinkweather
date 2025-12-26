@@ -207,6 +207,102 @@ web/static/
 └── images/                     # generated output directory
 ```
 
+## performance analysis and optimization
+
+### current performance issues (after refactoring)
+
+the shared engine approach introduced significant performance problems:
+
+1. **csv reload on every call** - shared engine reloads 8784 CSV records for each timestamp
+2. **history recomputation** - recalculates 10 days of weather history for each image
+3. **daily extremes recalculation** - recomputes min/max temperatures from entire dataset
+4. **no caching** - no memory of previous calculations between calls
+5. **batch processing overhead** - 1000 images = 1000 full CSV reloads
+
+### optimization strategies
+
+#### phase 1: add caching to shared engine
+```python
+# web/shared_weather_engine.py - add module-level caching
+
+_csv_cache = {}
+_history_cache = {}
+_daily_extremes_cache = {}
+
+def load_csv_with_cache(csv_path):
+    if csv_path not in _csv_cache:
+        _csv_cache[csv_path] = load_and_parse_csv(csv_path)
+    return _csv_cache[csv_path]
+```
+
+#### phase 2: batch-aware shared engine
+```python
+# Add batch mode that pre-loads everything
+def prepare_batch_processing(csv_path, timestamps):
+    """Pre-load and cache all data needed for batch processing"""
+    # Load CSV once
+    # Calculate all daily extremes once  
+    # Pre-compute weather history for all dates
+    # Return batch context object
+
+def generate_weather_display_batch(batch_context, timestamp):
+    """Generate display using pre-loaded batch context"""
+    # No file I/O, just memory lookups
+```
+
+#### phase 3: optimize static generation workflow
+```python
+# Modify static scripts to use batch mode
+def generate_historical_dataset(csv_path, max_records=None):
+    timestamps = load_csv_timestamps(csv_path)
+    batch_context = prepare_batch_processing(csv_path, timestamps)
+    
+    for timestamp in timestamps:
+        # Fast generation using cached data
+        result = generate_weather_display_batch(batch_context, timestamp)
+```
+
+#### phase 4: parallel batch processing
+```python
+# After caching, each image generation is CPU-bound and independent
+import multiprocessing as mp
+from concurrent.futures import ProcessPoolExecutor
+
+def generate_images_parallel(batch_context, timestamps, max_workers=None):
+    """Generate images in parallel using multiple CPU cores"""
+    if max_workers is None:
+        max_workers = mp.cpu_count() - 1  # Leave one core free
+    
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+        for timestamp in timestamps:
+            future = executor.submit(generate_weather_display_batch, batch_context, timestamp)
+            futures.append((timestamp, future))
+        
+        # Collect results as they complete
+        for timestamp, future in futures:
+            try:
+                image, narrative, metrics = future.result()
+                yield timestamp, image, narrative, metrics
+            except Exception as e:
+                print(f"Failed to process {timestamp}: {e}")
+```
+
+### expected performance improvements
+
+- **csv loading**: 1000x improvement (load once vs 1000 times)
+- **history computation**: 100x improvement (pre-compute vs recalculate)
+- **parallel processing**: 4-8x improvement (multi-core CPU utilization)
+- **memory usage**: higher during batch, but predictable
+- **scalability**: linear with dataset size instead of quadratic
+- **total speedup**: potentially 4000-8000x faster than current implementation
+
+### implementation priority
+
+1. **immediate**: add csv caching to shared engine (low hanging fruit)
+2. **next**: add history caching (moderate effort, big impact)  
+3. **future**: full batch mode optimization (high effort, maximum performance)
+
 ## success criteria
 
 - web preview continues to work exactly as before
@@ -217,3 +313,4 @@ web/static/
 - sunrise/sunset times are realistic, not 6:00/18:00
 - codebase has 90% less duplication
 - adding new features requires changes in only one place
+- **performance**: generating 1000 images completes in reasonable time (< 5 minutes)

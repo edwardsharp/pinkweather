@@ -8,6 +8,9 @@ import json
 import os
 from datetime import datetime
 
+# Import centralized logger
+from logger import log, log_error
+
 
 class OpenMeteoConverter:
     """Convert Open-Meteo CSV data to OpenWeatherMap API format"""
@@ -490,33 +493,33 @@ class OpenMeteoConverter:
 _converters = {}
 
 
-def get_converter(dataset="ny_2024"):
+def get_converter(dataset=None):
     """Get or create converter instance for specified dataset"""
     global _converters
-    if dataset not in _converters:
-        if dataset == "ny_2024":
-            csv_path = os.path.join(
-                os.path.dirname(__file__), "../misc/open-meteo-40.65N73.98W25m.csv"
-            )
-            city_info = ("New York", 40.65, -73.98)
-        elif dataset == "toronto_2025":
-            csv_path = os.path.join(
-                os.path.dirname(__file__), "../misc/open-meteo-43.70N79.40W165m.csv"
-            )
-            city_info = ("Toronto", 43.70, -79.40)
-        else:
-            print(f"Unknown dataset: {dataset}")
-            return None
 
-        if os.path.exists(csv_path):
-            _converters[dataset] = OpenMeteoConverter(csv_path, *city_info)
-        else:
-            print(f"Warning: Open-Meteo CSV not found at {csv_path}")
+    # Import centralized config
+    from csv_config import DEFAULT_DATASET, get_dataset_info
+
+    if dataset is None:
+        dataset = DEFAULT_DATASET
+
+    if dataset not in _converters:
+        try:
+            dataset_info = get_dataset_info(dataset)
+            csv_path = dataset_info["csv_path"]
+            city_info = (dataset_info["city"], dataset_info["lat"], dataset_info["lon"])
+
+            converter = OpenMeteoConverter(csv_path, *city_info)
+            converter._parse_csv()  # Parse CSV data immediately
+            _converters[dataset] = converter
+        except (ValueError, FileNotFoundError) as e:
+            print(f"Warning: Could not load dataset '{dataset}': {e}")
             _converters[dataset] = None
+
     return _converters[dataset]
 
 
-def generate_historical_weather_data(base_timestamp, dataset="ny_2024"):
+def generate_historical_weather_data(base_timestamp, dataset=None):
     """Generate weather data from historical CSV for given timestamp
 
     This function integrates with the existing mock_weather_data.py system
@@ -582,12 +585,12 @@ def _store_yesterday_history(converter, current_timestamp):
         # Store yesterday's data as if it were "today" at that time
         store_today_temperatures(yesterday_timestamp, current_temp, high_temp, low_temp)
 
-        print(
+        log(
             f"DEBUG: Stored yesterday's history - temp: {current_temp}°, high: {high_temp}°, low: {low_temp}°"
         )
 
     except Exception as e:
-        print(f"Warning: Could not store yesterday's history: {e}")
+        log_error(f"Could not store yesterday's history: {e}")
 
 
 def get_historical_data_range(dataset="ny_2024"):

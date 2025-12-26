@@ -21,16 +21,16 @@ def load_narrative_timestamps(csv_path):
 
 
 def generate_filename_from_timestamp(timestamp):
-    """Generate PNG filename from timestamp"""
+    """Generate filename from Unix timestamp"""
     from datetime import datetime
 
     dt = datetime.fromtimestamp(timestamp)
-    # Format: 2024-01-01-00-00.png
-    return f"{dt.strftime('%Y-%m-%d-%H-%M')}.png"
+    # Format: 20240101_000000.png (compact, sortable)
+    return f"{dt.strftime('%Y%m%d_%H%M%S')}.png"
 
 
 def batch_render_images(max_images=None):
-    """Batch render images using shared weather engine"""
+    """Batch render images using simple sequential processing"""
 
     # Fixed paths
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -70,10 +70,16 @@ def batch_render_images(max_images=None):
     if web_dir not in sys.path:
         sys.path.insert(0, web_dir)
 
+    # Enable silent mode for centralized web logger to reduce verbose output during batch processing
+    import logger
+
+    logger.set_silent_mode(True)
+
     from shared_weather_engine import generate_complete_weather_display
 
     success_count = 0
 
+    # Use simple sequential processing
     for i, timestamp in enumerate(timestamps):
         if i % 10 == 0:
             print(f"Rendering image {i + 1}/{len(timestamps)}")
@@ -82,15 +88,11 @@ def batch_render_images(max_images=None):
         output_path = os.path.join(images_dir, filename)
 
         try:
-            # Use shared engine - same as web server and dataset generation
             image, narrative, metrics = generate_complete_weather_display(
                 weather_csv_path, timestamp
             )
-
-            # Save image
             image.save(output_path, "PNG")
             success_count += 1
-
         except Exception as e:
             print(f"Failed to render {filename}: {e}")
 
@@ -151,14 +153,13 @@ if __name__ == "__main__":
     else:
         # Check for optional count parameter
         max_count = None
+
         if len(sys.argv) > 1:
             try:
                 max_count = int(sys.argv[1])
                 print(f"Will render maximum {max_count} images")
             except ValueError:
-                print(
-                    f"Error: Invalid count '{sys.argv[1]}' - must be a number or 'test'"
-                )
+                print(f"Error: Invalid count '{sys.argv[1]}' - must be a number")
                 print("Usage:")
                 print("  python batch_image_renderer.py        # Render all images")
                 print(
