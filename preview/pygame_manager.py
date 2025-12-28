@@ -62,7 +62,8 @@ class PersistentPygameDisplay:
     def _setup_hardware_imports(self):
         """Setup path and import hardware modules"""
         # Add hardware path and change directory for font loading
-        sys.path.insert(0, str(self.hardware_path))
+        if str(self.hardware_path) not in sys.path:
+            sys.path.insert(0, str(self.hardware_path))
         os.chdir(self.hardware_path)
 
     def create_icon_loader(self, use_icons=True):
@@ -104,15 +105,9 @@ class PersistentPygameDisplay:
         if self.display is None:
             self.start()
 
-        self._setup_hardware_imports()
-
         try:
-            # Import hardware modules from correct directory
-            from display.forecast_row import set_icon_loader
+            # Import hardware modules from current directory
             from display.header import create_weather_layout
-
-            # Setup icon loader
-            set_icon_loader(True, self.create_icon_loader(use_icons=True))
 
             # Create layout with real hardware code
             layout = create_weather_layout(**weather_data)
@@ -130,23 +125,17 @@ class PersistentPygameDisplay:
             return output_file
 
         finally:
-            # Restore original working directory
-            os.chdir(self.original_cwd)
+            # Keep current directory for consistency
+            pass
 
     def measure_narrative_text(self, weather_data):
         """Measure narrative text fitting using real pygame rendering"""
         if self.display is None:
             self.start()
 
-        self._setup_hardware_imports()
-
         try:
-            # Import hardware modules from correct directory
-            from display.forecast_row import set_icon_loader
+            # Import hardware modules from current directory
             from display.header import create_weather_layout
-
-            # Setup icon loader
-            set_icon_loader(True, self.create_icon_loader(use_icons=True))
 
             # Create layout to measure actual text dimensions
             layout = create_weather_layout(**weather_data)
@@ -164,8 +153,8 @@ class PersistentPygameDisplay:
             return text_metrics
 
         finally:
-            # Restore original working directory
-            os.chdir(self.original_cwd)
+            # Keep current directory for consistency
+            pass
 
     def _extract_text_metrics(self, layout):
         """Extract real text measurements from rendered layout"""
