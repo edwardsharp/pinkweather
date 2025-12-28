@@ -66,7 +66,7 @@ def create_header(
         moon_icon_name = None
 
     # Prepare air quality and zodiac text separately for justified layout
-    log(f"DEBUG: air_quality data: {air_quality}")
+    # log(f"DEBUG: air_quality data: {air_quality}")
     air_quality_str = None
     air_quality_color = WHITE
     zodiac_str = None

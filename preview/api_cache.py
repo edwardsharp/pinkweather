@@ -11,7 +11,7 @@ from pathlib import Path
 class APICache:
     """Simple file-based cache for API responses"""
 
-    def __init__(self, cache_dir="cache"):
+    def __init__(self, cache_dir=".cache"):
         self.cache_dir = Path(__file__).parent / cache_dir
         self.cache_dir.mkdir(exist_ok=True)
         self.cache_duration = 3600  # 1 hour in seconds

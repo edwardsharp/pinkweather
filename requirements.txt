@@ -20,6 +20,9 @@ adafruit-circuitpython-requests>=1.14.0
 adafruit-circuitpython-connection-manager>=1.0.0
 requests>=2.28.0
 
+# Environment variables
+python-dotenv>=1.0.0
+
 # Utilities
 adafruit-circuitpython-datetime>=1.6.11
 
