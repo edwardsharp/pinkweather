@@ -26,11 +26,10 @@ from digitalio import DigitalInOut
 from display.forecast_row import set_icon_loader
 
 # shared display functions
-from display.header import create_weather_layout
 from display.text_renderer import get_text_capacity
+from display.weather_display import create_weather_display_layout
 from utils.logger import log
 from weather import weather_api
-from weather.weather_narrative import get_weather_narrative
 from weather.weather_persistence import save_weather_data
 
 # Create weather config from imported settings
@@ -175,22 +174,13 @@ def update_display_with_weather_layout(weather_data):
     # Set up icon loader for forecast rows
     set_icon_loader(sd_available, load_bmp_icon)
 
-    # Generate rich weather narrative
-    weather_narrative = generate_weather_narrative(weather_data)
-
     # Get fresh indoor temperature and humidity reading
     indoor_temp_humidity = get_indoor_temp_humidity()
 
-    main_group = create_weather_layout(
-        current_timestamp=weather_data.get("current_timestamp"),
-        forecast_data=weather_data["forecast_data"],
-        weather_desc=weather_narrative,
+    # Use shared display layout function
+    main_group = create_weather_display_layout(
+        weather_data,
         icon_loader=load_bmp_icon if sd_available else None,
-        day_name=weather_data.get("day_name"),
-        day_num=weather_data.get("day_num"),
-        month_name=weather_data.get("month_name"),
-        air_quality=weather_data.get("air_quality"),
-        zodiac_sign=weather_data.get("zodiac_sign"),
         indoor_temp_humidity=indoor_temp_humidity,
     )
 
@@ -206,38 +196,7 @@ def update_display_with_weather_layout(weather_data):
     log("Refresh complete")
 
 
-def generate_weather_narrative(weather_data):
-    """Generate rich weather narrative from weather data"""
-    try:
-        # Extract current weather info for narrative generation
-        current_weather = {
-            "current_temp": weather_data.get("current_temp", 0),
-            "feels_like": weather_data.get("feels_like", 0),
-            "high_temp": weather_data.get("high_temp", 0),
-            "low_temp": weather_data.get("low_temp", 0),
-            "weather_desc": weather_data.get("weather_desc", ""),
-            "sunrise_time": weather_data.get("sunrise_time", "7:00a"),
-            "sunset_time": weather_data.get("sunset_time", "5:00p"),
-            "humidity": weather_data.get("humidity", 0),
-            "wind_speed": weather_data.get("wind_speed", 0),
-            "wind_gust": weather_data.get("wind_gust", 0),
-        }
-
-        forecast_data = weather_data.get("forecast_data", [])
-        current_timestamp = weather_data.get("current_timestamp")
-
-        # Generate the rich narrative
-        narrative = get_weather_narrative(
-            current_weather, forecast_data, current_timestamp
-        )
-
-        log(f"Generated weather narrative: {narrative}")
-        return narrative
-
-    except Exception as e:
-        log(f"Error generating weather narrative: {e}")
-        # Use basic description instead
-        return weather_data.get("weather_desc", "Weather information unavailable")
+# Function moved to display.weather_display module
 
 
 # Get text capacity information
@@ -322,7 +281,7 @@ def deep_sleep(minutes):
 
 
 def get_weather_display_data():
-    """Get weather data for display - always fetch fresh data"""
+    """Hardware-specific weather data fetching with WiFi and SD persistence"""
 
     if WEATHER_CONFIG is None:
         log("Weather API not configured")
@@ -334,32 +293,32 @@ def get_weather_display_data():
             log("WiFi reconnection failed")
             return None
 
-    # Try weather fetch with DNS retry logic
+    # Fetch weather data directly like the shared module does
     for attempt in range(3):
         log(f"Fetching fresh weather data from API (attempt {attempt + 1}/3)")
         try:
             forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG)
             if forecast_data:
-                display_vars = weather_api.get_display_variables(forecast_data)
+                weather_data = weather_api.get_display_variables(forecast_data)
+                if weather_data:
+                    # Save to SD card for persistence across power cycles
+                    if sd_available:
+                        current_timestamp = weather_data.get("current_timestamp")
+                        save_weather_data(
+                            weather_data,
+                            weather_data.get("forecast_data", []),
+                            current_timestamp,
+                        )
+                    log("Weather data fetch successful")
+                    return weather_data
 
-                # Save to SD card for persistence across power cycles
-                if sd_available and display_vars:
-                    current_timestamp = display_vars.get("current_timestamp")
-                    save_weather_data(
-                        display_vars,
-                        display_vars.get("forecast_data", []),
-                        current_timestamp,
-                    )
+            log("Weather API returned no data")
+            if attempt < 2:
+                log("Retrying in 5 seconds...")
+                time.sleep(5)
+                continue
+            return None
 
-                log("Weather data fetch successful")
-                return display_vars
-            else:
-                log("Weather API returned no data")
-                if attempt < 2:
-                    log("Retrying in 5 seconds...")
-                    time.sleep(5)
-                    continue
-                return None
         except Exception as e:
             log(f"Weather fetch error (attempt {attempt + 1}): {e}")
             if attempt < 2 and "Name or service not known" in str(e):
