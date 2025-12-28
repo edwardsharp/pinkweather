@@ -12,6 +12,9 @@ from pathlib import Path
 os.environ["BLINKA_FORCEBOARD"] = "GENERIC_LINUX_PC"
 os.environ["BLINKA_FORCECHIP"] = "GENERIC_X86"
 
+# Try to disable DisplayIO background threads for cleaner shutdown
+os.environ["DISPLAYIO_NO_BACKGROUND"] = "1"
+
 import blinka_displayio_pygamedisplay
 import pygame
 
@@ -84,9 +87,16 @@ class PersistentPygameDisplay:
     def start(self):
         """Initialize pygame display"""
         if self.display is None:
+            # Initialize pygame first to ensure clean state
+            pygame.init()
             self.display = blinka_displayio_pygamedisplay.PyGameDisplay(
                 width=self.width, height=self.height
             )
+
+            # Try to disable background refresh if possible
+            if hasattr(self.display, "_auto_refresh"):
+                self.display._auto_refresh = False
+
         return self.display
 
     def render_weather_data(self, weather_data, output_file):
@@ -171,9 +181,52 @@ class PersistentPygameDisplay:
         }
 
     def shutdown(self):
-        """Clean shutdown"""
+        """Clean shutdown with proper DisplayIO thread handling"""
         if self.display:
-            pygame.quit()
+            # Clear any remaining groups
+            self.display.root_group = None
+
+            # Try to stop any background processes
+            try:
+                # Disable auto refresh to stop background updates
+                if hasattr(self.display, "_auto_refresh"):
+                    self.display._auto_refresh = False
+
+                # Stop any running threads
+                if hasattr(self.display, "stop"):
+                    self.display.stop()
+
+                # Clear any background tasks
+                if hasattr(self.display, "_background_task"):
+                    self.display._background_task = None
+
+                # Try to clean up any running event loops
+                import displayio
+
+                if hasattr(displayio, "_stop_background"):
+                    displayio._stop_background()
+
+            except Exception:
+                pass  # Ignore errors during cleanup
+
+            # Small delay to let threads finish
+            import time
+
+            time.sleep(0.05)
+
+            # Force garbage collection
+            import gc
+
+            gc.collect()
+
+            # Quit pygame with error handling
+            try:
+                if pygame.get_init():
+                    pygame.display.quit()
+                    pygame.quit()
+            except Exception:
+                pass
+
             self.display = None
 
         # Restore original working directory
