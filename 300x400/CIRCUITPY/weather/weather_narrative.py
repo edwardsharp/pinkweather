@@ -2,10 +2,11 @@
 weather narrative generator - creates contextual weather description text string
 """
 
-import moon_phase
-from date_utils import get_hour_from_timestamp
-from logger import log
-from weather_history import compare_with_yesterday
+from utils import moon_phase
+from utils.logger import log
+
+from weather.date_utils import _timestamp_to_components, get_hour_from_timestamp
+from weather.weather_history import compare_with_yesterday
 
 
 def format_temp(temp):
@@ -326,8 +327,6 @@ def _describe_tomorrow_outlook(
     """Generate tomorrow's outlook by analyzing actual forecast data"""
     if not forecast_data:
         return None
-
-    from date_utils import _timestamp_to_components
 
     # Use the current timestamp passed to the function (already in local time)
     if current_timestamp is None:

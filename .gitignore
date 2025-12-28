@@ -6,3 +6,7 @@ iconz/*.svg
 web/.env
 web/.cache/
 web/static/images/
+experiments/
+preview/.env
+preview/.cache/
+preview/static/images/

@@ -8,8 +8,9 @@ from adafruit_bitmap_font import bitmap_font
 from adafruit_display_shapes.line import Line
 from adafruit_display_shapes.rect import Rect
 from adafruit_display_text import label
-from date_utils import format_timestamp_to_hhmm
-from text_renderer import BLACK, RED, WHITE
+from weather.date_utils import format_timestamp_to_hhmm
+
+from display.text_renderer import BLACK, RED, WHITE
 
 
 def format_temp(temp):
@@ -37,7 +38,7 @@ def set_icon_loader(sd_available_flag, icon_loader_func):
 
 
 # Initialize fonts
-hyperl15_font = bitmap_font.load_font("hyperl15reg.pcf")
+hyperl15_font = bitmap_font.load_font("fonts/hyperl15reg.pcf")
 terminal_font = terminalio.FONT
 
 

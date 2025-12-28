@@ -21,16 +21,16 @@ import fourwire
 import microcontroller
 import socketpool
 import storage
-import weather_api
 import wifi
 from digitalio import DigitalInOut
 
 # shared display functions
-from display import create_weather_layout, get_text_capacity
-from forecast_row import set_icon_loader
-from logger import log
-from weather_narrative import get_weather_narrative
-from weather_persistence import save_weather_data
+from display.display import create_weather_layout, get_text_capacity
+from display.forecast_row import set_icon_loader
+from utils.logger import log
+from weather import weather_api
+from weather.weather_narrative import get_weather_narrative
+from weather.weather_persistence import save_weather_data
 
 # Create weather config from imported settings
 WEATHER_CONFIG = (

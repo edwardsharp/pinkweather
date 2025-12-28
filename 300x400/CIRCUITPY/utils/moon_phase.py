@@ -6,7 +6,7 @@ shared between hardware and web preview server
 uses november 20, 2025 new moon as reference point for better accuracy
 """
 
-from logger import log
+from utils.logger import log
 
 
 def is_leap_year(year):

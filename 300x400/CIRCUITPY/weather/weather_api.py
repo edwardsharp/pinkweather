@@ -3,9 +3,20 @@ weather api module for pinkweather - provider-agnostic interface
 works on both circuitpython hardware and standard python web server
 """
 
-import openweathermap
-from date_utils import format_timestamp_to_time
-from logger import log
+import config
+from utils import moon_phase
+from utils.astro_utils import get_zodiac_sign_from_timestamp
+from utils.logger import log
+
+from weather import open_meteo, openweathermap
+from weather.date_utils import format_timestamp_to_date, format_timestamp_to_time
+from weather.weather_models import WeatherData
+
+# Optional imports that may fail on different platforms
+try:
+    import wifi
+except ImportError:
+    wifi = None
 
 
 def parse_current_weather_from_forecast(weather_data):
@@ -103,6 +114,9 @@ def create_enhanced_forecast_data(weather_data):
     }
     enhanced_items.append(now_item)
 
+    # Store all special event times for filtering forecast items (all local)
+    special_event_times = []
+
     # Add sunrise/sunset events from city data
     if "city" in weather_data and weather_data["city"]:
         city_data = weather_data["city"]
@@ -117,9 +131,6 @@ def create_enhanced_forecast_data(weather_data):
 
             # Include sunrise/sunset if they're in the future (within next 24 hours)
             future_window = 24 * 3600  # 24 hours from now
-
-            # Store all special event times for filtering forecast items (all local)
-            special_event_times = []
 
             # Today's sunrise/sunset - compare local times
             if current_timestamp <= sunrise_ts <= current_timestamp + future_window:
@@ -218,11 +229,10 @@ def create_enhanced_forecast_data(weather_data):
 
             # Skip if too close to any special event (within 30 minutes) - all in local time
             too_close_to_special = False
-            if "special_event_times" in locals():
-                for special_time in special_event_times:
-                    if abs(item["dt"] - special_time) <= (30 * 60):
-                        too_close_to_special = True
-                        break
+            for special_time in special_event_times:
+                if abs(item["dt"] - special_time) <= (30 * 60):
+                    too_close_to_special = True
+                    break
 
             if not too_close_to_special:
                 # Mark regular forecast items but keep local timestamps
@@ -243,21 +253,78 @@ def create_enhanced_forecast_data(weather_data):
     return enhanced_items[:20]
 
 
-def fetch_weather_data(config=None):
-    """Fetch weather data using OpenWeatherMap - auto-detects platform"""
-    timezone_offset = config.get("timezone_offset_hours", -5)
+def fetch_weather_data(config_dict=None):
+    """Fetch weather data using configured provider - auto-detects platform"""
+    if config_dict is None:
+        log("No weather config provided")
+        return None
 
-    try:
-        # Try CircuitPython first
-        import wifi
+    # Get provider from config
+    provider = getattr(config, "WEATHER_PROVIDER", "openweathermap")
+    log(f"Using weather provider: {provider}")
 
-        if not wifi.radio.connected:
-            log("WiFi not connected")
+    if provider == "openweathermap":
+        timezone_offset = config_dict.get("timezone_offset_hours", -5)
+        try:
+            # Try CircuitPython first
+            if wifi and not wifi.radio.connected:
+                log("WiFi not connected")
+                return None
+            return openweathermap.fetch_weather_data_circuitpy(
+                config_dict, timezone_offset
+            )
+        except ImportError:
+            # Fall back to standard Python
+            return openweathermap.fetch_weather_data_python(
+                config_dict, timezone_offset
+            )
+
+    elif provider == "open_meteo":
+        try:
+            lat = config_dict.get("latitude")
+            lon = config_dict.get("longitude")
+            if lat is None or lon is None:
+                log("Open-Meteo requires latitude and longitude")
+                return None
+
+            weather_data = open_meteo.fetch_open_meteo_data(lat, lon)
+            return convert_weather_data_to_legacy_format(weather_data)
+        except Exception as e:
+            log(f"Open-Meteo fetch failed: {e}")
             return None
-        return openweathermap.fetch_weather_data_circuitpy(config, timezone_offset)
-    except ImportError:
-        # Fall back to standard Python
-        return openweathermap.fetch_weather_data_python(config, timezone_offset)
+
+    else:
+        log(f"Unknown weather provider: {provider}")
+        return None
+
+
+def convert_weather_data_to_legacy_format(weather_data):
+    """Convert new WeatherData model to legacy format for compatibility"""
+
+    if isinstance(weather_data, WeatherData):
+        # Convert WeatherData object to legacy format
+        return {
+            "current": {
+                "current_temp": weather_data.current_temp,
+                "feels_like": weather_data.current_temp,  # Open-Meteo doesn't have feels_like
+                "high_temp": weather_data.current_temp,  # Use current temp as placeholder
+                "low_temp": weather_data.current_temp,  # Use current temp as placeholder
+                "weather_desc": weather_data.current_description,
+                "weather_icon": weather_data.current_icon,
+                "humidity": weather_data.current_humidity,
+                "wind_speed": 0,  # Open-Meteo basic API doesn't include wind
+                "wind_gust": 0,  # Open-Meteo basic API doesn't include wind
+                "current_timestamp": weather_data.timestamp,
+            },
+            "forecast": [f.to_dict() for f in weather_data.forecast],
+            "city": {
+                "name": weather_data.location or "Unknown",
+                "country": "",
+            },
+        }
+
+    # If already in legacy format, return as-is
+    return weather_data
 
 
 def get_display_variables(weather_data):
@@ -291,8 +358,6 @@ def get_display_variables(weather_data):
     # Get current date info from weather API timestamp for accuracy
     api_timestamp = current_weather.get("current_timestamp")
     if api_timestamp:
-        from date_utils import format_timestamp_to_date
-
         date_info = format_timestamp_to_date(api_timestamp)
         day_name = date_info["day_name"]
         day_num = date_info["day_num"]
@@ -305,15 +370,11 @@ def get_display_variables(weather_data):
     # Add zodiac sign if we have a timestamp
     zodiac_sign = None
     if api_timestamp:
-        from astro_utils import get_zodiac_sign_from_timestamp
-
         zodiac_sign = get_zodiac_sign_from_timestamp(api_timestamp)
 
     # Calculate moon phase icon name
     moon_icon_name = None
     if api_timestamp:
-        import moon_phase
-
         moon_info = moon_phase.get_moon_info(api_timestamp)
         if moon_info:
             moon_icon_name = moon_phase.phase_to_icon_name(moon_info["phase"])

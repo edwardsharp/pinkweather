@@ -28,7 +28,7 @@
 
 import io
 
-import xmltok2
+from utils import xmltok2
 
 
 class ParseError(Exception):

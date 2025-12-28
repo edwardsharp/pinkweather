@@ -2,7 +2,7 @@
 weather description text rendering for long text content
 """
 
-from text_renderer import TextRenderer
+from display.text_renderer import TextRenderer
 
 
 def create_weather_description(weather_desc, y_position=100, available_height=200):

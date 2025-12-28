@@ -2,29 +2,44 @@
 Pillow>=9.0.0
 cairosvg>=2.7.0
 
-# Hardware-exact font rendering and displayio emulation
-adafruit-circuitpython-bitmap_font>=2.3.0
-adafruit-circuitpython-display_text>=3.3.0
-adafruit-circuitpython-display_shapes>=2.10.0
-adafruit-circuitpython-datetime>=1.0.0
+# CircuitPython compatibility layer for desktop development
+adafruit-blinka>=8.22.0
+adafruit-platformdetect>=3.70.1
 
-# Microcontroller dependencies (CircuitPython)
-# These are only needed when running on Pi Pico 2W
-# adafruit-circuitpython-epd>=2.0.0
-# adafruit-circuitpython-busio>=5.0.0
-# adafruit-circuitpython-digitalio>=3.0.0
+# Display and graphics libraries (CircuitPython compatible)
+adafruit-circuitpython-displayio>=4.0.0
+adafruit-circuitpython-display-text>=2.26.4
+adafruit-circuitpython-bitmap-font>=2.3.2
+adafruit-circuitpython-display-shapes>=2.7.0
 
-# Optional: HTTP requests for weather API integration
+# HTTP and networking
+adafruit-circuitpython-requests>=1.14.0
+adafruit-circuitpython-connection-manager>=1.0.0
 requests>=2.28.0
+
+# Utilities
+adafruit-circuitpython-datetime>=1.6.11
+
+# Hardware libraries (for desktop simulation/testing)
+adafruit-circuitpython-sdcard>=3.3.9
+adafruit-circuitpython-ssd1683>=1.2.0
+adafruit-circuitpython-hdc302x>=1.0.2
+
+# Image processing and bitmap utilities
+adafruit-circuitpython-bitmapsaver>=1.3.9
+adafruit-circuitpython-imageload>=1.24.5
 
 # Development dependencies (optional)
 # For enhanced font handling and image processing
-# Pillow-SIMD>=9.0.0  # Alternative to Pillow for better performance
+# fonttools>=4.42.0        # For font handling
+# pygame>=2.5.0            # For display simulation
+blinka-displayio-pygamedisplay @ git+https://github.com/FoamyGuy/Blinka_Displayio_PyGameDisplay.git  # For desktop DisplayIO preview
 
 # Note: CircuitPython libraries are automatically available on the microcontroller
-# and don't need to be installed via pip. The commented lines above are for reference.
+# and don't need to be installed via pip when deploying to hardware.
 #
-# For development server only, install with:
+# For development/preview on desktop:
 # pip install -r requirements.txt
 #
-# For microcontroller deployment, only copy the .py files and font file.
+# For microcontroller deployment:
+# Just copy the 300x400/CIRCUITPY/ directory to the device

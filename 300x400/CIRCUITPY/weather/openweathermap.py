@@ -3,8 +3,8 @@ OpenWeatherMap API module for PinkWeather
 Handles API calls and data parsing for OpenWeatherMap.org
 """
 
-from date_utils import utc_to_local
-from logger import log
+from utils.logger import log
+from weather.date_utils import utc_to_local
 
 
 def manual_capitalize(text):

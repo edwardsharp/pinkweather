@@ -2,6 +2,8 @@
 astronomical utilities for zodiac signs and celestial calculations
 """
 
+from weather.date_utils import _timestamp_to_components
+
 
 def get_zodiac_sign(month, day):
     """Get zodiac sign for given month and day
@@ -50,8 +52,6 @@ def get_zodiac_sign_from_timestamp(timestamp):
     Returns:
         str: Three-letter zodiac sign abbreviation
     """
-    from date_utils import _timestamp_to_components
-
     year, month, day, hour, minute, second, weekday = _timestamp_to_components(
         timestamp
     )

@@ -11,10 +11,10 @@ import terminalio
 try:
     import xml.etree.ElementTree as ET
 except ImportError:
-    import ElementTree as ET
+    from utils import ElementTree as ET
 from adafruit_bitmap_font import bitmap_font
 from adafruit_display_text import label
-from logger import log
+from utils.logger import log
 
 # Display constants
 DISPLAY_WIDTH = 400
@@ -32,14 +32,16 @@ class TextRenderer:
         # Load fonts with fallback
         try:
             # Vollkorn fonts for body text
-            self.font_regular = bitmap_font.load_font("vollkorn20reg.pcf")
-            self.font_bold = bitmap_font.load_font("vollkorn20black.pcf")
-            self.font_italic = bitmap_font.load_font("vollkorn20italic.pcf")
-            self.font_bold_italic = bitmap_font.load_font("vollkorn20blackitalic.pcf")
+            self.font_regular = bitmap_font.load_font("fonts/vollkorn20reg.pcf")
+            self.font_bold = bitmap_font.load_font("fonts/vollkorn20black.pcf")
+            self.font_italic = bitmap_font.load_font("fonts/vollkorn20italic.pcf")
+            self.font_bold_italic = bitmap_font.load_font(
+                "fonts/vollkorn20blackitalic.pcf"
+            )
 
             # Atkinson Hyperlegible fonts for headers
-            self.header_font_regular = bitmap_font.load_font("hyperl20reg.pcf")
-            self.header_font_bold = bitmap_font.load_font("hyperl20bold.pcf")
+            self.header_font_regular = bitmap_font.load_font("fonts/hyperl20reg.pcf")
+            self.header_font_bold = bitmap_font.load_font("fonts/hyperl20bold.pcf")
         except Exception as e:
             log(f"ERROR font loading failed: {e}")
             # Fallback to terminal font

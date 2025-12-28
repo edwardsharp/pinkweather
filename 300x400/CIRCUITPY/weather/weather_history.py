@@ -6,8 +6,8 @@ handles both sd card storage (hardware) and cache file storage (web preview)
 import json
 import os
 
-from date_utils import _timestamp_to_components
-from logger import log, log_error
+from utils.logger import log, log_error
+from weather.date_utils import _timestamp_to_components
 
 
 def get_date_string(timestamp):

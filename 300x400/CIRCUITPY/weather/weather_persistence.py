@@ -4,7 +4,7 @@ weather data persistence module for saving/loading api data to sd card
 
 import json
 
-from logger import log
+from utils.logger import log
 
 
 def get_weather_data_path():

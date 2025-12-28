@@ -3,17 +3,18 @@ single-line weather header with date and moon phase text
 """
 
 import displayio
-import moon_phase
 from adafruit_bitmap_font import bitmap_font
 from adafruit_display_shapes.rect import Rect
 from adafruit_display_text import label
-from forecast_row import create_forecast_row, get_forecast_row_height
-from logger import log
-from text_renderer import BLACK, RED, WHITE
-from weather_description import create_weather_description
+from utils import moon_phase
+from utils.logger import log
+
+from display.forecast_row import create_forecast_row, get_forecast_row_height
+from display.text_renderer import BLACK, RED, WHITE
+from display.weather_description import create_weather_description
 
 # Load hyperl15reg.pcf font for header
-hyperl15_font = bitmap_font.load_font("hyperl15reg.pcf")
+hyperl15_font = bitmap_font.load_font("fonts/hyperl15reg.pcf")
 
 
 def create_header(
