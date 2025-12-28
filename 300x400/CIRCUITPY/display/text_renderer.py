@@ -5,15 +5,9 @@ core text rendering functionality with markup support and hard word wrapping
 # import re
 import displayio
 import terminalio
-
-# Try to import standard library XML parser first (for web preview)
-# Fall back to local ElementTree for CircuitPython
-try:
-    import xml.etree.ElementTree as ET
-except ImportError:
-    from utils import ElementTree as ET
 from adafruit_bitmap_font import bitmap_font
 from adafruit_display_text import label
+from utils import ElementTree as ET
 from utils.logger import log
 
 # Display constants

@@ -237,14 +237,25 @@ def _parse_iso_timestamp(time_str):
         year, month, day = map(int, date_part.split("-"))
         hour, minute = map(int, time_part.split(":"))
 
-        # Simple Unix timestamp calculation (approximate)
-        # This is a basic implementation for CircuitPython compatibility
-        days_since_epoch = (year - 1970) * 365 + (year - 1970) // 4
-        days_since_epoch += sum(
-            [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][: month - 1]
-        )
-        if month > 2 and year % 4 == 0:
-            days_since_epoch += 1
+        # More accurate Unix timestamp calculation
+        # Account for leap years properly
+        days_since_epoch = 0
+
+        # Add days for complete years since 1970
+        for y in range(1970, year):
+            if y % 4 == 0 and (y % 100 != 0 or y % 400 == 0):
+                days_since_epoch += 366  # leap year
+            else:
+                days_since_epoch += 365
+
+        # Add days for complete months in the target year
+        days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+        if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0):
+            days_in_month[1] = 29  # February in leap year
+
+        days_since_epoch += sum(days_in_month[: month - 1])
+
+        # Add days for the current month (day - 1 because day 1 = 0 days elapsed)
         days_since_epoch += day - 1
 
         return int(days_since_epoch * 86400 + hour * 3600 + minute * 60)

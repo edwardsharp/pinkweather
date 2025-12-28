@@ -25,16 +25,7 @@ def format_temp(temp):
     return f"{rounded:.0f}"
 
 
-# Global configuration for icon loading
-sd_available = False
-load_bmp_icon_func = None
-
-
-def set_icon_loader(sd_available_flag, icon_loader_func):
-    """Configure icon loading functionality"""
-    global sd_available, load_bmp_icon_func
-    sd_available = sd_available_flag
-    load_bmp_icon_func = icon_loader_func
+# Removed global icon loading state - now passed as parameter
 
 
 # Initialize fonts
@@ -52,12 +43,13 @@ def get_cell_display_text(forecast_item):
     return format_timestamp_to_hhmm(local_timestamp)
 
 
-def create_forecast_row(forecast_data, y_position=50):
+def create_forecast_row(forecast_data, y_position=50, icon_loader=None):
     """Create hourly forecast row with stacked cells
 
     Args:
         forecast_data: List of forecast items with dt, temp, and icon fields
         y_position: Y position for the forecast row
+        icon_loader: Optional function to load icon bitmaps
     """
     forecast_group = displayio.Group()
 
@@ -99,7 +91,7 @@ def create_forecast_row(forecast_data, y_position=50):
         #     forecast_group.append(right_border)
 
         # Weather icon
-        if sd_available and load_bmp_icon_func:
+        if icon_loader:
             icon_x = cell_x + (cell_width - 32) // 2 - 9
             icon_y = y_position + 14
 
@@ -108,7 +100,7 @@ def create_forecast_row(forecast_data, y_position=50):
             else:
                 icon_code = f"{forecast_item['icon']}"
 
-            forecast_icon = load_bmp_icon_func(f"{icon_code}.bmp")
+            forecast_icon = icon_loader(f"{icon_code}.bmp")
             if forecast_icon:
                 forecast_icon.x = icon_x
                 forecast_icon.y = icon_y

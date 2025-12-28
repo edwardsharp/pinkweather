@@ -207,7 +207,9 @@ def create_weather_layout(
     if forecast_data and len(forecast_data) > 0:
         header_height = get_header_height()
         forecast_y = header_height
-        forecast_group, cell_count = create_forecast_row(forecast_data, forecast_y)
+        forecast_group, cell_count = create_forecast_row(
+            forecast_data, forecast_y, icon_loader
+        )
         main_group.append(forecast_group)
 
     return main_group

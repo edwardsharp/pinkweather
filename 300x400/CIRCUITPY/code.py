@@ -23,7 +23,6 @@ import socketpool
 import storage
 import wifi
 from digitalio import DigitalInOut
-from display.forecast_row import set_icon_loader
 
 # shared display functions
 from display.text_renderer import get_text_capacity
@@ -170,9 +169,6 @@ def update_display_with_weather_layout(weather_data):
         return
 
     log("Creating weather layout...")
-
-    # Set up icon loader for forecast rows
-    set_icon_loader(sd_available, load_bmp_icon)
 
     # Get fresh indoor temperature and humidity reading
     indoor_temp_humidity = get_indoor_temp_humidity()
