@@ -2,6 +2,9 @@
 Pillow>=9.0.0
 cairosvg>=2.7.0
 
+# Data processing for preview system
+pandas>=2.0.0
+
 # CircuitPython compatibility layer for desktop development
 adafruit-blinka>=8.22.0
 adafruit-platformdetect>=3.70.1
