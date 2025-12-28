@@ -27,9 +27,15 @@ from digitalio import DigitalInOut
 # shared display functions
 from display.text_renderer import get_text_capacity
 from display.weather_display import create_weather_display_layout
+from filesystem.filesystem import FileSystem
 from utils.logger import log
+from utils.logger import set_filesystem as set_logger_filesystem
 from weather import weather_api
+from weather.weather_history import set_filesystem as set_weather_history_filesystem
 from weather.weather_persistence import save_weather_data
+from weather.weather_persistence import (
+    set_filesystem as set_weather_persistence_filesystem,
+)
 
 # Create weather config from imported settings
 WEATHER_CONFIG = (
@@ -91,7 +97,14 @@ try:
     vfs = storage.VfsFat(sdcard)
     storage.mount(vfs, "/sd")
     sd_available = True
-    log("SD card ready")
+
+    # Create and inject filesystem dependencies
+    filesystem = FileSystem()
+    set_logger_filesystem(filesystem)
+    set_weather_persistence_filesystem(filesystem)
+    set_weather_history_filesystem(filesystem)
+
+    log("SD card ready and filesystem dependencies injected")
 
 except Exception as e:
     log(f"SD card failed: {e}")

@@ -1,13 +1,23 @@
 """
 weather history persistence module for storing yesterday's temperatures
-handles both sd card storage (hardware) and cache file storage (web preview)
+Accepts injected filesystem for dependency injection pattern
 """
 
 import json
-import os
 
 from utils.logger import log, log_error
+
 from weather.date_utils import _timestamp_to_components
+
+# Global filesystem reference
+_filesystem = None
+WEATHER_HISTORY_FILENAME = "weather_history.json"
+
+
+def set_filesystem(filesystem):
+    """Set the filesystem to use for weather history (dependency injection)"""
+    global _filesystem
+    _filesystem = filesystem
 
 
 def get_date_string(timestamp):
@@ -16,57 +26,42 @@ def get_date_string(timestamp):
     return f"{year:04d}-{month:02d}-{day:02d}"
 
 
-def get_history_file_path():
-    """Get the appropriate path for weather history file"""
-    try:
-        # Only use SD card path for hardware
-        os.stat("/sd")
-        return "/sd/weather_history.json"
-    except OSError:
-        # No SD card available - return None for no file storage
-        return None
+def _filesystem_available():
+    """Check if filesystem is available for weather history"""
+    return _filesystem is not None and _filesystem.is_available()
 
 
 def load_weather_history():
-    """Load weather history from file"""
-    history_path = get_history_file_path()
-
-    if not history_path:
-        # No storage available (e.g., web preview without SD card)
+    """Load weather history from filesystem"""
+    if not _filesystem_available():
+        # No storage available (e.g., preview without filesystem injection)
         return {}
 
-    try:
-        with open(history_path, "r") as f:
-            return json.load(f)
-    except OSError:
+    data = _filesystem.read_json(WEATHER_HISTORY_FILENAME)
+
+    if data is None:
         # File doesn't exist, create it
-        log(f"Weather history file not found, creating: {history_path}")
+        log(f"Weather history file not found, creating: {WEATHER_HISTORY_FILENAME}")
         empty_history = {}
         if save_weather_history(empty_history):
             log("Weather history file created successfully")
         else:
             log("Failed to create weather history file")
         return empty_history
-    except Exception as e:
-        log(f"Error loading weather history: {e}")
 
-    return {}
+    return data
 
 
 def save_weather_history(history_data):
-    """Save weather history to file"""
-    history_path = get_history_file_path()
-
-    if not history_path:
+    """Save weather history to filesystem"""
+    if not _filesystem_available():
         # No storage available
         return False
 
-    try:
-        with open(history_path, "w") as f:
-            json.dump(history_data, f, indent=2)
+    if _filesystem.write_json(WEATHER_HISTORY_FILENAME, history_data):
         return True
-    except Exception as e:
-        log_error(f"Error saving weather history: {e}")
+    else:
+        log_error("Error saving weather history")
         return False
 
 

@@ -1,21 +1,31 @@
 """
-weather data persistence module for saving/loading api data to sd card
+weather data persistence module for saving/loading api data
+Accepts injected filesystem for dependency injection pattern
 """
 
 import json
 
 from utils.logger import log
 
+# Global filesystem reference
+_filesystem = None
+WEATHER_DATA_FILENAME = "weather_data.json"
 
-def get_weather_data_path():
-    """Get the path for weather data file on SD card"""
-    return "/sd/weather_data.json"
+
+def set_filesystem(filesystem):
+    """Set the filesystem to use for weather persistence (dependency injection)"""
+    global _filesystem
+    _filesystem = filesystem
 
 
 def save_weather_data(weather_data, forecast_data, current_timestamp):
-    """Save weather data and forecast to SD card with timestamp"""
+    """Save weather data and forecast with timestamp"""
     if not current_timestamp:
         log("No timestamp provided, skipping weather data save")
+        return False
+
+    if not _filesystem or not _filesystem.is_available():
+        log("No filesystem available, skipping weather data save")
         return False
 
     data_to_save = {
@@ -24,37 +34,32 @@ def save_weather_data(weather_data, forecast_data, current_timestamp):
         "forecast_data": forecast_data,
     }
 
-    try:
-        with open(get_weather_data_path(), "w") as f:
-            json.dump(data_to_save, f)
-        log(f"Weather data saved to SD card at timestamp {current_timestamp}")
+    if _filesystem.write_json(WEATHER_DATA_FILENAME, data_to_save):
+        log(f"Weather data saved at timestamp {current_timestamp}")
         return True
-    except Exception as e:
-        log(f"Failed to save weather data: {e}")
+    else:
+        log("Failed to save weather data")
         return False
 
 
 def load_weather_data():
-    """Load weather data from SD card"""
-    weather_path = get_weather_data_path()
-
-    try:
-        with open(weather_path, "r") as f:
-            data = json.load(f)
-
-        # Validate data structure
-        if "timestamp" in data and "weather_data" in data and "forecast_data" in data:
-            log(f"Weather data loaded from SD card, timestamp: {data['timestamp']}")
-            return data
-        else:
-            log("Invalid weather data structure in saved file")
-            return None
-
-    except OSError:
-        log("No saved weather data found on SD card")
+    """Load weather data from filesystem"""
+    if not _filesystem or not _filesystem.is_available():
+        log("No filesystem available for loading weather data")
         return None
-    except Exception as e:
-        log(f"Error loading weather data: {e}")
+
+    data = _filesystem.read_json(WEATHER_DATA_FILENAME)
+
+    if not data:
+        log("No saved weather data found")
+        return None
+
+    # Validate data structure
+    if "timestamp" in data and "weather_data" in data and "forecast_data" in data:
+        log(f"Weather data loaded, timestamp: {data['timestamp']}")
+        return data
+    else:
+        log("Invalid weather data structure in saved file")
         return None
 
 

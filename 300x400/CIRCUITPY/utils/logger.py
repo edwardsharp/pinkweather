@@ -1,36 +1,27 @@
 """
-Logging module for pinkweather hardware
-Logs to SD card when available, always prints to console
-Automatically truncates log file to maintain reasonable size
+Logging module for pinkweather
+Accepts injected filesystem for dependency injection pattern
+Logs to filesystem when available, always prints to console
 """
 
-import os
 import time
 
 # Global logging configuration
-LOG_FILE_PATH = "/sd/log.txt"
-MAX_LOG_LINES = 100000
-TRUNCATE_TO_LINES = 80000  # When we hit max, truncate to this many lines
-_sd_available = None
+_filesystem = None
 _silent_mode = False  # When True, suppress all print() output
+LOG_FILENAME = "log.txt"
+MAX_LOG_LINES = 100000
 
 
-def _check_sd_availability():
-    """Check if SD card is available and writable"""
-    global _sd_available
-    if _sd_available is None:
-        try:
-            # Try to stat the SD card directory
-            os.stat("/sd")
-            # Try a quick write test
-            test_file = "/sd/.log_test"
-            with open(test_file, "w") as f:
-                f.write("test")
-            os.remove(test_file)
-            _sd_available = True
-        except (OSError, Exception):
-            _sd_available = False
-    return _sd_available
+def set_filesystem(filesystem):
+    """Set the filesystem to use for logging (dependency injection)"""
+    global _filesystem
+    _filesystem = filesystem
+
+
+def _filesystem_available():
+    """Check if filesystem is available"""
+    return _filesystem is not None and _filesystem.is_available()
 
 
 def _get_timestamp():
@@ -57,64 +48,46 @@ def _get_timestamp():
         return "[--:--s]"
 
 
-def _write_to_sd(message):
-    """Write message to SD card log file"""
-    if not _check_sd_availability():
+def _write_to_filesystem(message):
+    """Write message to filesystem log file"""
+    if not _filesystem_available():
         return False
 
     try:
-        # Append message to log file
-        with open(LOG_FILE_PATH, "a") as f:
-            f.write(message + "\n")
-        return True
+        return _filesystem.append_text(LOG_FILENAME, message)
     except Exception as e:
-        # Print to console if SD write fails, but don't recurse (respect silent mode)
+        # Print to console if filesystem write fails, but don't recurse (respect silent mode)
         if not _silent_mode:
-            print(f"SD log write failed: {e}")
+            print(f"Filesystem log write failed: {e}")
         return False
 
 
 def _truncate_log_if_needed():
     """Truncate log file if it exceeds maximum lines"""
-    if not _check_sd_availability():
+    if not _filesystem_available():
         return
 
     try:
-        # Check if log file exists
-        try:
-            os.stat(LOG_FILE_PATH)
-        except OSError:
-            # File doesn't exist, nothing to truncate
-            return
-
         # Count lines in log file
-        line_count = 0
-        with open(LOG_FILE_PATH, "r") as f:
-            for _ in f:
-                line_count += 1
+        line_count = _filesystem.count_lines(LOG_FILENAME)
 
-        # If we exceed max lines, truncate to keep last TRUNCATE_TO_LINES
+        # If we exceed max lines, truncate to keep last 80% of max
         if line_count > MAX_LOG_LINES:
+            keep_lines = int(MAX_LOG_LINES * 0.8)
             if not _silent_mode:
-                print(f"Truncating log file: {line_count} -> {TRUNCATE_TO_LINES} lines")
+                print(f"Truncating log file: {line_count} -> {keep_lines} lines")
 
-            # Read the last TRUNCATE_TO_LINES lines
-            with open(LOG_FILE_PATH, "r") as f:
-                lines = f.readlines()
-
-            # Keep only the last TRUNCATE_TO_LINES
-            lines_to_keep = lines[-TRUNCATE_TO_LINES:]
-
-            # Write back to file
-            with open(LOG_FILE_PATH, "w") as f:
-                f.writelines(lines_to_keep)
-
-            # Add truncation marker
-            with open(LOG_FILE_PATH, "a") as f:
+            # Truncate the file
+            if _filesystem.truncate_file(LOG_FILENAME, keep_lines):
+                # Add truncation marker
                 timestamp = _get_timestamp()
-                f.write(
-                    f"{timestamp} LOG: Truncated from {line_count} to {len(lines_to_keep)} lines\n"
+                _filesystem.append_text(
+                    LOG_FILENAME,
+                    f"{timestamp} LOG: Truncated from {line_count} to {keep_lines} lines",
                 )
+            else:
+                if not _silent_mode:
+                    print("Log truncation failed")
 
     except Exception as e:
         if not _silent_mode:
@@ -135,10 +108,9 @@ def log(message):
     if not _silent_mode:
         print(timestamped_message)
 
-    # Try to write to SD card with same timestamp
-    if _check_sd_availability():
-        # Write to SD card
-        if _write_to_sd(timestamped_message):
+    # Try to write to filesystem with same timestamp
+    if _filesystem_available():
+        if _write_to_filesystem(timestamped_message):
             # Occasionally check if we need to truncate (every ~100 calls)
             # Use a simple modulo check based on time to avoid counting calls
             if int(time.monotonic()) % 100 == 0:
@@ -190,37 +162,24 @@ def get_log_stats():
     """Get statistics about the current log file
 
     Returns:
-        dict: Statistics including line count, file size, etc.
-        None: If SD card not available or error
+        dict: Statistics about log file or None if filesystem unavailable
     """
-    if not _check_sd_availability():
+    if not _filesystem_available():
         return None
 
     try:
-        # Get file stats
-        stat_result = os.stat(LOG_FILE_PATH)
-        file_size = stat_result[6]  # Size in bytes
-
-        # Count lines
-        line_count = 0
-        with open(LOG_FILE_PATH, "r") as f:
-            for _ in f:
-                line_count += 1
-
+        line_count = _filesystem.count_lines(LOG_FILENAME)
         return {
             "line_count": line_count,
-            "file_size_bytes": file_size,
-            "file_size_kb": file_size / 1024,
             "max_lines": MAX_LOG_LINES,
-            "truncate_threshold": TRUNCATE_TO_LINES,
-            "sd_available": True,
+            "filesystem_available": True,
+            "log_filename": LOG_FILENAME,
         }
     except Exception as e:
         log_error(f"Failed to get log stats: {e}")
         return None
 
 
-# Test function
 def test_logger():
     """Test the logger functionality"""
     log("Logger test started")
@@ -231,9 +190,9 @@ def test_logger():
 
     stats = get_log_stats()
     if stats:
-        log(f"Log stats: {stats['line_count']} lines, {stats['file_size_kb']:.1f} KB")
+        log(f"Log stats: {stats['line_count']} lines (max: {stats['max_lines']})")
     else:
-        log("Could not retrieve log stats (SD card not available)")
+        log("Could not retrieve log stats (filesystem not available)")
 
     log("Logger test completed")
 
