@@ -253,11 +253,17 @@ def create_enhanced_forecast_data(weather_data):
     return enhanced_items[:20]
 
 
-def fetch_weather_data(config_dict=None):
-    """Fetch weather data using configured provider - auto-detects platform"""
+def fetch_weather_data(config_dict=None, http_client=None):
+    """Fetch weather data using configured provider with injected HTTP client"""
     if config_dict is None:
         log("No weather config provided")
         return None
+
+    # Use default HTTP client if none provided (for hardware)
+    if http_client is None:
+        from weather.http_client import HTTPClient
+
+        http_client = HTTPClient()
 
     # Get provider from config
     provider = getattr(config, "WEATHER_PROVIDER", "openweathermap")
@@ -265,33 +271,23 @@ def fetch_weather_data(config_dict=None):
 
     if provider == "openweathermap":
         timezone_offset = config_dict.get("timezone_offset_hours", -5)
-        try:
-            # Try CircuitPython first
-            if wifi and not wifi.radio.connected:
-                log("WiFi not connected")
-                return None
-            return openweathermap.fetch_weather_data_circuitpy(
-                config_dict, timezone_offset
-            )
-        except ImportError:
-            # Fall back to standard Python
-            return openweathermap.fetch_weather_data_python(
-                config_dict, timezone_offset
-            )
+        return openweathermap.fetch_openweathermap_data(
+            http_client, config_dict, timezone_offset
+        )
 
     elif provider == "open_meteo":
-        try:
-            lat = config_dict.get("latitude")
-            lon = config_dict.get("longitude")
-            if lat is None or lon is None:
-                log("Open-Meteo requires latitude and longitude")
-                return None
-
-            weather_data = open_meteo.fetch_open_meteo_data(lat, lon)
-            return convert_weather_data_to_legacy_format(weather_data)
-        except Exception as e:
-            log(f"Open-Meteo fetch failed: {e}")
+        lat = config_dict.get("latitude")
+        lon = config_dict.get("longitude")
+        if lat is None or lon is None:
+            log("Open-Meteo requires latitude and longitude")
             return None
+
+        weather_data = open_meteo.fetch_open_meteo_data(http_client, lat, lon)
+        if not weather_data:
+            log("Open-Meteo fetch failed")
+            return None
+
+        return convert_weather_data_to_legacy_format(weather_data)
 
     else:
         log(f"Unknown weather provider: {provider}")

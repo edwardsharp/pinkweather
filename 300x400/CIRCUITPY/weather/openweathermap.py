@@ -4,6 +4,7 @@ Handles API calls and data parsing for OpenWeatherMap.org
 """
 
 from utils.logger import log
+
 from weather.date_utils import utc_to_local
 
 
@@ -202,66 +203,9 @@ def parse_full_response(forecast_response, air_quality_response, timezone_offset
     }
 
 
-def fetch_weather_data_circuitpy(config, timezone_offset_hours):
-    """Fetch OpenWeatherMap data using CircuitPython requests"""
+def fetch_openweathermap_data(http_client, config, timezone_offset_hours):
+    """Fetch OpenWeatherMap data using injected HTTP client"""
     try:
-        import ssl
-
-        import adafruit_requests
-        import socketpool
-        import wifi
-
-        urls = get_api_urls(
-            config["latitude"],
-            config["longitude"],
-            config["api_key"],
-            config.get("units", "metric"),
-        )
-
-        if not urls:
-            log("Error: Missing required config for OpenWeatherMap API")
-            return None
-
-        # Create requests session for CircuitPython
-        pool = socketpool.SocketPool(wifi.radio)
-        context = ssl.create_default_context()
-        requests = adafruit_requests.Session(pool, context)
-
-        log("Fetching forecast data from OpenWeatherMap...")
-        forecast_response = requests.get(urls["forecast"])
-
-        if forecast_response.status_code != 200:
-            log(f"Forecast API error: {forecast_response.status_code}")
-            return None
-
-        forecast_data = forecast_response.json()
-
-        # Fetch air quality data
-        air_quality_data = None
-        try:
-            log("Fetching air quality data from OpenWeatherMap...")
-            aqi_response = requests.get(urls["air_quality"])
-            if aqi_response.status_code == 200:
-                air_quality_data = aqi_response.json()
-            else:
-                log(f"Air quality API error: {aqi_response.status_code}")
-        except Exception as e:
-            log(f"Air quality fetch failed: {e}")
-
-        return parse_full_response(
-            forecast_data, air_quality_data, timezone_offset_hours
-        )
-
-    except Exception as e:
-        log(f"Error fetching OpenWeatherMap data: {e}")
-        return None
-
-
-def fetch_weather_data_python(config, timezone_offset_hours):
-    """Fetch OpenWeatherMap data using standard Python requests"""
-    try:
-        import requests
-
         urls = get_api_urls(
             config["latitude"],
             config["longitude"],
@@ -274,17 +218,13 @@ def fetch_weather_data_python(config, timezone_offset_hours):
             return None
 
         log("Fetching forecast data from OpenWeatherMap...")
-        forecast_response = requests.get(urls["forecast"], timeout=10)
-        forecast_response.raise_for_status()
-        forecast_data = forecast_response.json()
+        forecast_data = http_client.get(urls["forecast"])
 
         # Fetch air quality data
         air_quality_data = None
         try:
             log("Fetching air quality data from OpenWeatherMap...")
-            aqi_response = requests.get(urls["air_quality"], timeout=10)
-            aqi_response.raise_for_status()
-            air_quality_data = aqi_response.json()
+            air_quality_data = http_client.get(urls["air_quality"])
         except Exception as e:
             log(f"Air quality fetch failed: {e}")
 

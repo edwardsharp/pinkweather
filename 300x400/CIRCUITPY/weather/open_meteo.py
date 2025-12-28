@@ -10,20 +10,12 @@ from utils.logger import log
 from weather.weather_models import APIValidator, ForecastData, WeatherData
 
 
-def fetch_open_meteo_data(lat, lon):
-    """Fetch data from Open-Meteo API"""
-    try:
-        import ssl
-
-        import adafruit_requests as requests
-        import socketpool
-        import wifi
-    except ImportError:
-        # For desktop testing
-        import requests
-
+def fetch_open_meteo_data(http_client, lat, lon):
+    """Fetch data from Open-Meteo API using injected HTTP client"""
     # Open-Meteo API call
     url = "https://api.open-meteo.com/v1/forecast"
+
+    # Build URL with params manually for CircuitPython compatibility
     params = {
         "latitude": lat,
         "longitude": lon,
@@ -34,26 +26,11 @@ def fetch_open_meteo_data(lat, lon):
         "timezone": "auto",
     }
 
+    param_str = "&".join([f"{k}={v}" for k, v in params.items()])
+    full_url = f"{url}?{param_str}"
+
     try:
-        # Handle different request patterns
-        if hasattr(requests, "Session"):
-            # Standard requests library
-            response = requests.get(url, params=params)
-            response.raise_for_status()
-            api_response = response.json()
-        else:
-            # CircuitPython adafruit_requests
-            pool = socketpool.SocketPool(wifi.radio)
-            requests_session = requests.Session(pool, ssl.create_default_context())
-
-            # Build URL with params manually for CircuitPython
-            param_str = "&".join([f"{k}={v}" for k, v in params.items()])
-            full_url = f"{url}?{param_str}"
-
-            response = requests_session.get(full_url)
-            api_response = response.json()
-            response.close()
-
+        api_response = http_client.get(full_url)
         return transform_open_meteo_response(api_response)
 
     except Exception as e:
