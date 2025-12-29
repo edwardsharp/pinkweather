@@ -133,19 +133,12 @@ def generate_narratives(csv_file, output_file=None, max_count=None):
     loader = CSVWeatherLoader(csv_file)
     history_manager = WeatherHistoryManager(loader)
 
-    # Skip the first 24 records to ensure we have yesterday's data available for historical comparisons
-    # This gives us at least 24 hours of previous data for the weather_history module
-    skip_records = 24
+    # Get all records without skipping (historical comparisons now work via dependency injection)
     all_records = loader.get_records()
-    if len(all_records) > skip_records:
-        if max_count:
-            records = all_records[skip_records : skip_records + max_count]
-        else:
-            records = all_records[skip_records:]
-        print(f"Skipped first {skip_records} records to enable historical comparisons")
+    if max_count:
+        records = all_records[:max_count]
     else:
         records = all_records
-        print(f"Warning: Not enough records to skip for historical comparisons")
 
     # Initialize centralized image renderer
     renderer = WeatherImageRenderer()
@@ -260,18 +253,12 @@ def generate_images(csv_file, output_dir=None, max_count=None):
     loader = CSVWeatherLoader(csv_file)
     history_manager = WeatherHistoryManager(loader)
 
-    # Skip the first 24 records to ensure we have yesterday's data available for historical comparisons
-    skip_records = 24
+    # Get all records without skipping (historical comparisons now work via dependency injection)
     all_records = loader.get_records()
-    if len(all_records) > skip_records:
-        if max_count:
-            records = all_records[skip_records : skip_records + max_count]
-        else:
-            records = all_records[skip_records:]
-        print(f"Skipped first {skip_records} records to enable historical comparisons")
+    if max_count:
+        records = all_records[:max_count]
     else:
         records = all_records
-        print(f"Warning: Not enough records to skip for historical comparisons")
 
     # Initialize centralized image renderer
     renderer = WeatherImageRenderer()
@@ -322,9 +309,9 @@ def generate_images(csv_file, output_dir=None, max_count=None):
                     print(f"\nError processing record {i}: {e}")
                     continue
 
-        print(
-            f"\nBatch image generation complete. {successful_renders}/{len(records)} images saved to {output_dir}"
-        )
+        # print(
+        #     f"\nBatch image generation complete. {successful_renders}/{len(records)} images saved to {output_dir}"
+        # )
 
         # Create HTML viewer for the dataset
         if successful_renders > 0:

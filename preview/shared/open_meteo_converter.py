@@ -455,6 +455,11 @@ class OpenMeteoConverter:
         country = "US" if self.city_name == "New York" else "CA"
         population = 8175133 if self.city_name == "New York" else 2930000
         timezone_offset = -18000 if self.city_name == "New York" else -18000  # Both EST
+        timezone_offset_hours = timezone_offset // 3600  # Convert seconds to hours
+
+        # Convert UTC sunrise/sunset to local time for display
+        local_sunrise_ts = sunrise_ts + timezone_offset if sunrise_ts else None
+        local_sunset_ts = sunset_ts + timezone_offset if sunset_ts else None
 
         city_data = {
             "id": city_id,
@@ -463,8 +468,8 @@ class OpenMeteoConverter:
             "country": country,
             "population": population,
             "timezone": timezone_offset,
-            "sunrise": sunrise_ts,
-            "sunset": sunset_ts,
+            "sunrise": local_sunrise_ts,
+            "sunset": local_sunset_ts,
         }
 
         # Return OpenWeather API format

@@ -196,8 +196,9 @@ class CSVWeatherLoader:
                 historical_context = self.get_historical_context(record)
 
             # Use converter to get full weather data at this timestamp (OpenWeather API format)
+            # Request 48 hours to ensure enough forecast data for 8 cells even after condensation
             raw_weather_data = self.converter.get_data_at_timestamp(
-                timestamp, hours_count=20
+                timestamp, hours_count=48
             )
 
             # Convert OpenWeatherMap format to intermediate format
