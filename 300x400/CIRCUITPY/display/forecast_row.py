@@ -38,6 +38,12 @@ def get_cell_display_text(forecast_item):
     if forecast_item.get("is_now", False):
         return "NOW"
 
+    # Check for special cell types
+    if forecast_item.get("is_special", False):
+        special_type = forecast_item.get("special_type")
+        if special_type == "night":
+            return "NIGHT"
+
     # All timestamps are already in local time, no conversion needed
     local_timestamp = forecast_item["dt"]
     return format_timestamp_to_hhmm(local_timestamp)

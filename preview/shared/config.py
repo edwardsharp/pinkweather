@@ -71,4 +71,4 @@ SENSOR_SDA_PIN = board.GP28
 DISPLAY_ROTATION = 0
 
 # Preview-specific settings
-INDOOR_TEMP_HUMIDITY = "20° 45%"  # Hardcoded for preview (Celsius)
+INDOOR_TEMP_HUMIDITY = "20°69%"  # Hardcoded for preview (Celsius)

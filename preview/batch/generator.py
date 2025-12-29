@@ -273,7 +273,7 @@ def generate_images(csv_file, output_dir=None, max_count=None):
                         weather_data,
                         output_file,
                         use_icons=True,
-                        indoor_temp_humidity="20° 45%",
+                        indoor_temp_humidity="20°69%",
                     )
 
                     if not result:

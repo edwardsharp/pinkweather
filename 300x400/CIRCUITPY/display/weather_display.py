@@ -108,7 +108,7 @@ def create_weather_display_layout(
     Args:
         weather_data: Display variables from weather_api.get_display_variables()
         icon_loader: Function to load weather icons
-        indoor_temp_humidity: Indoor temperature/humidity string (e.g. "20° 45%")
+        indoor_temp_humidity: Indoor temperature/humidity string (e.g. "20°69%")
 
     Returns:
         DisplayIO group containing complete weather layout

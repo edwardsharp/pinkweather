@@ -143,7 +143,7 @@ def get_indoor_temp_humidity():
         current_temp = int(round(sensor.temperature))
         current_humidity = int(round(sensor.relative_humidity))
         log(f"Sensor reading - temp: {current_temp}°C, humidity: {current_humidity}%")
-        return f"{current_temp}° {current_humidity}%"
+        return f"{current_temp}°{current_humidity}%"
     except Exception as e:
         log(f"Failed to read sensor: {e}")
         return None

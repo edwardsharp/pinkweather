@@ -152,7 +152,7 @@ class PersistentPygameDisplay:
             layout = create_weather_display_layout(
                 weather_data,
                 icon_loader=self.create_icon_loader(use_icons=False),
-                indoor_temp_humidity="20° 45%",
+                indoor_temp_humidity="20°69%",
             )
 
             # Render to get accurate measurements

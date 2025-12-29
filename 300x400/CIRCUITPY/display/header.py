@@ -116,7 +116,7 @@ def create_header(
         aq_label = label.Label(
             hyperl15_font, text=air_quality_str, color=air_quality_color
         )
-        aq_label.x = 205
+        aq_label.x = 212
         aq_label.y = y_position - 4
         header_group.append(aq_label)
 

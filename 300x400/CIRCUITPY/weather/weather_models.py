@@ -34,7 +34,7 @@ class WeatherData:
             "month_name": "DEC",  # TODO: calculate from timestamp
             "air_quality": {"aqi_text": "GOOD"},
             "zodiac_sign": "CAP",
-            "indoor_temp_humidity": f"{self.current_temp:.0f}° {self.current_humidity:.0f}%",
+            "indoor_temp_humidity": f"{self.current_temp:.0f}°{self.current_humidity:.0f}%",
         }
 
 

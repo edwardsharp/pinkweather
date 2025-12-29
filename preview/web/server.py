@@ -270,7 +270,7 @@ class WeatherPreviewHandler(BaseHTTPRequestHandler):
             from shared.image_renderer import render_weather_to_bytes
 
             image_bytes = render_weather_to_bytes(
-                weather_data, use_icons=True, indoor_temp_humidity="20° 45%"
+                weather_data, use_icons=True, indoor_temp_humidity="20°69%"
             )
 
             if not image_bytes:
@@ -361,7 +361,7 @@ class WeatherPreviewHandler(BaseHTTPRequestHandler):
             from shared.image_renderer import render_weather_to_bytes
 
             image_bytes = render_weather_to_bytes(
-                weather_data, use_icons=True, indoor_temp_humidity="20° 45%"
+                weather_data, use_icons=True, indoor_temp_humidity="20°69%"
             )
 
             if not image_bytes:

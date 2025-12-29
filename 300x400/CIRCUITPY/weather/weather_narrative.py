@@ -151,6 +151,7 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
         len(full_narrative) < 200
         and forecast_data
         and not any("Tomorrow:" in part for part in narrative_parts)
+        and "Tomorrow:" not in full_narrative
     ):
         tomorrow_info = _describe_tomorrow_outlook(
             forecast_data, weather_desc, current_timestamp
@@ -210,12 +211,12 @@ def _describe_current_conditions(
     temp_range = high_temp - low_temp
     if temp_range >= 15:
         # Very large daily temperature swing - highlight in red
-        temp_desc += f", ranging <red><h>{format_temp(low_temp)}</h>° to <h>{format_temp(high_temp)}</h>°</red>"
+        temp_desc += f", lo:<red><h>{format_temp(low_temp)}</h>° hi:<h>{format_temp(high_temp)}</h>°</red>"
     elif temp_range >= 10:
         # Moderate swing - make it bold
-        temp_desc += f", ranging <b><h>{format_temp(low_temp)}</h>° to <h>{format_temp(high_temp)}</h>°</b>"
-    elif temp_range >= 3:  # Lower threshold to show range more often
-        temp_desc += f", ranging <h>{format_temp(low_temp)}</h>° to <h>{format_temp(high_temp)}</h>°"
+        temp_desc += f", lo:<b><h>{format_temp(low_temp)}</h>° hi:<h>{format_temp(high_temp)}</h>°</b>"
+    # elif temp_range >= 3:  # Lower threshold to show range more often
+    #     temp_desc += f", ranging <h>{format_temp(low_temp)}</h>° to <h>{format_temp(high_temp)}</h>°"
 
     # Highlight extreme temperature contexts
     if temp_context:
@@ -324,107 +325,280 @@ def _analyze_temperature_trends(current_temp, feels_like, forecast_data, is_even
 def _describe_tomorrow_outlook(
     forecast_data, current_weather_desc="", current_timestamp=None
 ):
-    """Generate tomorrow's outlook by analyzing actual forecast data"""
+    """Generate upcoming weather outlook by analyzing next 24 hours of forecast data"""
     if not forecast_data:
         return None
 
-    # Use the current timestamp passed to the function (already in local time)
     if current_timestamp is None:
+        log("No current timestamp for upcoming forecast")
         return None
 
-    # Calculate tomorrow's timestamp (add 24 hours)
-    tomorrow_timestamp = current_timestamp + 86400
+    # Look at next 24 hours from current time instead of strict "tomorrow" date
+    end_timestamp = current_timestamp + (24 * 3600)  # Next 24 hours
 
-    # Get tomorrow's date in YYYY-MM-DD format using existing utilities
-    year, month, day, hour, minute, second, weekday = _timestamp_to_components(
-        tomorrow_timestamp
-    )
-    tomorrow_date = f"{year:04d}-{month:02d}-{day:02d}"
-
-    # Find all forecast items that are for tomorrow
-    tomorrow_items = []
+    # Find all forecast items in the next 24 hours
+    upcoming_items = []
     for item in forecast_data:
         item_timestamp = item.get("dt")
-        if item_timestamp:
-            # Get item's date in YYYY-MM-DD format using existing utilities
-            item_year, item_month, item_day, _, _, _, _ = _timestamp_to_components(
-                item_timestamp
-            )
-            item_date = f"{item_year:04d}-{item_month:02d}-{item_day:02d}"
-            if item_date == tomorrow_date:
-                tomorrow_items.append(item)
+        if item_timestamp and current_timestamp < item_timestamp <= end_timestamp:
+            description = item.get("description", "")
 
-    if not tomorrow_items:
-        log(f"No forecast items found for tomorrow ({tomorrow_date})")
+            upcoming_items.append(item)
+
+    if not upcoming_items:
+        log(f"No forecast items found for next 24 hours")
         return None
 
-    # Get all temperatures for tomorrow
-    tomorrow_temps = [
-        item.get("temp") for item in tomorrow_items if item.get("temp") is not None
+    # Get all temperatures for upcoming period
+    upcoming_temps = [
+        item.get("temp") for item in upcoming_items if item.get("temp") is not None
     ]
-    tomorrow_icons = [item.get("icon", "") for item in tomorrow_items]
-    tomorrow_descriptions = [
-        item.get("description", "").lower() for item in tomorrow_items
+    upcoming_icons = [item.get("icon", "") for item in upcoming_items]
+    upcoming_descriptions = [
+        item.get("description", "").lower() for item in upcoming_items
     ]
 
-    if not tomorrow_temps:
+    if not upcoming_temps:
         return None
 
-    tomorrow_high = max(tomorrow_temps)
-    tomorrow_low = min(tomorrow_temps)
+    upcoming_high = max(upcoming_temps)
+    upcoming_low = min(upcoming_temps)
 
-    # Always show high/low temps for tomorrow since we have space
-    temp_range = tomorrow_high - tomorrow_low
+    # Always show high/low temps for upcoming period since we have space
+    temp_range = upcoming_high - upcoming_low
     if temp_range >= 15:
         # Very large temperature swing - highlight it
-        temp_desc = f"<red>high <h>{format_temp(tomorrow_high)}</h>° low <h>{format_temp(tomorrow_low)}</h>°</red>"
+        temp_desc = f"<red>high <h>{format_temp(upcoming_high)}</h>° low <h>{format_temp(upcoming_low)}</h>°</red>"
     elif temp_range >= 10:
         # Moderate temperature swing
-        temp_desc = f"<b>high <h>{format_temp(tomorrow_high)}</h>° low <h>{format_temp(tomorrow_low)}</h>°</b>"
+        temp_desc = f"<b>high <h>{format_temp(upcoming_high)}</h>° low <h>{format_temp(upcoming_low)}</h>°</b>"
     else:
-        # Always show both high and low for tomorrow
-        temp_desc = f"high <h>{format_temp(tomorrow_high)}</h>° low <h>{format_temp(tomorrow_low)}</h>°"
+        # Always show both high and low for upcoming period
+        temp_desc = f"high <h>{format_temp(upcoming_high)}</h>° low <h>{format_temp(upcoming_low)}</h>°"
 
-    # Analyze tomorrow's conditions from forecast data
-    has_snow = any(
-        "13" in icon or "snow" in desc
-        for icon, desc in zip(tomorrow_icons, tomorrow_descriptions)
+    # Analyze upcoming conditions from forecast data with time ranges
+    rain_periods = _analyze_weather_periods(
+        upcoming_items, ["rain", "drizzle"], ["09", "10"]
     )
-    has_rain = any(
-        "09" in icon or "10" in icon or "rain" in desc
-        for icon, desc in zip(tomorrow_icons, tomorrow_descriptions)
+    snow_periods = _analyze_weather_periods(upcoming_items, ["snow"], ["13"])
+    storm_periods = _analyze_weather_periods(
+        upcoming_items, ["storm", "thunder"], ["11"]
     )
-    has_storms = any(
-        "11" in icon or "storm" in desc or "thunder" in desc
-        for icon, desc in zip(tomorrow_icons, tomorrow_descriptions)
+    clear_periods = _analyze_weather_periods(upcoming_items, ["clear"], ["01"])
+    cloud_periods = _analyze_weather_periods(
+        upcoming_items, ["cloud"], ["02", "03", "04"]
     )
-    has_clouds = any(
-        "02" in icon or "03" in icon or "04" in icon or "cloud" in desc
-        for icon, desc in zip(tomorrow_icons, tomorrow_descriptions)
-    )
-    has_clear = any(
-        "01" in icon or "clear" in desc
-        for icon, desc in zip(tomorrow_icons, tomorrow_descriptions)
-    )
+
+    # Analyze wind conditions
+    wind_periods = _analyze_wind_periods(upcoming_items)
+
+    has_rain = len(rain_periods) > 0
+    has_snow = len(snow_periods) > 0
+    has_storms = len(storm_periods) > 0
+    has_clouds = len(cloud_periods) > 0
+    has_clear = len(clear_periods) > 0
+    has_wind = len(wind_periods) > 0
 
     # Generate contextual description based on actual forecast
-    # Use newline for tomorrow when there's space, but keep compact when needed
-    tomorrow_prefix = "\n\n<b>Tomorrow:</b>"
+    # Use newline for upcoming when there's space, but keep compact when needed
+    upcoming_prefix = "\n\n<b>Tomorrow:</b>"
+
+    # Build comprehensive description
+    weather_parts = []
 
     if has_storms:
-        return f"{tomorrow_prefix} <red>thunderstorms expected,</red> {temp_desc}"
+        storm_desc = _get_precipitation_description("thunderstorms", storm_periods)
+        weather_parts.append(f"<red>{storm_desc}</red>")
     elif has_snow:
-        return f"{tomorrow_prefix} <red>snow likely,</red> {temp_desc}"
+        snow_desc = _get_precipitation_description("snow", snow_periods)
+        weather_parts.append(f"<red>{snow_desc}</red>")
     elif has_rain:
-        return f"{tomorrow_prefix} rain expected, {temp_desc}"
+        rain_desc = _get_precipitation_description("rain", rain_periods)
+        weather_parts.append(rain_desc)
+
+    # Add clear periods if there's precipitation and clearing
+    if (has_rain or has_snow) and has_clear:
+        clear_desc = _get_clear_period_description(clear_periods)
+        if clear_desc:
+            weather_parts.append(clear_desc)
     elif has_clouds and has_clear:
-        return f"{tomorrow_prefix} partly cloudy, {temp_desc}"
+        weather_parts.append("partly cloudy")
     elif has_clouds:
-        return f"{tomorrow_prefix} mostly cloudy, {temp_desc}"
+        weather_parts.append("mostly cloudy")
     elif has_clear:
-        return f"{tomorrow_prefix} sunny skies, {temp_desc}"
+        weather_parts.append("sunny skies")
+
+    # Add wind if significant
+    if has_wind:
+        wind_desc = _get_wind_description(wind_periods)
+        if wind_desc:
+            weather_parts.append(wind_desc)
+
+    # Combine all weather descriptions
+    if weather_parts:
+        weather_desc = ", ".join(weather_parts)
+        return f"{upcoming_prefix} {weather_desc}, {temp_desc}"
     else:
-        return f"{tomorrow_prefix} {temp_desc}"
+        return f"{upcoming_prefix} {temp_desc}"
+
+
+def _analyze_weather_periods(items, keywords, icon_codes):
+    """Analyze forecast items to find periods of specific weather conditions"""
+    periods = []
+    current_period = None
+
+    for item in items:
+        timestamp = item.get("dt")
+        description = item.get("description", "").lower()
+        icon = item.get("icon", "")
+        pop = item.get("pop", 0)
+
+        # Check if this item matches the weather condition
+        has_condition = any(keyword in description for keyword in keywords) or any(
+            code in icon for code in icon_codes
+        )
+
+        if has_condition:
+            if current_period is None:
+                # Start new period
+                current_period = {
+                    "start": timestamp,
+                    "end": timestamp,
+                    "pop_values": [pop],
+                    "descriptions": [description],
+                }
+            else:
+                # Extend current period
+                current_period["end"] = timestamp
+                current_period["pop_values"].append(pop)
+                current_period["descriptions"].append(description)
+        else:
+            if current_period is not None:
+                # End current period
+                periods.append(current_period)
+                current_period = None
+
+    # Don't forget the last period
+    if current_period is not None:
+        periods.append(current_period)
+
+    return periods
+
+
+def _get_precipitation_description(precip_type, periods):
+    """Generate description for precipitation periods with timing and likelihood"""
+    if not periods:
+        return f"{precip_type} expected"
+
+    # Calculate average POP across all periods
+    all_pops = []
+    for period in periods:
+        all_pops.extend(period["pop_values"])
+
+    avg_pop = sum(all_pops) / len(all_pops) if all_pops else 0
+
+    # Choose likelihood word based on average POP
+    if avg_pop >= 0.7:
+        likelihood = "expected"
+    elif avg_pop >= 0.4:
+        likelihood = "likely"
+    else:
+        likelihood = "possible"
+
+    # Handle multiple periods
+    if len(periods) > 2:
+        return f"{precip_type} {likelihood} off and on"
+    elif len(periods) == 2:
+        start1 = _format_time_for_narrative(periods[0]["start"])
+        start2 = _format_time_for_narrative(periods[1]["start"])
+        return f"{precip_type} {likelihood} {start1} and {start2}"
+    else:
+        # Single period
+        start_time = _format_time_for_narrative(periods[0]["start"])
+        return f"{precip_type} {likelihood} starting {start_time}"
+
+
+def _get_clear_period_description(clear_periods):
+    """Generate description for clear periods when there's mostly rain/clouds"""
+    if not clear_periods:
+        return ""
+
+    if len(clear_periods) == 1:
+        start_time = _format_time_for_narrative(clear_periods[0]["start"])
+        return f"clearing {start_time}"
+    else:
+        return "with some clear breaks"
+
+
+def _analyze_wind_periods(items):
+    """Analyze forecast items to find periods of significant wind"""
+    periods = []
+    current_period = None
+
+    for item in items:
+        timestamp = item.get("dt")
+        wind_speed = item.get("wind_speed", 0)
+        wind_gust = item.get("wind_gust", 0)
+
+        # Consider it windy if sustained winds > 15 mph or gusts > 25 mph
+        is_windy = wind_speed > 15 or wind_gust > 25
+
+        if is_windy:
+            if current_period is None:
+                current_period = {
+                    "start": timestamp,
+                    "end": timestamp,
+                    "wind_speeds": [wind_speed],
+                    "wind_gusts": [wind_gust],
+                }
+            else:
+                current_period["end"] = timestamp
+                current_period["wind_speeds"].append(wind_speed)
+                current_period["wind_gusts"].append(wind_gust)
+        else:
+            if current_period is not None:
+                periods.append(current_period)
+                current_period = None
+
+    if current_period is not None:
+        periods.append(current_period)
+
+    return periods
+
+
+def _get_wind_description(wind_periods):
+    """Generate description for windy periods"""
+    if not wind_periods:
+        return ""
+
+    if len(wind_periods) == 1:
+        start_time = _format_time_for_narrative(wind_periods[0]["start"])
+        max_gust = (
+            max(wind_periods[0]["wind_gusts"]) if wind_periods[0]["wind_gusts"] else 0
+        )
+        if max_gust > 35:
+            return f"gusty winds {start_time}"
+        else:
+            return f"windy {start_time}"
+    else:
+        return "windy periods"
+
+
+def _format_time_for_narrative(timestamp):
+    """Format timestamp for narrative use (e.g., 'morning', 'afternoon', 'evening')"""
+    if not timestamp:
+        return ""
+
+    hour = get_hour_from_timestamp(timestamp)
+
+    if 6 <= hour <= 11:
+        return "morning"
+    elif 12 <= hour <= 17:
+        return "afternoon"
+    elif 18 <= hour <= 22:
+        return "evening"
+    else:
+        return "overnight"
 
 
 def _explain_feels_like(actual_temp, feels_like, humidity, wind_speed, wind_gust):

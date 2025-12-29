@@ -101,7 +101,7 @@ class WeatherImageRenderer:
                 layout = _batch_display_function(
                     weather_data,
                     icon_loader=icon_loader,
-                    indoor_temp_humidity="20° 45%",
+                    indoor_temp_humidity="20°69%",
                 )
 
                 # Generate narrative using cached import
@@ -129,7 +129,7 @@ class WeatherImageRenderer:
             layout = create_weather_display_layout(
                 weather_data,
                 icon_loader=icon_loader,
-                indoor_temp_humidity="20° 45%",
+                indoor_temp_humidity="20°69%",
             )
 
             # Generate the narrative separately to capture it
@@ -145,7 +145,7 @@ class WeatherImageRenderer:
                 os.chdir(self.original_cwd)
 
     def render_weather_data_to_file(
-        self, weather_data, output_file, use_icons=True, indoor_temp_humidity="20° 45%"
+        self, weather_data, output_file, use_icons=True, indoor_temp_humidity="20°69%"
     ):
         """Render weather data to PNG file using shared display modules
 
@@ -228,7 +228,7 @@ class WeatherImageRenderer:
             os.chdir(self.original_cwd)
 
     def render_weather_data_to_bytes(
-        self, weather_data, use_icons=True, indoor_temp_humidity="20° 45%"
+        self, weather_data, use_icons=True, indoor_temp_humidity="20°69%"
     ):
         """Render weather data to PNG bytes (for HTTP responses)
 

@@ -89,7 +89,7 @@ def test_single_render(weather_source="live", output_file=None):
                 weather_data,
                 output_file,
                 use_icons=True,
-                indoor_temp_humidity="20° 45%",
+                indoor_temp_humidity="20°69%",
             )
 
             if result and result.exists():
