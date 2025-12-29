@@ -71,25 +71,16 @@ def create_header(
     air_quality_color = WHITE
     zodiac_str = None
 
-    if air_quality and air_quality.get("aqi_text"):
-        aqi_text = air_quality["aqi_text"].upper()
-
-        # Shorten AQI descriptions for limited header space
-        aqi_shorthand = {
-            "VERY POOR": "VPOOR",
-            "MODERATE": "MOD",
-            "GOOD": "GOOD",
-            "FAIR": "FAIR",
-            "POOR": "POOR",
-        }
-        aqi_display = aqi_shorthand.get(aqi_text, aqi_text)
-
+    if air_quality and air_quality.get("raw_aqi"):
+        # Show US AQI number instead of text description
+        raw_aqi = air_quality.get("raw_aqi", 0)
         aqi_value = air_quality.get("aqi", 1)
-        air_quality_str = f"AQ:{aqi_display}"
-        # Use red color for poor air quality (AQI > 2)
+
+        air_quality_str = f"AQ:{raw_aqi}"
+        # Use red color for poor air quality (AQI > 2 on 1-5 scale)
         air_quality_color = RED if aqi_value > 2 else WHITE
         log(
-            f"DEBUG: Setting AQ text to: {air_quality_str}, AQI: {aqi_value}, color: {'red' if aqi_value > 2 else 'white'}"
+            f"DEBUG: Setting AQ text to: {air_quality_str}, raw_aqi: {raw_aqi}, aqi_scale: {aqi_value}, color: {'red' if aqi_value > 2 else 'white'}"
         )
     else:
         log("DEBUG: No air quality data available for header")

@@ -27,7 +27,7 @@ def fetch_open_meteo_data(http_client, lat, lon, timezone_offset_hours=-5):
     weather_full_url = f"{weather_url}?{weather_param_str}"
 
     # Open-Meteo air quality API call
-    aqi_url = "https://api.open-meteo.com/v1/air-quality"
+    aqi_url = "https://air-quality-api.open-meteo.com/v1/air-quality"
     aqi_params = {
         "latitude": lat,
         "longitude": lon,

@@ -557,6 +557,7 @@ def get_display_variables(weather_data):
         air_quality = {
             "aqi": aqi_data.get("aqi", 1),
             "aqi_text": aqi_data.get("description", "Unknown"),
+            "raw_aqi": aqi_data.get("raw_aqi", 0),
         }
 
     # Get current date info from weather API timestamp for accuracy
