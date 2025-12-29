@@ -124,15 +124,14 @@ def create_forecast_row(forecast_data, y_position=50, icon_loader=None):
 
         # Add precipitation chance if it exists and is non-zero
         pop = forecast_item.get("pop", 0)
-
-        if pop > 0:
-            pop_percent = int(pop * 100)  # Convert to percentage
+        pop_percent = int(pop * 100)  # Convert to percentage
+        if pop_percent > 0:
             # Render pop % in bottom right corner of icon with black background and red text
             pop_text = f"{pop_percent}%"
 
             # Create black background for pop text
             pop_text_width = len(pop_text) * 6
-            pop_bg_bitmap = displayio.Bitmap(pop_text_width + 3, 15, 1)
+            pop_bg_bitmap = displayio.Bitmap(pop_text_width + 3, 9, 1)
             pop_bg_palette = displayio.Palette(1)
             pop_bg_palette[0] = WHITE
 
@@ -142,7 +141,7 @@ def create_forecast_row(forecast_data, y_position=50, icon_loader=None):
             pop_bg_x = icon_x + (
                 24 if pop_percent == 100 else 28
             )  # 28px from left edge of icon (a bit more right)
-            pop_bg_y = icon_y + 34  # 34px from top edge of icon (a bit more down)
+            pop_bg_y = icon_y + 40  # + Xpx from top edge of icon (a bit more down)
 
             pop_bg_grid = displayio.TileGrid(
                 pop_bg_bitmap,
@@ -154,8 +153,8 @@ def create_forecast_row(forecast_data, y_position=50, icon_loader=None):
 
             # Red text on black background
             pop_label = label.Label(terminal_font, text=pop_text, color=RED)
-            pop_label.x = pop_bg_x + 1  # 1px padding from background edge
-            pop_label.y = pop_bg_y + 8  # Vertically centered in background
+            pop_label.x = pop_bg_x + 2  # 1px padding from background edge
+            pop_label.y = pop_bg_y + 3  # Vertically centered in background
             forecast_group.append(pop_label)
 
         # TEST temp_str with max chars
