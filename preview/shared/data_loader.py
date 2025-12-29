@@ -145,7 +145,7 @@ class CSVWeatherLoader:
             "city": openweather_data.get("city", {}),
         }
 
-    def get_historical_context(self, record, lookback_hours=30):
+    def get_historical_context(self, record, lookback_hours=72):
         """Get previous N hours of data for historical context"""
         if "csv_index" not in record:
             return []

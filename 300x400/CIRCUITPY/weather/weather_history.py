@@ -1,6 +1,6 @@
 """
 weather history persistence module for storing yesterday's temperatures
-Accepts injected filesystem for dependency injection pattern
+Refactored to use dependency injection for data sources
 """
 
 import json
@@ -9,15 +9,29 @@ from utils.logger import log, log_error
 
 from weather.date_utils import _timestamp_to_components
 
-# Global filesystem reference
+# Global filesystem reference (for hardware SD card storage)
 _filesystem = None
 WEATHER_HISTORY_FILENAME = "weather_history.json"
 
+# Global history data source (for dependency injection)
+_history_data_source = None
+
 
 def set_filesystem(filesystem):
-    """Set the filesystem to use for weather history (dependency injection)"""
+    """Set the filesystem to use for weather history (hardware SD card mode)"""
     global _filesystem
     _filesystem = filesystem
+
+
+def set_history_data_source(data_source):
+    """Set a custom data source for weather history (dependency injection)
+
+    The data_source should have methods:
+    - get_yesterday_data(current_timestamp) -> dict or None
+    - store_today_data(timestamp, current_temp, high_temp, low_temp) -> bool
+    """
+    global _history_data_source
+    _history_data_source = data_source
 
 
 def get_date_string(timestamp):
@@ -32,9 +46,8 @@ def _filesystem_available():
 
 
 def load_weather_history():
-    """Load weather history from filesystem"""
+    """Load weather history from filesystem (hardware mode only)"""
     if not _filesystem_available():
-        # No storage available (e.g., preview without filesystem injection)
         return {}
 
     data = _filesystem.read_json(WEATHER_HISTORY_FILENAME)
@@ -53,9 +66,8 @@ def load_weather_history():
 
 
 def save_weather_history(history_data):
-    """Save weather history to filesystem"""
+    """Save weather history to filesystem (hardware mode only)"""
     if not _filesystem_available():
-        # No storage available
         return False
 
     if _filesystem.write_json(WEATHER_HISTORY_FILENAME, history_data):
@@ -66,16 +78,19 @@ def save_weather_history(history_data):
 
 
 def store_today_temperatures(current_timestamp, current_temp, high_temp, low_temp):
-    """Store today's temperatures in history"""
+    """Store today's temperatures in history (using injected data source if available)"""
+    # Use injected data source if available (preview mode)
+    if _history_data_source:
+        return _history_data_source.store_today_data(
+            current_timestamp, current_temp, high_temp, low_temp
+        )
+
+    # Fall back to filesystem storage (hardware mode)
     if not current_timestamp:
         return False
 
     today_date = get_date_string(current_timestamp)
-
-    # Load existing history
     history = load_weather_history()
-
-    # Store today's data
     history[today_date] = {"current": current_temp, "high": high_temp, "low": low_temp}
 
     # Keep only last 10 days to save space
@@ -88,22 +103,29 @@ def store_today_temperatures(current_timestamp, current_temp, high_temp, low_tem
 
 
 def get_yesterday_temperatures(current_timestamp):
-    """Get yesterday's temperatures"""
+    """Get yesterday's temperatures (using injected data source if available)"""
+    # Use injected data source if available (preview mode)
+    if _history_data_source:
+        # print(f"DEBUG: Using injected data source for timestamp {current_timestamp}")
+        result = _history_data_source.get_yesterday_data(current_timestamp)
+        # print(f"DEBUG: Injected data source returned: {result}")
+        return result
+
+    # Fall back to filesystem lookup (hardware mode)
+    # print(f"DEBUG: Using filesystem lookup for timestamp {current_timestamp}")
     if not current_timestamp:
         return None
 
-    # Calculate yesterday's timestamp (subtract 24 hours)
     yesterday_timestamp = current_timestamp - 86400
     yesterday_date = get_date_string(yesterday_timestamp)
-
-    # Load history
     history = load_weather_history()
-
-    return history.get(yesterday_date)
+    result = history.get(yesterday_date)
+    # print(f"DEBUG: Filesystem lookup returned: {result}")
+    return result
 
 
 def generate_temperature_comparison(current_temp, yesterday_current):
-    """Generate temperature comparison text given current and yesterday temps"""
+    """Generate temperature comparison text given current and yesterday temps (pure function)"""
     if yesterday_current is None or current_temp is None:
         return None
 
@@ -127,11 +149,18 @@ def generate_temperature_comparison(current_temp, yesterday_current):
 
 def compare_with_yesterday(current_temp, high_temp, low_temp, current_timestamp):
     """Compare today's temperatures with yesterday and return comparison text"""
+    # print(
+    #     f"DEBUG: compare_with_yesterday called with temp {current_temp}, timestamp {current_timestamp}"
+    # )
     yesterday_data = get_yesterday_temperatures(current_timestamp)
 
     if not yesterday_data:
+        # print("DEBUG: No yesterday data available for comparison")
         return None
 
     # Use the reusable comparison logic
     yesterday_current = yesterday_data.get("current")
-    return generate_temperature_comparison(current_temp, yesterday_current)
+    # print(f"DEBUG: Comparing {current_temp} vs {yesterday_current}")
+    comparison = generate_temperature_comparison(current_temp, yesterday_current)
+    # print(f"DEBUG: Generated comparison: {comparison}")
+    return comparison

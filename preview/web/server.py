@@ -265,6 +265,32 @@ class WeatherPreviewHandler(BaseHTTPRequestHandler):
             if not weather_data:
                 raise ValueError(f"Failed to fetch weather data from {api_source}")
 
+            # Store today's temperatures for historical comparisons (like hardware does)
+            current_timestamp = int(time.time())
+            current_temp = weather_data.get("current_temp")
+            high_temp = weather_data.get("high_temp", current_temp)
+            low_temp = weather_data.get("low_temp", current_temp)
+
+            if current_temp is not None:
+                # Import and call hardware storage function
+                import sys
+                from pathlib import Path
+
+                hardware_path = (
+                    Path(__file__).parent.parent.parent / "300x400" / "CIRCUITPY"
+                )
+                if str(hardware_path) not in sys.path:
+                    sys.path.insert(0, str(hardware_path))
+
+                from weather.weather_history import store_today_temperatures
+
+                store_today_temperatures(
+                    current_timestamp, current_temp, high_temp, low_temp
+                )
+                # print(
+                #     f"DEBUG: Stored today's temps in live mode: {current_temp}°C (success: {success})"
+                # )
+
             # Render to bytes using shared rendering
             from shared.image_renderer import render_weather_to_bytes
 
@@ -352,6 +378,12 @@ class WeatherPreviewHandler(BaseHTTPRequestHandler):
                 record, timestamp, historical_context
             )
             weather_data.update(history_data)
+
+            # Set up CSV history data source directly in hardware module for historical scenarios
+            history_manager.setup_csv_history_data_source()
+            # print(
+            #     f"DEBUG: Set up CSV history data source in hardware module for timestamp {timestamp}"
+            # )
 
             # Get image renderer
             renderer = self._get_image_renderer()

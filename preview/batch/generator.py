@@ -14,11 +14,14 @@ from pathlib import Path
 
 # Set silent mode IMMEDIATELY before any hardware imports
 from shared.logger import set_silent_mode
-from shared.setup_filesystem import set_hardware_silent_mode
+from shared.setup_filesystem import set_hardware_silent_mode, setup_preview_filesystem
 
 # Enable silent mode for bulk operations at module level
 set_silent_mode(True)
 set_hardware_silent_mode(True)
+
+# Setup filesystem for weather history
+_filesystem = setup_preview_filesystem()
 
 # Now import hardware-related modules with silent mode already active
 from shared.data_loader import CSVWeatherLoader
@@ -129,7 +132,20 @@ def generate_narratives(csv_file, output_file=None, max_count=None):
     # Setup
     loader = CSVWeatherLoader(csv_file)
     history_manager = WeatherHistoryManager(loader)
-    records = loader.get_records(limit=max_count)
+
+    # Skip the first 24 records to ensure we have yesterday's data available for historical comparisons
+    # This gives us at least 24 hours of previous data for the weather_history module
+    skip_records = 24
+    all_records = loader.get_records()
+    if len(all_records) > skip_records:
+        if max_count:
+            records = all_records[skip_records : skip_records + max_count]
+        else:
+            records = all_records[skip_records:]
+        print(f"Skipped first {skip_records} records to enable historical comparisons")
+    else:
+        records = all_records
+        print(f"Warning: Not enough records to skip for historical comparisons")
 
     # Initialize centralized image renderer
     renderer = WeatherImageRenderer()
@@ -140,6 +156,8 @@ def generate_narratives(csv_file, output_file=None, max_count=None):
     try:
         # Use batch mode for performance
         with renderer.batch_mode() as batch_renderer:
+            # Pass weather history manager to renderer for dependency injection
+            batch_renderer._weather_history_manager = history_manager
             for i, record in enumerate(records):
                 try:
                     # Transform data to hardware format with historical context
@@ -241,7 +259,19 @@ def generate_images(csv_file, output_dir=None, max_count=None):
     # Setup
     loader = CSVWeatherLoader(csv_file)
     history_manager = WeatherHistoryManager(loader)
-    records = loader.get_records(limit=max_count)
+
+    # Skip the first 24 records to ensure we have yesterday's data available for historical comparisons
+    skip_records = 24
+    all_records = loader.get_records()
+    if len(all_records) > skip_records:
+        if max_count:
+            records = all_records[skip_records : skip_records + max_count]
+        else:
+            records = all_records[skip_records:]
+        print(f"Skipped first {skip_records} records to enable historical comparisons")
+    else:
+        records = all_records
+        print(f"Warning: Not enough records to skip for historical comparisons")
 
     # Initialize centralized image renderer
     renderer = WeatherImageRenderer()
@@ -252,6 +282,8 @@ def generate_images(csv_file, output_dir=None, max_count=None):
     try:
         # Use batch mode for performance
         with renderer.batch_mode() as batch_renderer:
+            # Pass weather history manager to renderer for dependency injection
+            batch_renderer._weather_history_manager = history_manager
             for i, record in enumerate(records):
                 try:
                     # Transform data to hardware format with historical context

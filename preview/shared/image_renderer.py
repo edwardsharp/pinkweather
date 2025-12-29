@@ -310,7 +310,13 @@ class WeatherImageRenderer:
             # Generate just the narrative text without creating full layout
             os.chdir(hardware_path)
             try:
-                # Import only what we need for narrative generation
+                # Set up CSV history data source if available (dependency injection)
+                if (
+                    hasattr(self, "_weather_history_manager")
+                    and self._weather_history_manager
+                ):
+                    self._weather_history_manager.setup_csv_history_data_source()
+
                 from display.weather_display import generate_weather_narrative
 
                 narrative = generate_weather_narrative(weather_data)

@@ -7,12 +7,102 @@ import json
 from pathlib import Path
 
 
+class CSVHistoryDataSource:
+    """Data source for weather history using CSV data"""
+
+    def __init__(self, csv_loader):
+        self.csv_loader = csv_loader
+        self._in_memory_comparisons = {}
+
+    def get_yesterday_data(self, current_timestamp):
+        """Get yesterday's data from CSV historical context"""
+        yesterday_timestamp = current_timestamp - 86400
+
+        # Check if we have a pre-computed comparison
+        if current_timestamp in self._in_memory_comparisons:
+            comparison_data = self._in_memory_comparisons[current_timestamp]
+            return {
+                "current": comparison_data["yesterday_current"],
+                "high": comparison_data["yesterday_current"],  # Simplified for now
+                "low": comparison_data["yesterday_current"],  # Simplified for now
+            }
+        return None
+
+    def store_today_data(self, timestamp, current_temp, high_temp, low_temp):
+        """Store data - for CSV mode this is handled by compute_comparison"""
+        return True  # Always succeeds in CSV mode
+
+    def compute_comparison(self, current_timestamp, historical_context):
+        """Compute and store comparison from historical context"""
+        if not historical_context:
+            return
+
+        # Find yesterday's data (approximately 24 hours ago)
+        yesterday_timestamp = current_timestamp - 86400
+        yesterday_data = None
+
+        for h in historical_context:
+            h_timestamp = h.get("timestamp", 0)
+            if abs(h_timestamp - yesterday_timestamp) < 3600:  # Within 1 hour
+                yesterday_data = h
+                break
+
+        if not yesterday_data:
+            return
+
+        # Find current temperature
+        current_temp = None
+        for h in reversed(historical_context):
+            h_timestamp = h.get("timestamp", 0)
+            time_diff = abs(h_timestamp - current_timestamp)
+            if time_diff < 1800:  # Within 30 min
+                current_temp = h.get("temperature")
+                break
+
+        if current_temp is None:
+            # If no exact match, use the most recent record in context
+            if historical_context:
+                last_record = historical_context[-1]
+                current_temp = last_record.get("temperature")
+
+        if current_temp is not None:
+            yesterday_temp = yesterday_data.get("temperature", 20)
+
+            # Import and use the existing comparison logic
+            import sys
+            from pathlib import Path
+
+            hardware_path = (
+                Path(__file__).parent.parent.parent / "300x400" / "CIRCUITPY"
+            )
+            if str(hardware_path) not in sys.path:
+                sys.path.insert(0, str(hardware_path))
+
+            from weather.weather_history import generate_temperature_comparison
+
+            comparison = generate_temperature_comparison(current_temp, yesterday_temp)
+
+            if comparison:
+                self._in_memory_comparisons[current_timestamp] = {
+                    "current": current_temp,
+                    "yesterday_current": yesterday_temp,
+                    "comparison": comparison,
+                }
+
+    def get_comparison(self, current_timestamp):
+        """Get the computed comparison text"""
+        if current_timestamp in self._in_memory_comparisons:
+            return self._in_memory_comparisons[current_timestamp]["comparison"]
+        return None
+
+
 class WeatherHistoryManager:
     """Manages weather history data efficiently"""
 
     def __init__(self, csv_loader=None):
         self.csv_loader = csv_loader
         self.history_cache = {}  # In-memory cache for bulk processing
+        self.csv_data_source = CSVHistoryDataSource(csv_loader) if csv_loader else None
 
     def get_history_for_live_preview(self, current_weather_data):
         """Get mock history data for live API preview"""
@@ -151,94 +241,39 @@ class WeatherHistoryManager:
         self, current_timestamp, historical_context
     ):
         """Inject historical data into weather history system for narrative comparisons"""
-        # print(
-        #     f"DEBUG: _inject_historical_data_for_comparisons called with {len(historical_context) if historical_context else 0} records"
-        # )
         if not historical_context:
-            # print("DEBUG: No historical context, returning")
             return
 
-        try:
-            # Import weather history functions
+        # Use the CSV data source to compute comparison
+        if self.csv_data_source:
+            self.csv_data_source.compute_comparison(
+                current_timestamp, historical_context
+            )
+
+    def setup_csv_history_data_source(self):
+        """Set up the CSV data source for weather history in the hardware module"""
+        if self.csv_data_source:
             import sys
             from pathlib import Path
 
-            # Add hardware path for weather history imports
             hardware_path = (
                 Path(__file__).parent.parent.parent / "300x400" / "CIRCUITPY"
             )
             if str(hardware_path) not in sys.path:
                 sys.path.insert(0, str(hardware_path))
 
-            from weather.weather_history import (
-                get_date_string,
-                store_today_temperatures,
-            )
+            from weather.weather_history import set_history_data_source
 
-            # Store yesterday's data if available (look for data ~24 hours ago)
-            yesterday_timestamp = current_timestamp - 86400
-            yesterday_data = None
+            set_history_data_source(self.csv_data_source)
 
-            # print(
-            #     f"DEBUG: Looking for yesterday timestamp {yesterday_timestamp} (24h before {current_timestamp})"
-            # )
-            # print(f"DEBUG: Historical context timestamps:")
-            for i, h in enumerate(historical_context):
-                h_timestamp = h.get("timestamp", 0)
-                diff_hours = (current_timestamp - h_timestamp) / 3600
-                # print(f"  [{i}] timestamp={h_timestamp}, diff={diff_hours:.1f}h ago")
-
-            # Find closest historical record to yesterday
-            for h in historical_context:
-                h_timestamp = h.get("timestamp", 0)
-                if abs(h_timestamp - yesterday_timestamp) < 3600:  # Within 1 hour
-                    yesterday_data = h
-                    # print(f"DEBUG: Found yesterday data! timestamp={h_timestamp}")
-                    break
-
-            # if not yesterday_data:
-            #     print("DEBUG: No yesterday data found in historical context")
-
-            if yesterday_data:
-                # Store yesterday's REAL temperature data
-                yesterday_temp = yesterday_data.get("temperature", 20)
-
-                # Calculate REAL high/low from ALL yesterday's historical data
-                yesterday_day_start = yesterday_timestamp - (
-                    yesterday_timestamp % 86400
-                )
-                yesterday_day_end = yesterday_day_start + 86400
-
-                yesterday_temps = []
-                for h in historical_context:
-                    h_timestamp = h.get("timestamp", 0)
-                    if yesterday_day_start <= h_timestamp < yesterday_day_end:
-                        yesterday_temps.append(h.get("temperature", yesterday_temp))
-
-                if yesterday_temps:
-                    high_temp = max(yesterday_temps)
-                    low_temp = min(yesterday_temps)
-                else:
-                    # Fallback to current temp if no daily data available
-                    high_temp = yesterday_temp
-                    low_temp = yesterday_temp
-
-                # Store using the weather history system
-                # print(
-                #     f"DEBUG: About to inject - yesterday_temp={yesterday_temp}, high={high_temp}, low={low_temp}, timestamp={yesterday_timestamp}"
-                # )
-                store_today_temperatures(
-                    yesterday_timestamp, yesterday_temp, high_temp, low_temp
-                )
-                # print(f"DEBUG: Injection completed")
-
-        except Exception as e:
-            # Show injection errors for debugging
-            # print(f"DEBUG: History injection failed: {e}")
-            import traceback
-
-            traceback.print_exc()
+    def get_in_memory_comparison(self, current_timestamp):
+        """Get in-memory historical comparison for CSV batch mode"""
+        if self.csv_data_source:
+            return self.csv_data_source.get_comparison(current_timestamp)
+        return None
 
     def clear_cache(self):
         """Clear history cache to free memory"""
         self.history_cache.clear()
+        if self.csv_data_source:
+            self.csv_data_source._in_memory_comparisons.clear()

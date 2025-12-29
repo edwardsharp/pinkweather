@@ -14,7 +14,7 @@ def setup_preview_filesystem():
     filesystem = PreviewFileSystem()
 
     # Add hardware path for importing shared modules
-    hardware_path = Path(__file__).parent.parent / "300x400" / "CIRCUITPY"
+    hardware_path = Path(__file__).parent.parent.parent / "300x400" / "CIRCUITPY"
     sys.path.insert(0, str(hardware_path))
 
     # Inject into shared modules
@@ -39,7 +39,7 @@ def set_hardware_silent_mode(silent=True):
     """
     try:
         # Add hardware path for importing
-        hardware_path = Path(__file__).parent.parent / "300x400" / "CIRCUITPY"
+        hardware_path = Path(__file__).parent.parent.parent / "300x400" / "CIRCUITPY"
         if str(hardware_path) not in sys.path:
             sys.path.insert(0, str(hardware_path))
 
