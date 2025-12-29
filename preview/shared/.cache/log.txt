@@ -1,0 +1,989 @@
+[20h00m14.81s] Moon phase calculation for timestamp: 1704067200
+[20h00m14.81s] Calculated moon phase value: 0.6586774333896429
+[20h00m14.81s] Moon phase name: Waning Gibbous
+[20h00m15.86s] Moon phase calculation for timestamp: 1704070800
+[20h00m15.86s] Calculated moon phase value: 0.6586774333896429
+[20h00m15.87s] Moon phase name: Waning Gibbous
+[20h00m15.88s] Moon phase calculation for timestamp: 1704074400
+[20h00m15.88s] Calculated moon phase value: 0.6586774333896429
+[20h00m15.88s] Moon phase name: Waning Gibbous
+[20h00m16.07s] Moon phase calculation for timestamp: 1704067200
+[20h00m16.07s] Calculated moon phase value: 0.6586774333896429
+[20h00m16.07s] Moon phase name: Waning Gibbous
+[20h00m16.11s] Moon phase calculation for timestamp: 1704070800
+[20h00m16.11s] Calculated moon phase value: 0.6586774333896429
+[20h00m16.11s] Moon phase name: Waning Gibbous
+[20h00m16.11s] Weather history file not found, creating: weather_history.json
+[20h00m16.11s] Weather history file created successfully
+[20h00m16.11s] No forecast items found for tomorrow (2024-01-02)
+[20h00m16.11s] Moon phase calculation for timestamp: 1704070800
+[20h00m16.11s] Calculated moon phase value: 0.6586774333896429
+[20h00m16.11s] Moon phase name: Waning Gibbous
+[20h00m16.12s] No forecast items found for tomorrow (2024-01-02)
+[20h00m16.12s] Generated weather narrative: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[20h00m16.12s] Moon phase calculation for timestamp: 1704070800
+[20h00m16.12s] Calculated moon phase value: 0.6586774333896429
+[20h00m16.12s] Moon phase name: Waning Gibbous
+[20h00m16.12s] DEBUG: No air quality data available for header
+[20h00m16.12s] DEBUG: Setting zodiac text to: CAP
+[20h00m16.44s] DEBUG: Starting XML markup parsing on text: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[20h00m16.44s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h00m16.60s] Moon phase calculation for timestamp: 1704074400
+[20h00m16.60s] Calculated moon phase value: 0.6586774333896429
+[20h00m16.60s] Moon phase name: Waning Gibbous
+[20h00m16.61s] No forecast items found for tomorrow (2024-01-02)
+[20h00m16.61s] Moon phase calculation for timestamp: 1704074400
+[20h00m16.61s] Calculated moon phase value: 0.6586774333896429
+[20h00m16.61s] Moon phase name: Waning Gibbous
+[20h00m16.61s] No forecast items found for tomorrow (2024-01-02)
+[20h00m16.61s] Generated weather narrative: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[20h00m16.61s] Moon phase calculation for timestamp: 1704074400
+[20h00m16.61s] Calculated moon phase value: 0.6586774333896429
+[20h00m16.61s] Moon phase name: Waning Gibbous
+[20h00m16.61s] DEBUG: No air quality data available for header
+[20h00m16.61s] DEBUG: Setting zodiac text to: CAP
+[20h00m16.81s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[20h00m16.81s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h02m23.41s] Moon phase calculation for timestamp: 1704067200
+[20h02m23.41s] Calculated moon phase value: 0.6586774333896429
+[20h02m23.41s] Moon phase name: Waning Gibbous
+[20h02m24.50s] Moon phase calculation for timestamp: 1704070800
+[20h02m24.50s] Calculated moon phase value: 0.6586774333896429
+[20h02m24.50s] Moon phase name: Waning Gibbous
+[20h02m24.51s] Moon phase calculation for timestamp: 1704074400
+[20h02m24.51s] Calculated moon phase value: 0.6586774333896429
+[20h02m24.51s] Moon phase name: Waning Gibbous
+[20h02m24.54s] Moon phase calculation for timestamp: 1704067200
+[20h02m24.54s] Calculated moon phase value: 0.6586774333896429
+[20h02m24.54s] Moon phase name: Waning Gibbous
+[20h02m24.55s] Moon phase calculation for timestamp: 1704070800
+[20h02m24.55s] Calculated moon phase value: 0.6586774333896429
+[20h02m24.55s] Moon phase name: Waning Gibbous
+[20h02m24.56s] Moon phase calculation for timestamp: 1704074400
+[20h02m24.56s] Calculated moon phase value: 0.6586774333896429
+[20h02m24.56s] Moon phase name: Waning Gibbous
+[20h03m21.49s] Moon phase calculation for timestamp: 1704067200
+[20h03m21.49s] Calculated moon phase value: 0.6586774333896429
+[20h03m21.49s] Moon phase name: Waning Gibbous
+[20h03m22.56s] Moon phase calculation for timestamp: 1704067200
+[20h03m22.56s] Calculated moon phase value: 0.6586774333896429
+[20h03m22.56s] Moon phase name: Waning Gibbous
+[20h04m18.17s] Moon phase calculation for timestamp: 1704067200
+[20h04m18.17s] Calculated moon phase value: 0.6586774333896429
+[20h04m18.17s] Moon phase name: Waning Gibbous
+[20h04m19.22s] Moon phase calculation for timestamp: 1704067200
+[20h04m19.22s] Calculated moon phase value: 0.6586774333896429
+[20h04m19.22s] Moon phase name: Waning Gibbous
+[20h09m15.30s] Moon phase calculation for timestamp: 1704067200
+[20h09m15.30s] Calculated moon phase value: 0.6586774333896429
+[20h09m15.30s] Moon phase name: Waning Gibbous
+[20h09m16.34s] Moon phase calculation for timestamp: 1704067200
+[20h09m16.34s] Calculated moon phase value: 0.6586774333896429
+[20h09m16.34s] Moon phase name: Waning Gibbous
+[20h09m16.34s] No forecast items found for tomorrow (2024-01-02)
+[20h09m16.34s] Moon phase calculation for timestamp: 1704067200
+[20h09m16.34s] Calculated moon phase value: 0.6586774333896429
+[20h09m16.34s] Moon phase name: Waning Gibbous
+[20h09m16.34s] No forecast items found for tomorrow (2024-01-02)
+[20h09m16.34s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h09m16.34s] Moon phase calculation for timestamp: 1704067200
+[20h09m16.34s] Calculated moon phase value: 0.6586774333896429
+[20h09m16.34s] Moon phase name: Waning Gibbous
+[20h09m16.34s] DEBUG: No air quality data available for header
+[20h09m16.35s] DEBUG: Setting zodiac text to: CAP
+[20h09m16.45s] ERROR font loading failed: [Errno 2] No such file or directory: 'fonts/vollkorn20reg.pcf'
+[20h09m16.45s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h09m16.45s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h12m23.55s] Moon phase calculation for timestamp: 1704067200
+[20h12m23.55s] Calculated moon phase value: 0.6586774333896429
+[20h12m23.55s] Moon phase name: Waning Gibbous
+[20h12m24.59s] No forecast items found for tomorrow (2024-01-02)
+[20h12m24.59s] Moon phase calculation for timestamp: 1704067200
+[20h12m24.59s] Calculated moon phase value: 0.6586774333896429
+[20h12m24.59s] Moon phase name: Waning Gibbous
+[20h12m24.59s] No forecast items found for tomorrow (2024-01-02)
+[20h12m24.59s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h12m24.59s] No forecast items found for tomorrow (2024-01-02)
+[20h12m24.59s] Moon phase calculation for timestamp: 1704067200
+[20h12m24.59s] Calculated moon phase value: 0.6586774333896429
+[20h12m24.59s] Moon phase name: Waning Gibbous
+[20h12m24.59s] No forecast items found for tomorrow (2024-01-02)
+[20h12m24.59s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h12m24.59s] Moon phase calculation for timestamp: 1704067200
+[20h12m24.59s] Calculated moon phase value: 0.6586774333896429
+[20h12m24.59s] Moon phase name: Waning Gibbous
+[20h12m24.59s] DEBUG: No air quality data available for header
+[20h12m24.59s] DEBUG: Setting zodiac text to: CAP
+[20h12m24.70s] ERROR font loading failed: [Errno 2] No such file or directory: 'fonts/vollkorn20reg.pcf'
+[20h12m24.70s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h12m24.70s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h12m24.95s] Moon phase calculation for timestamp: 1704067200
+[20h12m24.95s] Calculated moon phase value: 0.6586774333896429
+[20h12m24.95s] Moon phase name: Waning Gibbous
+[20h12m24.96s] No forecast items found for tomorrow (2024-01-02)
+[20h12m24.96s] Moon phase calculation for timestamp: 1704067200
+[20h12m24.96s] Calculated moon phase value: 0.6586774333896429
+[20h12m24.96s] Moon phase name: Waning Gibbous
+[20h12m24.96s] No forecast items found for tomorrow (2024-01-02)
+[20h12m24.96s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h12m24.96s] No forecast items found for tomorrow (2024-01-02)
+[20h12m24.96s] Moon phase calculation for timestamp: 1704067200
+[20h12m24.96s] Calculated moon phase value: 0.6586774333896429
+[20h12m24.96s] Moon phase name: Waning Gibbous
+[20h12m24.96s] No forecast items found for tomorrow (2024-01-02)
+[20h12m24.96s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h12m24.96s] Moon phase calculation for timestamp: 1704067200
+[20h12m24.96s] Calculated moon phase value: 0.6586774333896429
+[20h12m24.96s] Moon phase name: Waning Gibbous
+[20h12m24.96s] DEBUG: No air quality data available for header
+[20h12m24.96s] DEBUG: Setting zodiac text to: CAP
+[20h12m25.18s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h12m25.18s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h13m43.26s] Moon phase calculation for timestamp: 1704067200
+[20h13m43.26s] Calculated moon phase value: 0.6586774333896429
+[20h13m43.27s] Moon phase name: Waning Gibbous
+[20h13m44.24s] No forecast items found for tomorrow (2024-01-02)
+[20h13m44.24s] Moon phase calculation for timestamp: 1704067200
+[20h13m44.24s] Calculated moon phase value: 0.6586774333896429
+[20h13m44.24s] Moon phase name: Waning Gibbous
+[20h13m44.24s] No forecast items found for tomorrow (2024-01-02)
+[20h13m44.24s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h13m44.24s] Moon phase calculation for timestamp: 1704067200
+[20h13m44.24s] Calculated moon phase value: 0.6586774333896429
+[20h13m44.24s] Moon phase name: Waning Gibbous
+[20h13m44.24s] DEBUG: No air quality data available for header
+[20h13m44.24s] DEBUG: Setting zodiac text to: CAP
+[20h13m44.56s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h13m44.56s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h13m44.70s] No forecast items found for tomorrow (2024-01-02)
+[20h13m44.70s] Moon phase calculation for timestamp: 1704067200
+[20h13m44.70s] Calculated moon phase value: 0.6586774333896429
+[20h13m44.70s] Moon phase name: Waning Gibbous
+[20h13m44.71s] No forecast items found for tomorrow (2024-01-02)
+[20h13m44.71s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h13m44.93s] Moon phase calculation for timestamp: 1704067200
+[20h13m44.93s] Calculated moon phase value: 0.6586774333896429
+[20h13m44.93s] Moon phase name: Waning Gibbous
+[20h13m44.93s] No forecast items found for tomorrow (2024-01-02)
+[20h13m44.93s] Moon phase calculation for timestamp: 1704067200
+[20h13m44.93s] Calculated moon phase value: 0.6586774333896429
+[20h13m44.93s] Moon phase name: Waning Gibbous
+[20h13m44.93s] No forecast items found for tomorrow (2024-01-02)
+[20h13m44.93s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h13m44.93s] Moon phase calculation for timestamp: 1704067200
+[20h13m44.93s] Calculated moon phase value: 0.6586774333896429
+[20h13m44.93s] Moon phase name: Waning Gibbous
+[20h13m44.93s] DEBUG: No air quality data available for header
+[20h13m44.93s] DEBUG: Setting zodiac text to: CAP
+[20h13m45.15s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h13m45.15s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h13m45.29s] No forecast items found for tomorrow (2024-01-02)
+[20h13m45.29s] Moon phase calculation for timestamp: 1704067200
+[20h13m45.29s] Calculated moon phase value: 0.6586774333896429
+[20h13m45.29s] Moon phase name: Waning Gibbous
+[20h13m45.29s] No forecast items found for tomorrow (2024-01-02)
+[20h13m45.29s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h21m14.41s] Moon phase calculation for timestamp: 1704067200
+[20h21m14.41s] Calculated moon phase value: 0.6586774333896429
+[20h21m14.41s] Moon phase name: Waning Gibbous
+[20h21m15.37s] No forecast items found for tomorrow (2024-01-02)
+[20h21m15.37s] Moon phase calculation for timestamp: 1704067200
+[20h21m15.37s] Calculated moon phase value: 0.6586774333896429
+[20h21m15.37s] Moon phase name: Waning Gibbous
+[20h21m15.37s] No forecast items found for tomorrow (2024-01-02)
+[20h21m15.37s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h21m15.37s] Moon phase calculation for timestamp: 1704067200
+[20h21m15.37s] Calculated moon phase value: 0.6586774333896429
+[20h21m15.37s] Moon phase name: Waning Gibbous
+[20h21m15.37s] DEBUG: No air quality data available for header
+[20h21m15.37s] DEBUG: Setting zodiac text to: CAP
+[20h21m15.68s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h21m15.68s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h21m15.84s] No forecast items found for tomorrow (2024-01-02)
+[20h21m15.84s] Moon phase calculation for timestamp: 1704067200
+[20h21m15.84s] Calculated moon phase value: 0.6586774333896429
+[20h21m15.84s] Moon phase name: Waning Gibbous
+[20h21m15.84s] No forecast items found for tomorrow (2024-01-02)
+[20h21m15.84s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h21m16.04s] No forecast items found for tomorrow (2024-01-02)
+[20h21m16.04s] Moon phase calculation for timestamp: 1704067200
+[20h21m16.04s] Calculated moon phase value: 0.6586774333896429
+[20h21m16.04s] Moon phase name: Waning Gibbous
+[20h21m16.04s] No forecast items found for tomorrow (2024-01-02)
+[20h21m16.04s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h21m16.04s] Moon phase calculation for timestamp: 1704067200
+[20h21m16.04s] Calculated moon phase value: 0.6586774333896429
+[20h21m16.04s] Moon phase name: Waning Gibbous
+[20h21m16.04s] DEBUG: No air quality data available for header
+[20h21m16.04s] DEBUG: Setting zodiac text to: CAP
+[20h21m16.25s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h21m16.25s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h21m16.61s] Moon phase calculation for timestamp: 1704067200
+[20h21m16.61s] Calculated moon phase value: 0.6586774333896429
+[20h21m16.61s] Moon phase name: Waning Gibbous
+[20h21m16.61s] No forecast items found for tomorrow (2024-01-02)
+[20h21m16.61s] Moon phase calculation for timestamp: 1704067200
+[20h21m16.61s] Calculated moon phase value: 0.6586774333896429
+[20h21m16.61s] Moon phase name: Waning Gibbous
+[20h21m16.61s] No forecast items found for tomorrow (2024-01-02)
+[20h21m16.61s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h21m16.61s] Moon phase calculation for timestamp: 1704067200
+[20h21m16.61s] Calculated moon phase value: 0.6586774333896429
+[20h21m16.61s] Moon phase name: Waning Gibbous
+[20h21m16.61s] DEBUG: No air quality data available for header
+[20h21m16.61s] DEBUG: Setting zodiac text to: CAP
+[20h21m16.82s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h21m16.82s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h21m16.95s] No forecast items found for tomorrow (2024-01-02)
+[20h21m16.96s] Moon phase calculation for timestamp: 1704067200
+[20h21m16.96s] Calculated moon phase value: 0.6586774333896429
+[20h21m16.96s] Moon phase name: Waning Gibbous
+[20h21m16.96s] No forecast items found for tomorrow (2024-01-02)
+[20h21m16.96s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h25m32.28s] Moon phase calculation for timestamp: 1704067200
+[20h25m32.28s] Calculated moon phase value: 0.6586774333896429
+[20h25m32.28s] Moon phase name: Waning Gibbous
+[20h25m33.23s] No forecast items found for tomorrow (2024-01-02)
+[20h25m33.23s] Moon phase calculation for timestamp: 1704067200
+[20h25m33.23s] Calculated moon phase value: 0.6586774333896429
+[20h25m33.23s] Moon phase name: Waning Gibbous
+[20h25m33.23s] No forecast items found for tomorrow (2024-01-02)
+[20h25m33.23s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h25m33.23s] Moon phase calculation for timestamp: 1704067200
+[20h25m33.23s] Calculated moon phase value: 0.6586774333896429
+[20h25m33.23s] Moon phase name: Waning Gibbous
+[20h25m33.23s] DEBUG: No air quality data available for header
+[20h25m33.23s] DEBUG: Setting zodiac text to: CAP
+[20h25m33.55s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h25m33.55s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h25m33.70s] No forecast items found for tomorrow (2024-01-02)
+[20h25m33.70s] Moon phase calculation for timestamp: 1704067200
+[20h25m33.70s] Calculated moon phase value: 0.6586774333896429
+[20h25m33.70s] Moon phase name: Waning Gibbous
+[20h25m33.70s] No forecast items found for tomorrow (2024-01-02)
+[20h25m33.70s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h25m33.90s] No forecast items found for tomorrow (2024-01-02)
+[20h25m33.90s] Moon phase calculation for timestamp: 1704067200
+[20h25m33.90s] Calculated moon phase value: 0.6586774333896429
+[20h25m33.90s] Moon phase name: Waning Gibbous
+[20h25m33.90s] No forecast items found for tomorrow (2024-01-02)
+[20h25m33.90s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h25m33.90s] Moon phase calculation for timestamp: 1704067200
+[20h25m33.90s] Calculated moon phase value: 0.6586774333896429
+[20h25m33.90s] Moon phase name: Waning Gibbous
+[20h25m33.90s] DEBUG: No air quality data available for header
+[20h25m33.90s] DEBUG: Setting zodiac text to: CAP
+[20h25m34.11s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h25m34.11s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h25m34.46s] Moon phase calculation for timestamp: 1704067200
+[20h25m34.46s] Calculated moon phase value: 0.6586774333896429
+[20h25m34.46s] Moon phase name: Waning Gibbous
+[20h25m34.47s] No forecast items found for tomorrow (2024-01-02)
+[20h25m34.47s] Moon phase calculation for timestamp: 1704067200
+[20h25m34.47s] Calculated moon phase value: 0.6586774333896429
+[20h25m34.47s] Moon phase name: Waning Gibbous
+[20h25m34.47s] No forecast items found for tomorrow (2024-01-02)
+[20h25m34.47s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h25m34.47s] Moon phase calculation for timestamp: 1704067200
+[20h25m34.47s] Calculated moon phase value: 0.6586774333896429
+[20h25m34.47s] Moon phase name: Waning Gibbous
+[20h25m34.47s] DEBUG: No air quality data available for header
+[20h25m34.47s] DEBUG: Setting zodiac text to: CAP
+[20h25m34.68s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h25m34.68s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h25m34.81s] No forecast items found for tomorrow (2024-01-02)
+[20h25m34.81s] Moon phase calculation for timestamp: 1704067200
+[20h25m34.81s] Calculated moon phase value: 0.6586774333896429
+[20h25m34.81s] Moon phase name: Waning Gibbous
+[20h25m34.81s] No forecast items found for tomorrow (2024-01-02)
+[20h25m34.81s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h26m09.86s] Moon phase calculation for timestamp: 1704067200
+[20h26m09.86s] Calculated moon phase value: 0.6586774333896429
+[20h26m09.87s] Moon phase name: Waning Gibbous
+[20h26m10.82s] No forecast items found for tomorrow (2024-01-02)
+[20h26m10.82s] Moon phase calculation for timestamp: 1704067200
+[20h26m10.82s] Calculated moon phase value: 0.6586774333896429
+[20h26m10.82s] Moon phase name: Waning Gibbous
+[20h26m10.82s] No forecast items found for tomorrow (2024-01-02)
+[20h26m10.82s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h26m10.82s] Moon phase calculation for timestamp: 1704067200
+[20h26m10.82s] Calculated moon phase value: 0.6586774333896429
+[20h26m10.82s] Moon phase name: Waning Gibbous
+[20h26m10.82s] DEBUG: No air quality data available for header
+[20h26m10.82s] DEBUG: Setting zodiac text to: CAP
+[20h26m11.13s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h26m11.13s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h26m11.28s] No forecast items found for tomorrow (2024-01-02)
+[20h26m11.28s] Moon phase calculation for timestamp: 1704067200
+[20h26m11.29s] Calculated moon phase value: 0.6586774333896429
+[20h26m11.29s] Moon phase name: Waning Gibbous
+[20h26m11.29s] No forecast items found for tomorrow (2024-01-02)
+[20h26m11.29s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h26m11.49s] No forecast items found for tomorrow (2024-01-02)
+[20h26m11.49s] Moon phase calculation for timestamp: 1704067200
+[20h26m11.49s] Calculated moon phase value: 0.6586774333896429
+[20h26m11.49s] Moon phase name: Waning Gibbous
+[20h26m11.49s] No forecast items found for tomorrow (2024-01-02)
+[20h26m11.49s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h26m11.49s] Moon phase calculation for timestamp: 1704067200
+[20h26m11.49s] Calculated moon phase value: 0.6586774333896429
+[20h26m11.49s] Moon phase name: Waning Gibbous
+[20h26m11.49s] DEBUG: No air quality data available for header
+[20h26m11.49s] DEBUG: Setting zodiac text to: CAP
+[20h26m11.70s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h26m11.70s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h26m12.05s] Moon phase calculation for timestamp: 1704067200
+[20h26m12.05s] Calculated moon phase value: 0.6586774333896429
+[20h26m12.05s] Moon phase name: Waning Gibbous
+[20h26m12.06s] No forecast items found for tomorrow (2024-01-02)
+[20h26m12.06s] Moon phase calculation for timestamp: 1704067200
+[20h26m12.06s] Calculated moon phase value: 0.6586774333896429
+[20h26m12.06s] Moon phase name: Waning Gibbous
+[20h26m12.06s] No forecast items found for tomorrow (2024-01-02)
+[20h26m12.06s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h26m12.06s] Moon phase calculation for timestamp: 1704067200
+[20h26m12.06s] Calculated moon phase value: 0.6586774333896429
+[20h26m12.06s] Moon phase name: Waning Gibbous
+[20h26m12.06s] DEBUG: No air quality data available for header
+[20h26m12.06s] DEBUG: Setting zodiac text to: CAP
+[20h26m12.26s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h26m12.27s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h26m12.39s] No forecast items found for tomorrow (2024-01-02)
+[20h26m12.39s] Moon phase calculation for timestamp: 1704067200
+[20h26m12.39s] Calculated moon phase value: 0.6586774333896429
+[20h26m12.39s] Moon phase name: Waning Gibbous
+[20h26m12.39s] No forecast items found for tomorrow (2024-01-02)
+[20h26m12.40s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h30m26.65s] Moon phase calculation for timestamp: 1704067200
+[20h30m26.65s] Calculated moon phase value: 0.6586774333896429
+[20h30m26.65s] Moon phase name: Waning Gibbous
+[20h30m27.56s] No forecast items found for tomorrow (2024-01-02)
+[20h30m27.56s] Moon phase calculation for timestamp: 1704067200
+[20h30m27.56s] Calculated moon phase value: 0.6586774333896429
+[20h30m27.56s] Moon phase name: Waning Gibbous
+[20h30m27.56s] No forecast items found for tomorrow (2024-01-02)
+[20h30m27.56s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h30m27.56s] Moon phase calculation for timestamp: 1704067200
+[20h30m27.56s] Calculated moon phase value: 0.6586774333896429
+[20h30m27.56s] Moon phase name: Waning Gibbous
+[20h30m27.56s] DEBUG: No air quality data available for header
+[20h30m27.56s] DEBUG: Setting zodiac text to: CAP
+[20h30m27.88s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h30m27.88s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h30m28.04s] No forecast items found for tomorrow (2024-01-02)
+[20h30m28.04s] Moon phase calculation for timestamp: 1704067200
+[20h30m28.04s] Calculated moon phase value: 0.6586774333896429
+[20h30m28.04s] Moon phase name: Waning Gibbous
+[20h30m28.04s] No forecast items found for tomorrow (2024-01-02)
+[20h30m28.04s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h30m28.24s] No forecast items found for tomorrow (2024-01-02)
+[20h30m28.24s] Moon phase calculation for timestamp: 1704067200
+[20h30m28.24s] Calculated moon phase value: 0.6586774333896429
+[20h30m28.24s] Moon phase name: Waning Gibbous
+[20h30m28.24s] No forecast items found for tomorrow (2024-01-02)
+[20h30m28.24s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h30m28.24s] Moon phase calculation for timestamp: 1704067200
+[20h30m28.24s] Calculated moon phase value: 0.6586774333896429
+[20h30m28.24s] Moon phase name: Waning Gibbous
+[20h30m28.24s] DEBUG: No air quality data available for header
+[20h30m28.24s] DEBUG: Setting zodiac text to: CAP
+[20h30m28.45s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h30m28.45s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h30m28.80s] Moon phase calculation for timestamp: 1704067200
+[20h30m28.80s] Calculated moon phase value: 0.6586774333896429
+[20h30m28.80s] Moon phase name: Waning Gibbous
+[20h30m28.81s] No forecast items found for tomorrow (2024-01-02)
+[20h30m28.81s] Moon phase calculation for timestamp: 1704067200
+[20h30m28.81s] Calculated moon phase value: 0.6586774333896429
+[20h30m28.81s] Moon phase name: Waning Gibbous
+[20h30m28.81s] No forecast items found for tomorrow (2024-01-02)
+[20h30m28.81s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[20h30m28.81s] Moon phase calculation for timestamp: 1704067200
+[20h30m28.81s] Calculated moon phase value: 0.6586774333896429
+[20h30m28.81s] Moon phase name: Waning Gibbous
+[20h30m28.81s] DEBUG: No air quality data available for header
+[20h30m28.81s] DEBUG: Setting zodiac text to: CAP
+[20h30m29.01s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[20h30m29.01s] DEBUG: XML markup parsing complete. Found 6 segments
+[20h30m29.14s] No forecast items found for tomorrow (2024-01-02)
+[20h30m29.14s] Moon phase calculation for timestamp: 1704067200
+[20h30m29.15s] Calculated moon phase value: 0.6586774333896429
+[20h30m29.15s] Moon phase name: Waning Gibbous
+[20h30m29.15s] No forecast items found for tomorrow (2024-01-02)
+[20h30m29.15s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h27m40.03s] Moon phase calculation for timestamp: 1704067200
+[21h27m40.03s] Calculated moon phase value: 0.6586774333896429
+[21h27m40.03s] Moon phase name: Waning Gibbous
+[21h27m41.08s] No forecast items found for tomorrow (2024-01-02)
+[21h27m41.08s] Moon phase calculation for timestamp: 1704067200
+[21h27m41.08s] Calculated moon phase value: 0.6586774333896429
+[21h27m41.08s] Moon phase name: Waning Gibbous
+[21h27m41.08s] No forecast items found for tomorrow (2024-01-02)
+[21h27m41.08s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h27m41.08s] Moon phase calculation for timestamp: 1704067200
+[21h27m41.08s] Calculated moon phase value: 0.6586774333896429
+[21h27m41.08s] Moon phase name: Waning Gibbous
+[21h27m41.08s] DEBUG: No air quality data available for header
+[21h27m41.08s] DEBUG: Setting zodiac text to: CAP
+[21h27m41.44s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h27m41.45s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h27m41.62s] No forecast items found for tomorrow (2024-01-02)
+[21h27m41.62s] Moon phase calculation for timestamp: 1704067200
+[21h27m41.62s] Calculated moon phase value: 0.6586774333896429
+[21h27m41.62s] Moon phase name: Waning Gibbous
+[21h27m41.62s] No forecast items found for tomorrow (2024-01-02)
+[21h27m41.62s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h27m41.87s] No forecast items found for tomorrow (2024-01-02)
+[21h27m41.87s] Moon phase calculation for timestamp: 1704067200
+[21h27m41.87s] Calculated moon phase value: 0.6586774333896429
+[21h27m41.87s] Moon phase name: Waning Gibbous
+[21h27m41.87s] No forecast items found for tomorrow (2024-01-02)
+[21h27m41.87s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h27m41.87s] Moon phase calculation for timestamp: 1704067200
+[21h27m41.87s] Calculated moon phase value: 0.6586774333896429
+[21h27m41.87s] Moon phase name: Waning Gibbous
+[21h27m41.87s] DEBUG: No air quality data available for header
+[21h27m41.87s] DEBUG: Setting zodiac text to: CAP
+[21h27m42.12s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h27m42.12s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h27m42.55s] Moon phase calculation for timestamp: 1704067200
+[21h27m42.55s] Calculated moon phase value: 0.6586774333896429
+[21h27m42.55s] Moon phase name: Waning Gibbous
+[21h27m42.55s] No forecast items found for tomorrow (2024-01-02)
+[21h27m42.55s] Moon phase calculation for timestamp: 1704067200
+[21h27m42.55s] Calculated moon phase value: 0.6586774333896429
+[21h27m42.55s] Moon phase name: Waning Gibbous
+[21h27m42.55s] No forecast items found for tomorrow (2024-01-02)
+[21h27m42.55s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h27m42.55s] Moon phase calculation for timestamp: 1704067200
+[21h27m42.55s] Calculated moon phase value: 0.6586774333896429
+[21h27m42.55s] Moon phase name: Waning Gibbous
+[21h27m42.55s] DEBUG: No air quality data available for header
+[21h27m42.55s] DEBUG: Setting zodiac text to: CAP
+[21h27m42.80s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h27m42.80s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h27m42.95s] No forecast items found for tomorrow (2024-01-02)
+[21h27m42.95s] Moon phase calculation for timestamp: 1704067200
+[21h27m42.95s] Calculated moon phase value: 0.6586774333896429
+[21h27m42.95s] Moon phase name: Waning Gibbous
+[21h27m42.95s] No forecast items found for tomorrow (2024-01-02)
+[21h27m42.95s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h28m04.54s] Moon phase calculation for timestamp: 1704067200
+[21h28m04.54s] Calculated moon phase value: 0.6586774333896429
+[21h28m04.54s] Moon phase name: Waning Gibbous
+[21h28m05.57s] No forecast items found for tomorrow (2024-01-02)
+[21h28m05.57s] Moon phase calculation for timestamp: 1704067200
+[21h28m05.57s] Calculated moon phase value: 0.6586774333896429
+[21h28m05.57s] Moon phase name: Waning Gibbous
+[21h28m05.57s] No forecast items found for tomorrow (2024-01-02)
+[21h28m05.57s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h28m05.57s] Moon phase calculation for timestamp: 1704067200
+[21h28m05.57s] Calculated moon phase value: 0.6586774333896429
+[21h28m05.57s] Moon phase name: Waning Gibbous
+[21h28m05.57s] DEBUG: No air quality data available for header
+[21h28m05.57s] DEBUG: Setting zodiac text to: CAP
+[21h28m05.93s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h28m05.93s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h28m06.11s] No forecast items found for tomorrow (2024-01-02)
+[21h28m06.11s] Moon phase calculation for timestamp: 1704067200
+[21h28m06.11s] Calculated moon phase value: 0.6586774333896429
+[21h28m06.11s] Moon phase name: Waning Gibbous
+[21h28m06.11s] No forecast items found for tomorrow (2024-01-02)
+[21h28m06.11s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h28m06.36s] No forecast items found for tomorrow (2024-01-02)
+[21h28m06.36s] Moon phase calculation for timestamp: 1704067200
+[21h28m06.36s] Calculated moon phase value: 0.6586774333896429
+[21h28m06.36s] Moon phase name: Waning Gibbous
+[21h28m06.36s] No forecast items found for tomorrow (2024-01-02)
+[21h28m06.36s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h28m06.36s] Moon phase calculation for timestamp: 1704067200
+[21h28m06.36s] Calculated moon phase value: 0.6586774333896429
+[21h28m06.36s] Moon phase name: Waning Gibbous
+[21h28m06.36s] DEBUG: No air quality data available for header
+[21h28m06.36s] DEBUG: Setting zodiac text to: CAP
+[21h28m06.61s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h28m06.61s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h28m07.04s] Moon phase calculation for timestamp: 1704067200
+[21h28m07.04s] Calculated moon phase value: 0.6586774333896429
+[21h28m07.04s] Moon phase name: Waning Gibbous
+[21h28m07.05s] No forecast items found for tomorrow (2024-01-02)
+[21h28m07.05s] Moon phase calculation for timestamp: 1704067200
+[21h28m07.05s] Calculated moon phase value: 0.6586774333896429
+[21h28m07.05s] Moon phase name: Waning Gibbous
+[21h28m07.05s] No forecast items found for tomorrow (2024-01-02)
+[21h28m07.05s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h28m07.05s] Moon phase calculation for timestamp: 1704067200
+[21h28m07.05s] Calculated moon phase value: 0.6586774333896429
+[21h28m07.05s] Moon phase name: Waning Gibbous
+[21h28m07.05s] DEBUG: No air quality data available for header
+[21h28m07.05s] DEBUG: Setting zodiac text to: CAP
+[21h28m07.31s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h28m07.31s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h28m07.47s] No forecast items found for tomorrow (2024-01-02)
+[21h28m07.47s] Moon phase calculation for timestamp: 1704067200
+[21h28m07.47s] Calculated moon phase value: 0.6586774333896429
+[21h28m07.47s] Moon phase name: Waning Gibbous
+[21h28m07.47s] No forecast items found for tomorrow (2024-01-02)
+[21h28m07.47s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m33.42s] Moon phase calculation for timestamp: 1704067200
+[21h50m33.42s] Calculated moon phase value: 0.6586774333896429
+[21h50m33.42s] Moon phase name: Waning Gibbous
+[21h50m34.46s] No forecast items found for tomorrow (2024-01-02)
+[21h50m34.46s] Moon phase calculation for timestamp: 1704067200
+[21h50m34.46s] Calculated moon phase value: 0.6586774333896429
+[21h50m34.46s] Moon phase name: Waning Gibbous
+[21h50m34.46s] No forecast items found for tomorrow (2024-01-02)
+[21h50m34.46s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m34.46s] Moon phase calculation for timestamp: 1704067200
+[21h50m34.46s] Calculated moon phase value: 0.6586774333896429
+[21h50m34.46s] Moon phase name: Waning Gibbous
+[21h50m34.46s] DEBUG: No air quality data available for header
+[21h50m34.46s] DEBUG: Setting zodiac text to: CAP
+[21h50m34.82s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m34.82s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m35.00s] No forecast items found for tomorrow (2024-01-02)
+[21h50m35.00s] Moon phase calculation for timestamp: 1704067200
+[21h50m35.00s] Calculated moon phase value: 0.6586774333896429
+[21h50m35.00s] Moon phase name: Waning Gibbous
+[21h50m35.00s] No forecast items found for tomorrow (2024-01-02)
+[21h50m35.00s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m35.25s] No forecast items found for tomorrow (2024-01-02)
+[21h50m35.25s] Moon phase calculation for timestamp: 1704067200
+[21h50m35.25s] Calculated moon phase value: 0.6586774333896429
+[21h50m35.25s] Moon phase name: Waning Gibbous
+[21h50m35.25s] No forecast items found for tomorrow (2024-01-02)
+[21h50m35.25s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m35.25s] Moon phase calculation for timestamp: 1704067200
+[21h50m35.25s] Calculated moon phase value: 0.6586774333896429
+[21h50m35.26s] Moon phase name: Waning Gibbous
+[21h50m35.26s] DEBUG: No air quality data available for header
+[21h50m35.26s] DEBUG: Setting zodiac text to: CAP
+[21h50m35.50s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m35.50s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m35.92s] Moon phase calculation for timestamp: 1704070800
+[21h50m35.92s] Calculated moon phase value: 0.6586774333896429
+[21h50m35.92s] Moon phase name: Waning Gibbous
+[21h50m35.92s] No forecast items found for tomorrow (2024-01-02)
+[21h50m35.92s] Moon phase calculation for timestamp: 1704070800
+[21h50m35.93s] Calculated moon phase value: 0.6586774333896429
+[21h50m35.93s] Moon phase name: Waning Gibbous
+[21h50m35.93s] No forecast items found for tomorrow (2024-01-02)
+[21h50m35.93s] Generated weather narrative: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m35.93s] Moon phase calculation for timestamp: 1704070800
+[21h50m35.93s] Calculated moon phase value: 0.6586774333896429
+[21h50m35.93s] Moon phase name: Waning Gibbous
+[21h50m35.93s] DEBUG: No air quality data available for header
+[21h50m35.93s] DEBUG: Setting zodiac text to: CAP
+[21h50m36.16s] DEBUG: Starting XML markup parsing on text: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m36.16s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m36.31s] No forecast items found for tomorrow (2024-01-02)
+[21h50m36.31s] Moon phase calculation for timestamp: 1704070800
+[21h50m36.31s] Calculated moon phase value: 0.6586774333896429
+[21h50m36.31s] Moon phase name: Waning Gibbous
+[21h50m36.31s] No forecast items found for tomorrow (2024-01-02)
+[21h50m36.31s] Generated weather narrative: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m36.56s] No forecast items found for tomorrow (2024-01-02)
+[21h50m36.56s] Moon phase calculation for timestamp: 1704070800
+[21h50m36.56s] Calculated moon phase value: 0.6586774333896429
+[21h50m36.56s] Moon phase name: Waning Gibbous
+[21h50m36.56s] No forecast items found for tomorrow (2024-01-02)
+[21h50m36.56s] Generated weather narrative: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m36.56s] Moon phase calculation for timestamp: 1704070800
+[21h50m36.56s] Calculated moon phase value: 0.6586774333896429
+[21h50m36.56s] Moon phase name: Waning Gibbous
+[21h50m36.57s] DEBUG: No air quality data available for header
+[21h50m36.57s] DEBUG: Setting zodiac text to: CAP
+[21h50m36.82s] DEBUG: Starting XML markup parsing on text: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m36.82s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m37.23s] Moon phase calculation for timestamp: 1704074400
+[21h50m37.23s] Calculated moon phase value: 0.6586774333896429
+[21h50m37.23s] Moon phase name: Waning Gibbous
+[21h50m37.24s] No forecast items found for tomorrow (2024-01-02)
+[21h50m37.24s] Moon phase calculation for timestamp: 1704074400
+[21h50m37.24s] Calculated moon phase value: 0.6586774333896429
+[21h50m37.24s] Moon phase name: Waning Gibbous
+[21h50m37.24s] No forecast items found for tomorrow (2024-01-02)
+[21h50m37.24s] Generated weather narrative: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m37.24s] Moon phase calculation for timestamp: 1704074400
+[21h50m37.24s] Calculated moon phase value: 0.6586774333896429
+[21h50m37.24s] Moon phase name: Waning Gibbous
+[21h50m37.24s] DEBUG: No air quality data available for header
+[21h50m37.24s] DEBUG: Setting zodiac text to: CAP
+[21h50m37.48s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m37.48s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m37.63s] No forecast items found for tomorrow (2024-01-02)
+[21h50m37.63s] Moon phase calculation for timestamp: 1704074400
+[21h50m37.63s] Calculated moon phase value: 0.6586774333896429
+[21h50m37.63s] Moon phase name: Waning Gibbous
+[21h50m37.63s] No forecast items found for tomorrow (2024-01-02)
+[21h50m37.63s] Generated weather narrative: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m37.88s] No forecast items found for tomorrow (2024-01-02)
+[21h50m37.88s] Moon phase calculation for timestamp: 1704074400
+[21h50m37.88s] Calculated moon phase value: 0.6586774333896429
+[21h50m37.88s] Moon phase name: Waning Gibbous
+[21h50m37.88s] No forecast items found for tomorrow (2024-01-02)
+[21h50m37.88s] Generated weather narrative: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m37.88s] Moon phase calculation for timestamp: 1704074400
+[21h50m37.88s] Calculated moon phase value: 0.6586774333896429
+[21h50m37.88s] Moon phase name: Waning Gibbous
+[21h50m37.88s] DEBUG: No air quality data available for header
+[21h50m37.88s] DEBUG: Setting zodiac text to: CAP
+[21h50m38.13s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m38.13s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m38.54s] Moon phase calculation for timestamp: 1704078000
+[21h50m38.54s] Calculated moon phase value: 0.6586774333896429
+[21h50m38.54s] Moon phase name: Waning Gibbous
+[21h50m38.55s] No forecast items found for tomorrow (2024-01-02)
+[21h50m38.55s] Moon phase calculation for timestamp: 1704078000
+[21h50m38.55s] Calculated moon phase value: 0.6586774333896429
+[21h50m38.55s] Moon phase name: Waning Gibbous
+[21h50m38.55s] No forecast items found for tomorrow (2024-01-02)
+[21h50m38.55s] Generated weather narrative: Partly cloudy and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m38.55s] Moon phase calculation for timestamp: 1704078000
+[21h50m38.55s] Calculated moon phase value: 0.6586774333896429
+[21h50m38.55s] Moon phase name: Waning Gibbous
+[21h50m38.55s] DEBUG: No air quality data available for header
+[21h50m38.55s] DEBUG: Setting zodiac text to: CAP
+[21h50m38.79s] DEBUG: Starting XML markup parsing on text: Partly cloudy and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m38.79s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m38.94s] No forecast items found for tomorrow (2024-01-02)
+[21h50m38.94s] Moon phase calculation for timestamp: 1704078000
+[21h50m38.94s] Calculated moon phase value: 0.6586774333896429
+[21h50m38.94s] Moon phase name: Waning Gibbous
+[21h50m38.94s] No forecast items found for tomorrow (2024-01-02)
+[21h50m38.94s] Generated weather narrative: Partly cloudy and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m39.19s] No forecast items found for tomorrow (2024-01-02)
+[21h50m39.19s] Moon phase calculation for timestamp: 1704078000
+[21h50m39.19s] Calculated moon phase value: 0.6586774333896429
+[21h50m39.19s] Moon phase name: Waning Gibbous
+[21h50m39.19s] No forecast items found for tomorrow (2024-01-02)
+[21h50m39.19s] Generated weather narrative: Partly cloudy and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m39.19s] Moon phase calculation for timestamp: 1704078000
+[21h50m39.19s] Calculated moon phase value: 0.6586774333896429
+[21h50m39.19s] Moon phase name: Waning Gibbous
+[21h50m39.19s] DEBUG: No air quality data available for header
+[21h50m39.19s] DEBUG: Setting zodiac text to: CAP
+[21h50m39.44s] DEBUG: Starting XML markup parsing on text: Partly cloudy and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m39.44s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m39.85s] Moon phase calculation for timestamp: 1704081600
+[21h50m39.85s] Calculated moon phase value: 0.6586774333896429
+[21h50m39.85s] Moon phase name: Waning Gibbous
+[21h50m39.86s] No forecast items found for tomorrow (2024-01-02)
+[21h50m39.86s] Moon phase calculation for timestamp: 1704081600
+[21h50m39.86s] Calculated moon phase value: 0.6586774333896429
+[21h50m39.86s] Moon phase name: Waning Gibbous
+[21h50m39.86s] No forecast items found for tomorrow (2024-01-02)
+[21h50m39.86s] Generated weather narrative: Partly cloudy and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m39.86s] Moon phase calculation for timestamp: 1704081600
+[21h50m39.86s] Calculated moon phase value: 0.6586774333896429
+[21h50m39.86s] Moon phase name: Waning Gibbous
+[21h50m39.86s] DEBUG: No air quality data available for header
+[21h50m39.86s] DEBUG: Setting zodiac text to: CAP
+[21h50m40.10s] DEBUG: Starting XML markup parsing on text: Partly cloudy and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m40.10s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m40.25s] No forecast items found for tomorrow (2024-01-02)
+[21h50m40.25s] Moon phase calculation for timestamp: 1704081600
+[21h50m40.25s] Calculated moon phase value: 0.6586774333896429
+[21h50m40.25s] Moon phase name: Waning Gibbous
+[21h50m40.25s] No forecast items found for tomorrow (2024-01-02)
+[21h50m40.25s] Generated weather narrative: Partly cloudy and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m40.50s] No forecast items found for tomorrow (2024-01-02)
+[21h50m40.50s] Moon phase calculation for timestamp: 1704081600
+[21h50m40.50s] Calculated moon phase value: 0.6586774333896429
+[21h50m40.50s] Moon phase name: Waning Gibbous
+[21h50m40.50s] No forecast items found for tomorrow (2024-01-02)
+[21h50m40.50s] Generated weather narrative: Partly cloudy and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m40.50s] Moon phase calculation for timestamp: 1704081600
+[21h50m40.50s] Calculated moon phase value: 0.6586774333896429
+[21h50m40.51s] Moon phase name: Waning Gibbous
+[21h50m40.51s] DEBUG: No air quality data available for header
+[21h50m40.51s] DEBUG: Setting zodiac text to: CAP
+[21h50m40.76s] DEBUG: Starting XML markup parsing on text: Partly cloudy and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m40.76s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m41.19s] Moon phase calculation for timestamp: 1704067200
+[21h50m41.19s] Calculated moon phase value: 0.6586774333896429
+[21h50m41.19s] Moon phase name: Waning Gibbous
+[21h50m41.20s] No forecast items found for tomorrow (2024-01-02)
+[21h50m41.20s] Moon phase calculation for timestamp: 1704067200
+[21h50m41.20s] Calculated moon phase value: 0.6586774333896429
+[21h50m41.20s] Moon phase name: Waning Gibbous
+[21h50m41.20s] No forecast items found for tomorrow (2024-01-02)
+[21h50m41.20s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m41.20s] Moon phase calculation for timestamp: 1704067200
+[21h50m41.20s] Calculated moon phase value: 0.6586774333896429
+[21h50m41.20s] Moon phase name: Waning Gibbous
+[21h50m41.20s] DEBUG: No air quality data available for header
+[21h50m41.20s] DEBUG: Setting zodiac text to: CAP
+[21h50m41.44s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m41.44s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m41.60s] No forecast items found for tomorrow (2024-01-02)
+[21h50m41.60s] Moon phase calculation for timestamp: 1704067200
+[21h50m41.60s] Calculated moon phase value: 0.6586774333896429
+[21h50m41.60s] Moon phase name: Waning Gibbous
+[21h50m41.60s] No forecast items found for tomorrow (2024-01-02)
+[21h50m41.60s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m41.87s] Moon phase calculation for timestamp: 1704070800
+[21h50m41.87s] Calculated moon phase value: 0.6586774333896429
+[21h50m41.88s] Moon phase name: Waning Gibbous
+[21h50m41.88s] No forecast items found for tomorrow (2024-01-02)
+[21h50m41.88s] Moon phase calculation for timestamp: 1704070800
+[21h50m41.88s] Calculated moon phase value: 0.6586774333896429
+[21h50m41.88s] Moon phase name: Waning Gibbous
+[21h50m41.88s] No forecast items found for tomorrow (2024-01-02)
+[21h50m41.88s] Generated weather narrative: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m41.88s] Moon phase calculation for timestamp: 1704070800
+[21h50m41.88s] Calculated moon phase value: 0.6586774333896429
+[21h50m41.88s] Moon phase name: Waning Gibbous
+[21h50m41.89s] DEBUG: No air quality data available for header
+[21h50m41.89s] DEBUG: Setting zodiac text to: CAP
+[21h50m42.13s] DEBUG: Starting XML markup parsing on text: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m42.13s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m42.28s] No forecast items found for tomorrow (2024-01-02)
+[21h50m42.28s] Moon phase calculation for timestamp: 1704070800
+[21h50m42.28s] Calculated moon phase value: 0.6586774333896429
+[21h50m42.28s] Moon phase name: Waning Gibbous
+[21h50m42.28s] No forecast items found for tomorrow (2024-01-02)
+[21h50m42.28s] Generated weather narrative: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m42.56s] Moon phase calculation for timestamp: 1704074400
+[21h50m42.56s] Calculated moon phase value: 0.6586774333896429
+[21h50m42.56s] Moon phase name: Waning Gibbous
+[21h50m42.57s] No forecast items found for tomorrow (2024-01-02)
+[21h50m42.57s] Moon phase calculation for timestamp: 1704074400
+[21h50m42.57s] Calculated moon phase value: 0.6586774333896429
+[21h50m42.57s] Moon phase name: Waning Gibbous
+[21h50m42.57s] No forecast items found for tomorrow (2024-01-02)
+[21h50m42.57s] Generated weather narrative: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m42.57s] Moon phase calculation for timestamp: 1704074400
+[21h50m42.57s] Calculated moon phase value: 0.6586774333896429
+[21h50m42.57s] Moon phase name: Waning Gibbous
+[21h50m42.57s] DEBUG: No air quality data available for header
+[21h50m42.57s] DEBUG: Setting zodiac text to: CAP
+[21h50m42.82s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m42.82s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m42.96s] No forecast items found for tomorrow (2024-01-02)
+[21h50m42.96s] Moon phase calculation for timestamp: 1704074400
+[21h50m42.97s] Calculated moon phase value: 0.6586774333896429
+[21h50m42.97s] Moon phase name: Waning Gibbous
+[21h50m42.97s] No forecast items found for tomorrow (2024-01-02)
+[21h50m42.97s] Generated weather narrative: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m43.24s] Moon phase calculation for timestamp: 1704078000
+[21h50m43.24s] Calculated moon phase value: 0.6586774333896429
+[21h50m43.24s] Moon phase name: Waning Gibbous
+[21h50m43.25s] No forecast items found for tomorrow (2024-01-02)
+[21h50m43.25s] Moon phase calculation for timestamp: 1704078000
+[21h50m43.25s] Calculated moon phase value: 0.6586774333896429
+[21h50m43.25s] Moon phase name: Waning Gibbous
+[21h50m43.25s] No forecast items found for tomorrow (2024-01-02)
+[21h50m43.25s] Generated weather narrative: Partly cloudy and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m43.25s] Moon phase calculation for timestamp: 1704078000
+[21h50m43.25s] Calculated moon phase value: 0.6586774333896429
+[21h50m43.25s] Moon phase name: Waning Gibbous
+[21h50m43.25s] DEBUG: No air quality data available for header
+[21h50m43.25s] DEBUG: Setting zodiac text to: CAP
+[21h50m43.50s] DEBUG: Starting XML markup parsing on text: Partly cloudy and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m43.50s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m43.65s] No forecast items found for tomorrow (2024-01-02)
+[21h50m43.65s] Moon phase calculation for timestamp: 1704078000
+[21h50m43.65s] Calculated moon phase value: 0.6586774333896429
+[21h50m43.65s] Moon phase name: Waning Gibbous
+[21h50m43.65s] No forecast items found for tomorrow (2024-01-02)
+[21h50m43.65s] Generated weather narrative: Partly cloudy and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m43.93s] Moon phase calculation for timestamp: 1704081600
+[21h50m43.93s] Calculated moon phase value: 0.6586774333896429
+[21h50m43.93s] Moon phase name: Waning Gibbous
+[21h50m43.94s] No forecast items found for tomorrow (2024-01-02)
+[21h50m43.94s] Moon phase calculation for timestamp: 1704081600
+[21h50m43.94s] Calculated moon phase value: 0.6586774333896429
+[21h50m43.94s] Moon phase name: Waning Gibbous
+[21h50m43.94s] No forecast items found for tomorrow (2024-01-02)
+[21h50m43.94s] Generated weather narrative: Partly cloudy and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h50m43.94s] Moon phase calculation for timestamp: 1704081600
+[21h50m43.94s] Calculated moon phase value: 0.6586774333896429
+[21h50m43.94s] Moon phase name: Waning Gibbous
+[21h50m43.94s] DEBUG: No air quality data available for header
+[21h50m43.94s] DEBUG: Setting zodiac text to: CAP
+[21h50m44.18s] DEBUG: Starting XML markup parsing on text: Partly cloudy and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h50m44.19s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h50m44.34s] No forecast items found for tomorrow (2024-01-02)
+[21h50m44.34s] Moon phase calculation for timestamp: 1704081600
+[21h50m44.34s] Calculated moon phase value: 0.6586774333896429
+[21h50m44.34s] Moon phase name: Waning Gibbous
+[21h50m44.34s] No forecast items found for tomorrow (2024-01-02)
+[21h50m44.34s] Generated weather narrative: Partly cloudy and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m32.40s] Moon phase calculation for timestamp: 1704067200
+[21h55m32.40s] Calculated moon phase value: 0.6586774333896429
+[21h55m32.40s] Moon phase name: Waning Gibbous
+[21h55m33.46s] No forecast items found for tomorrow (2024-01-02)
+[21h55m33.46s] Moon phase calculation for timestamp: 1704067200
+[21h55m33.46s] Calculated moon phase value: 0.6586774333896429
+[21h55m33.46s] Moon phase name: Waning Gibbous
+[21h55m33.46s] No forecast items found for tomorrow (2024-01-02)
+[21h55m33.46s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m33.46s] Moon phase calculation for timestamp: 1704067200
+[21h55m33.46s] Calculated moon phase value: 0.6586774333896429
+[21h55m33.46s] Moon phase name: Waning Gibbous
+[21h55m33.46s] DEBUG: No air quality data available for header
+[21h55m33.46s] DEBUG: Setting zodiac text to: CAP
+[21h55m33.82s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h55m33.82s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h55m34.00s] No forecast items found for tomorrow (2024-01-02)
+[21h55m34.00s] Moon phase calculation for timestamp: 1704067200
+[21h55m34.00s] Calculated moon phase value: 0.6586774333896429
+[21h55m34.00s] Moon phase name: Waning Gibbous
+[21h55m34.00s] No forecast items found for tomorrow (2024-01-02)
+[21h55m34.00s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m34.25s] No forecast items found for tomorrow (2024-01-02)
+[21h55m34.25s] Moon phase calculation for timestamp: 1704067200
+[21h55m34.25s] Calculated moon phase value: 0.6586774333896429
+[21h55m34.25s] Moon phase name: Waning Gibbous
+[21h55m34.25s] No forecast items found for tomorrow (2024-01-02)
+[21h55m34.25s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m34.25s] Moon phase calculation for timestamp: 1704067200
+[21h55m34.25s] Calculated moon phase value: 0.6586774333896429
+[21h55m34.25s] Moon phase name: Waning Gibbous
+[21h55m34.25s] DEBUG: No air quality data available for header
+[21h55m34.25s] DEBUG: Setting zodiac text to: CAP
+[21h55m34.51s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h55m34.51s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h55m35.16s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h55m35.16s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h55m35.33s] Moon phase calculation for timestamp: 1704070800
+[21h55m35.33s] Calculated moon phase value: 0.6586774333896429
+[21h55m35.33s] Moon phase name: Waning Gibbous
+[21h55m35.34s] No forecast items found for tomorrow (2024-01-02)
+[21h55m35.34s] Moon phase calculation for timestamp: 1704070800
+[21h55m35.34s] Calculated moon phase value: 0.6586774333896429
+[21h55m35.34s] Moon phase name: Waning Gibbous
+[21h55m35.34s] No forecast items found for tomorrow (2024-01-02)
+[21h55m35.34s] Generated weather narrative: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m35.34s] Moon phase calculation for timestamp: 1704070800
+[21h55m35.34s] Calculated moon phase value: 0.6586774333896429
+[21h55m35.34s] Moon phase name: Waning Gibbous
+[21h55m35.34s] DEBUG: No air quality data available for header
+[21h55m35.34s] DEBUG: Setting zodiac text to: CAP
+[21h55m35.59s] DEBUG: Starting XML markup parsing on text: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h55m35.59s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h55m35.75s] No forecast items found for tomorrow (2024-01-02)
+[21h55m35.75s] Moon phase calculation for timestamp: 1704070800
+[21h55m35.75s] Calculated moon phase value: 0.6586774333896429
+[21h55m35.75s] Moon phase name: Waning Gibbous
+[21h55m35.75s] No forecast items found for tomorrow (2024-01-02)
+[21h55m35.75s] Generated weather narrative: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m36.00s] No forecast items found for tomorrow (2024-01-02)
+[21h55m36.00s] Moon phase calculation for timestamp: 1704070800
+[21h55m36.00s] Calculated moon phase value: 0.6586774333896429
+[21h55m36.00s] Moon phase name: Waning Gibbous
+[21h55m36.00s] No forecast items found for tomorrow (2024-01-02)
+[21h55m36.00s] Generated weather narrative: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m36.00s] Moon phase calculation for timestamp: 1704070800
+[21h55m36.00s] Calculated moon phase value: 0.6586774333896429
+[21h55m36.00s] Moon phase name: Waning Gibbous
+[21h55m36.00s] DEBUG: No air quality data available for header
+[21h55m36.00s] DEBUG: Setting zodiac text to: CAP
+[21h55m36.26s] DEBUG: Starting XML markup parsing on text: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h55m36.26s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h55m36.92s] DEBUG: Starting XML markup parsing on text: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h55m36.93s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h55m37.10s] Moon phase calculation for timestamp: 1704074400
+[21h55m37.10s] Calculated moon phase value: 0.6586774333896429
+[21h55m37.10s] Moon phase name: Waning Gibbous
+[21h55m37.11s] No forecast items found for tomorrow (2024-01-02)
+[21h55m37.11s] Moon phase calculation for timestamp: 1704074400
+[21h55m37.11s] Calculated moon phase value: 0.6586774333896429
+[21h55m37.11s] Moon phase name: Waning Gibbous
+[21h55m37.11s] No forecast items found for tomorrow (2024-01-02)
+[21h55m37.11s] Generated weather narrative: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m37.11s] Moon phase calculation for timestamp: 1704074400
+[21h55m37.11s] Calculated moon phase value: 0.6586774333896429
+[21h55m37.11s] Moon phase name: Waning Gibbous
+[21h55m37.11s] DEBUG: No air quality data available for header
+[21h55m37.11s] DEBUG: Setting zodiac text to: CAP
+[21h55m37.36s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h55m37.36s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h55m37.51s] No forecast items found for tomorrow (2024-01-02)
+[21h55m37.51s] Moon phase calculation for timestamp: 1704074400
+[21h55m37.51s] Calculated moon phase value: 0.6586774333896429
+[21h55m37.51s] Moon phase name: Waning Gibbous
+[21h55m37.51s] No forecast items found for tomorrow (2024-01-02)
+[21h55m37.51s] Generated weather narrative: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m37.76s] No forecast items found for tomorrow (2024-01-02)
+[21h55m37.76s] Moon phase calculation for timestamp: 1704074400
+[21h55m37.76s] Calculated moon phase value: 0.6586774333896429
+[21h55m37.76s] Moon phase name: Waning Gibbous
+[21h55m37.76s] No forecast items found for tomorrow (2024-01-02)
+[21h55m37.76s] Generated weather narrative: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m37.76s] Moon phase calculation for timestamp: 1704074400
+[21h55m37.76s] Calculated moon phase value: 0.6586774333896429
+[21h55m37.76s] Moon phase name: Waning Gibbous
+[21h55m37.76s] DEBUG: No air quality data available for header
+[21h55m37.76s] DEBUG: Setting zodiac text to: CAP
+[21h55m38.02s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h55m38.02s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h55m38.68s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h55m38.68s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h55m38.86s] Moon phase calculation for timestamp: 1704067200
+[21h55m38.86s] Calculated moon phase value: 0.6586774333896429
+[21h55m38.87s] Moon phase name: Waning Gibbous
+[21h55m38.87s] No forecast items found for tomorrow (2024-01-02)
+[21h55m38.87s] Moon phase calculation for timestamp: 1704067200
+[21h55m38.87s] Calculated moon phase value: 0.6586774333896429
+[21h55m38.87s] Moon phase name: Waning Gibbous
+[21h55m38.87s] No forecast items found for tomorrow (2024-01-02)
+[21h55m38.87s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m38.87s] Moon phase calculation for timestamp: 1704067200
+[21h55m38.87s] Calculated moon phase value: 0.6586774333896429
+[21h55m38.87s] Moon phase name: Waning Gibbous
+[21h55m38.87s] DEBUG: No air quality data available for header
+[21h55m38.87s] DEBUG: Setting zodiac text to: CAP
+[21h55m39.12s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°)....
+[21h55m39.12s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h55m39.27s] No forecast items found for tomorrow (2024-01-02)
+[21h55m39.27s] Moon phase calculation for timestamp: 1704067200
+[21h55m39.27s] Calculated moon phase value: 0.6586774333896429
+[21h55m39.27s] Moon phase name: Waning Gibbous
+[21h55m39.27s] No forecast items found for tomorrow (2024-01-02)
+[21h55m39.27s] Generated weather narrative: Overcast and cold, <h>4</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m39.55s] Moon phase calculation for timestamp: 1704070800
+[21h55m39.55s] Calculated moon phase value: 0.6586774333896429
+[21h55m39.55s] Moon phase name: Waning Gibbous
+[21h55m39.56s] No forecast items found for tomorrow (2024-01-02)
+[21h55m39.56s] Moon phase calculation for timestamp: 1704070800
+[21h55m39.56s] Calculated moon phase value: 0.6586774333896429
+[21h55m39.56s] Moon phase name: Waning Gibbous
+[21h55m39.56s] No forecast items found for tomorrow (2024-01-02)
+[21h55m39.56s] Generated weather narrative: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m39.56s] Moon phase calculation for timestamp: 1704070800
+[21h55m39.56s] Calculated moon phase value: 0.6586774333896429
+[21h55m39.56s] Moon phase name: Waning Gibbous
+[21h55m39.56s] DEBUG: No air quality data available for header
+[21h55m39.56s] DEBUG: Setting zodiac text to: CAP
+[21h55m39.81s] DEBUG: Starting XML markup parsing on text: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h55m39.81s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h55m39.96s] No forecast items found for tomorrow (2024-01-02)
+[21h55m39.96s] Moon phase calculation for timestamp: 1704070800
+[21h55m39.97s] Calculated moon phase value: 0.6586774333896429
+[21h55m39.97s] Moon phase name: Waning Gibbous
+[21h55m39.97s] No forecast items found for tomorrow (2024-01-02)
+[21h55m39.97s] Generated weather narrative: Clear and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m40.24s] Moon phase calculation for timestamp: 1704074400
+[21h55m40.24s] Calculated moon phase value: 0.6586774333896429
+[21h55m40.24s] Moon phase name: Waning Gibbous
+[21h55m40.25s] No forecast items found for tomorrow (2024-01-02)
+[21h55m40.25s] Moon phase calculation for timestamp: 1704074400
+[21h55m40.25s] Calculated moon phase value: 0.6586774333896429
+[21h55m40.25s] Moon phase name: Waning Gibbous
+[21h55m40.25s] No forecast items found for tomorrow (2024-01-02)
+[21h55m40.25s] Generated weather narrative: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
+[21h55m40.25s] Moon phase calculation for timestamp: 1704074400
+[21h55m40.25s] Calculated moon phase value: 0.6586774333896429
+[21h55m40.25s] Moon phase name: Waning Gibbous
+[21h55m40.25s] DEBUG: No air quality data available for header
+[21h55m40.25s] DEBUG: Setting zodiac text to: CAP
+[21h55m40.50s] DEBUG: Starting XML markup parsing on text: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°)....
+[21h55m40.50s] DEBUG: XML markup parsing complete. Found 6 segments
+[21h55m40.65s] No forecast items found for tomorrow (2024-01-02)
+[21h55m40.65s] Moon phase calculation for timestamp: 1704074400
+[21h55m40.66s] Calculated moon phase value: 0.6586774333896429
+[21h55m40.66s] Moon phase name: Waning Gibbous
+[21h55m40.66s] No forecast items found for tomorrow (2024-01-02)
+[21h55m40.66s] Generated weather narrative: Overcast and cold, <h>3</h>° (<i>feels like</i> <h>0</h>°).
