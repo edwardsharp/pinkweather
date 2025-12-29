@@ -22,6 +22,9 @@ OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 LATITUDE = float(os.getenv("LATITUDE", 40.655786))
 LONGITUDE = float(os.getenv("LONGITUDE", -73.9585369))
 
+# Weatherbit.io API Configuration (for severe weather alerts) - loaded from .env
+WEATHERBIT_API_KEY = os.getenv("WEATHERBIT_API_KEY")
+
 # Timezone Configuration - loaded from .env
 TIMEZONE_OFFSET_HOURS = int(os.getenv("TIMEZONE_OFFSET_HOURS", -5))
 

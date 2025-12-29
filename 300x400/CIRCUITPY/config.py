@@ -39,6 +39,9 @@ OPENWEATHER_API_KEY = None  # API key string
 LATITUDE = None  # latitude number
 LONGITUDE = None  # longitude number
 
+# Weatherbit.io API Configuration (for severe weather alerts)
+WEATHERBIT_API_KEY = None  # API key string for weatherbit.io alerts
+
 # Timezone Configuration
 TIMEZONE_OFFSET_HOURS = (
     -5

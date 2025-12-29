@@ -11,6 +11,7 @@ from weather import weather_api
 from weather.narrative import get_weather_narrative
 
 from display.header import create_weather_layout
+from display.severe_alert import create_alert_overlay
 
 
 def generate_weather_narrative(weather_data):
@@ -130,5 +131,19 @@ def create_weather_display_layout(
         zodiac_sign=weather_data.get("zodiac_sign"),
         indoor_temp_humidity=indoor_temp_humidity,
     )
+
+    # Add severe weather alert overlay if alerts exist
+    alerts_data = weather_data.get("alerts")
+    log(f"DEBUG: alerts_data = {alerts_data}")
+    if alerts_data:
+        log(f"DEBUG: Found alerts data, calling create_alert_overlay")
+        alert_overlay = create_alert_overlay(icon_loader, alerts_data)
+        if alert_overlay:
+            log(f"DEBUG: Alert overlay created successfully, appending to layout")
+            layout.append(alert_overlay)
+        else:
+            log(f"DEBUG: create_alert_overlay returned None")
+    else:
+        log(f"DEBUG: No alerts data found in weather_data")
 
     return layout

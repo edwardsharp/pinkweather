@@ -20,7 +20,7 @@ class APICache:
         """Generate cache key for location and provider"""
         return f"{provider}_{lat}_{lon}"
 
-    def get(self, provider, lat, lon):
+    def get(self, provider, lat, lon, cache_duration=None):
         """Get cached response if still valid"""
         cache_key = self.get_cache_key(provider, lat, lon)
         cache_file = self.cache_dir / f"{cache_key}.json"
@@ -33,13 +33,18 @@ class APICache:
             with open(cache_file) as f:
                 cached_data = json.load(f)
 
-            # Check if cache is still valid
-            cached_time = cached_data.get("timestamp", 0)
-            age_seconds = time.time() - cached_time
-            print(
-                f"DEBUG CACHE: Found cache for {cache_key}, age: {age_seconds:.1f}s (max: {self.cache_duration}s)"
+            cache_timestamp = cached_data["timestamp"]
+            current_time = time.time()
+            age_seconds = current_time - cache_timestamp
+
+            # Use custom cache duration if provided, otherwise use default
+            max_age = (
+                cache_duration if cache_duration is not None else self.cache_duration
             )
-            if age_seconds < self.cache_duration:
+            print(
+                f"DEBUG CACHE: Found cache for {cache_key}, age: {age_seconds:.1f}s (max: {max_age}s)"
+            )
+            if age_seconds < max_age:
                 print(f"DEBUG CACHE: Cache still valid, returning cached data")
                 return cached_data.get("data")
             else:
@@ -51,15 +56,20 @@ class APICache:
         except Exception:
             return None
 
-    def set(self, provider, lat, lon, data):
+    def set(self, provider, lat, lon, data, cache_duration=None):
         """Cache API response"""
         cache_key = self.get_cache_key(provider, lat, lon)
         cache_file = self.cache_dir / f"{cache_key}.json"
 
         cache_timestamp = time.time()
         cached_data = {"timestamp": cache_timestamp, "data": data}
+
+        # Log custom cache duration if provided
+        duration_msg = (
+            f" (custom duration: {cache_duration}s)" if cache_duration else ""
+        )
         print(
-            f"DEBUG CACHE: Caching data for {cache_key} at timestamp {cache_timestamp}"
+            f"DEBUG CACHE: Caching data for {cache_key} at timestamp {cache_timestamp}{duration_msg}"
         )
 
         try:

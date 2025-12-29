@@ -8,7 +8,7 @@ from utils import moon_phase
 from utils.astro_utils import get_zodiac_sign_from_timestamp
 from utils.logger import log
 
-from weather import open_meteo, openweathermap
+from weather import open_meteo, openweathermap, weatherbit
 from weather.date_utils import (
     format_timestamp_to_date,
     format_timestamp_to_time,
@@ -453,9 +453,10 @@ def fetch_weather_data(config_dict=None, http_client=None):
     provider = getattr(config, "WEATHER_PROVIDER", "openweathermap")
     log(f"Using weather provider: {provider}")
 
+    weather_data = None
     if provider == "openweathermap":
         timezone_offset = config_dict.get("timezone_offset_hours", -5)
-        return openweathermap.fetch_openweathermap_data(
+        weather_data = openweathermap.fetch_openweathermap_data(
             http_client, config_dict, timezone_offset
         )
 
@@ -471,11 +472,34 @@ def fetch_weather_data(config_dict=None, http_client=None):
             log("Open-Meteo fetch failed")
             return None
 
-        return convert_weather_data_to_legacy_format(weather_data)
+        weather_data = convert_weather_data_to_legacy_format(weather_data)
 
     else:
         log(f"Unknown weather provider: {provider}")
         return None
+
+    # Always fetch weatherbit alerts if API key is configured
+    weatherbit_api_key = getattr(config, "WEATHERBIT_API_KEY", None)
+    if weather_data and weatherbit_api_key:
+        lat = config_dict.get("latitude")
+        lon = config_dict.get("longitude")
+
+        if lat is not None and lon is not None:
+            alerts_data = weatherbit.fetch_weatherbit_alerts(
+                http_client, lat, lon, weatherbit_api_key
+            )
+
+            if alerts_data:
+                weather_data["alerts"] = alerts_data
+            else:
+                weather_data["alerts"] = {"has_alerts": False, "alerts": []}
+        else:
+            log("Cannot fetch weatherbit alerts: missing lat/lon")
+            weather_data["alerts"] = {"has_alerts": False, "alerts": []}
+    else:
+        weather_data["alerts"] = {"has_alerts": False, "alerts": []}
+
+    return weather_data
 
 
 def convert_weather_data_to_legacy_format(weather_data):
@@ -589,4 +613,6 @@ def get_display_variables(weather_data):
         "moon_icon_name": moon_icon_name,
         # Zodiac sign
         "zodiac_sign": zodiac_sign,
+        # Alerts data
+        "alerts": weather_data.get("alerts"),
     }
