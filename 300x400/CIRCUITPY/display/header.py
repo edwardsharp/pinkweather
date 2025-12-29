@@ -73,8 +73,19 @@ def create_header(
 
     if air_quality and air_quality.get("aqi_text"):
         aqi_text = air_quality["aqi_text"].upper()
+
+        # Shorten AQI descriptions for limited header space
+        aqi_shorthand = {
+            "VERY POOR": "VPOOR",
+            "MODERATE": "MOD",
+            "GOOD": "GOOD",
+            "FAIR": "FAIR",
+            "POOR": "POOR",
+        }
+        aqi_display = aqi_shorthand.get(aqi_text, aqi_text)
+
         aqi_value = air_quality.get("aqi", 1)
-        air_quality_str = f"AQ: {aqi_text}"
+        air_quality_str = f"AQ:{aqi_display}"
         # Use red color for poor air quality (AQI > 2)
         air_quality_color = RED if aqi_value > 2 else WHITE
         log(
@@ -116,7 +127,7 @@ def create_header(
         aq_label = label.Label(
             hyperl15_font, text=air_quality_str, color=air_quality_color
         )
-        aq_label.x = 212
+        aq_label.x = 220
         aq_label.y = y_position - 4
         header_group.append(aq_label)
 

@@ -64,6 +64,8 @@ def get_weather_narrative(
     humidity = weather_data.get("humidity", 0)
     wind_speed = weather_data.get("wind_speed", 0)
     wind_gust = weather_data.get("wind_gust", 0)
+    air_quality = weather_data.get("air_quality")
+    uv_index = weather_data.get("uv_index", 0)
 
     current_hour = get_hour_from_timestamp(current_timestamp)
     current_day = get_day_from_timestamp(current_timestamp)
@@ -160,7 +162,13 @@ def get_weather_narrative(
     # 7. Weather suggestions (MEDIUM PRIORITY)
     rain_chance = _estimate_rain_chance(forecast_data)
     weather_suggestions = get_weather_suggestions(
-        current_temp, weather_desc, is_daytime, rain_chance, wind_speed
+        current_temp,
+        weather_desc,
+        is_daytime,
+        rain_chance,
+        wind_speed,
+        air_quality,
+        uv_index,
     )
     for suggestion in weather_suggestions:
         suggestion["category"] = "weather_suggestion"

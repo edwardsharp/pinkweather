@@ -293,7 +293,13 @@ CALENDAR_EVENTS = [
 
 # Conditional weather suggestions
 def get_weather_suggestions(
-    temperature, conditions, is_daytime=True, rain_chance=0, wind_speed=0
+    temperature,
+    conditions,
+    is_daytime=True,
+    rain_chance=0,
+    wind_speed=0,
+    air_quality=None,
+    uv_index=0,
 ):
     """Get weather-based suggestions
 
@@ -303,6 +309,8 @@ def get_weather_suggestions(
         is_daytime: Whether it's daytime (before 9pm)
         rain_chance: Chance of rain percentage (0-100)
         wind_speed: Wind speed
+        air_quality: Air quality dict with 'aqi', 'raw_aqi', 'description'
+        uv_index: UV index value
 
     Returns:
         list: List of suggestion dicts with 'text', 'priority', 'short_text'
@@ -398,6 +406,95 @@ def get_weather_suggestions(
     if "clear" in conditions.lower() and "sun" in conditions.lower() and is_daytime:
         suggestions.append(
             {"text": "wear yr sunnyz out!", "short_text": "wear sunnyz!", "priority": 6}
+        )
+
+    # Air quality warnings (only when AQI >= 3, which is 101+ US AQI)
+    if air_quality and air_quality.get("aqi", 1) >= 3:
+        raw_aqi = air_quality.get("raw_aqi", 0)
+        if raw_aqi >= 200:
+            suggestions.append(
+                {
+                    "text": f"very unhealthy air (AQI {raw_aqi})! stay indoors.",
+                    "short_text": f"bad air {raw_aqi}!",
+                    "priority": 9,
+                }
+            )
+        elif raw_aqi >= 151:
+            suggestions.append(
+                {
+                    "text": f"poor air quality (AQI {raw_aqi}) - limit outdoor time",
+                    "short_text": f"poor air {raw_aqi}",
+                    "priority": 8,
+                }
+            )
+        else:  # 101-150 range
+            suggestions.append(
+                {
+                    "text": "moderate air quality - sensitive folks limit outdoor time",
+                    "short_text": "moderate air",
+                    "priority": 7,
+                }
+            )
+
+    # UV index warnings (daytime only)
+    if is_daytime and uv_index > 0:
+        if uv_index >= 11:
+            suggestions.append(
+                {
+                    "text": f"extreme UV ({uv_index})! avoid midday sun!",
+                    "short_text": f"extreme UV {uv_index}!",
+                    "priority": 9,
+                }
+            )
+        elif uv_index >= 8:
+            suggestions.append(
+                {
+                    "text": f"very high UV ({uv_index}) - seek shade!",
+                    "short_text": f"high UV {uv_index}",
+                    "priority": 8,
+                }
+            )
+        elif uv_index >= 6:
+            suggestions.append(
+                {
+                    "text": "high UV - sunscreen essential!",
+                    "short_text": "high UV!",
+                    "priority": 7,
+                }
+            )
+        elif uv_index >= 3:
+            suggestions.append(
+                {
+                    "text": "moderate UV - use protection",
+                    "short_text": "mod UV",
+                    "priority": 5,
+                }
+            )
+
+    # Wind conditions
+    if wind_speed >= 40:
+        suggestions.append(
+            {
+                "text": "very windy! hold onto hats!",
+                "short_text": "very windy!",
+                "priority": 8,
+            }
+        )
+    elif wind_speed >= 25:
+        suggestions.append(
+            {
+                "text": "windy conditions!",
+                "short_text": "windy!",
+                "priority": 6,
+            }
+        )
+    elif wind_speed >= 15:
+        suggestions.append(
+            {
+                "text": "breezy day!",
+                "short_text": "breezy!",
+                "priority": 5,
+            }
         )
 
     return suggestions

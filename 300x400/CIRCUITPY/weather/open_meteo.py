@@ -3,8 +3,6 @@ Open-Meteo API provider
 Free weather API service as alternative to OpenWeatherMap
 """
 
-import json
-
 from utils.logger import log
 
 from weather.date_utils import format_timestamp_to_time, utc_to_local
@@ -13,34 +11,60 @@ from weather.weather_models import APIValidator
 
 def fetch_open_meteo_data(http_client, lat, lon, timezone_offset_hours=-5):
     """Fetch data from Open-Meteo API using injected HTTP client"""
-    # Open-Meteo API call
-    url = "https://api.open-meteo.com/v1/forecast"
-
-    # Build URL with params manually for CircuitPython compatibility
-    params = {
+    # Open-Meteo weather API call
+    weather_url = "https://api.open-meteo.com/v1/forecast"
+    weather_params = {
         "latitude": lat,
         "longitude": lon,
-        "current": "temperature_2m,relative_humidity_2m,weather_code",
-        "hourly": "temperature_2m,precipitation_probability,weather_code",
-        "daily": "sunrise,sunset,temperature_2m_max,temperature_2m_min",
+        "current": "temperature_2m,relative_humidity_2m,weather_code,uv_index",
+        "hourly": "temperature_2m,precipitation_probability,weather_code,uv_index",
         "forecast_days": 3,
         "temperature_unit": "celsius",
         "timezone": "UTC",
     }
 
-    param_str = "&".join([f"{k}={v}" for k, v in params.items()])
-    full_url = f"{url}?{param_str}"
+    weather_param_str = "&".join([f"{k}={v}" for k, v in weather_params.items()])
+    weather_full_url = f"{weather_url}?{weather_param_str}"
+
+    # Open-Meteo air quality API call
+    aqi_url = "https://api.open-meteo.com/v1/air-quality"
+    aqi_params = {
+        "latitude": lat,
+        "longitude": lon,
+        "current": "us_aqi",
+        "hourly": "us_aqi",
+        "forecast_days": 3,
+        "timezone": "UTC",
+    }
+
+    aqi_param_str = "&".join([f"{k}={v}" for k, v in aqi_params.items()])
+    aqi_full_url = f"{aqi_url}?{aqi_param_str}"
 
     try:
-        api_response = http_client.get(full_url)
-        return transform_open_meteo_response(api_response, timezone_offset_hours)
+        # Fetch weather data
+        log("Fetching weather data from Open-Meteo...")
+        weather_response = http_client.get(weather_full_url)
+
+        # Fetch air quality data
+        aqi_response = None
+        try:
+            log("Fetching air quality data from Open-Meteo...")
+            aqi_response = http_client.get(aqi_full_url)
+        except Exception as e:
+            log(f"Air quality fetch failed: {e}")
+
+        return transform_open_meteo_response(
+            weather_response, timezone_offset_hours, aqi_response
+        )
 
     except Exception as e:
         log(f"Open-Meteo API error: {e}")
         raise
 
 
-def transform_open_meteo_response(api_response, timezone_offset_hours):
+def transform_open_meteo_response(
+    api_response, timezone_offset_hours, aqi_response=None
+):
     """Transform Open-Meteo API response to same format as OpenWeatherMap"""
     # Validate required sections
     if "current" not in api_response:
@@ -64,25 +88,39 @@ def transform_open_meteo_response(api_response, timezone_offset_hours):
 
     # Optional with logging
     current_humidity = current_validator.optional("relative_humidity_2m", 0)
+    current_uv_index = current_validator.optional("uv_index", 0)
 
-    # Parse daily data (sunrise/sunset, high/low temps)
+    # Calculate high/low temps from hourly data and estimate sunrise/sunset
     sunrise_timestamp = None
     sunset_timestamp = None
     high_temp = current_temp + 5  # Fallback
     low_temp = current_temp - 5  # Fallback
 
-    if "daily" in api_response:
-        daily_data = api_response["daily"]
-        if "sunrise" in daily_data and daily_data["sunrise"]:
-            sunrise_utc = _parse_iso_timestamp(daily_data["sunrise"][0])
-            sunrise_timestamp = utc_to_local(sunrise_utc, timezone_offset_hours)
-        if "sunset" in daily_data and daily_data["sunset"]:
-            sunset_utc = _parse_iso_timestamp(daily_data["sunset"][0])
-            sunset_timestamp = utc_to_local(sunset_utc, timezone_offset_hours)
-        if "temperature_2m_max" in daily_data and daily_data["temperature_2m_max"]:
-            high_temp = round(daily_data["temperature_2m_max"][0])
-        if "temperature_2m_min" in daily_data and daily_data["temperature_2m_min"]:
-            low_temp = round(daily_data["temperature_2m_min"][0])
+    # Calculate high/low from hourly forecast for today
+    hourly = api_response.get("hourly", {})
+    if "temperature_2m" in hourly and hourly["temperature_2m"]:
+        # Take first 24 hours for today's high/low
+        today_temps = hourly["temperature_2m"][:24]
+        if today_temps:
+            high_temp = round(max(today_temps))
+            low_temp = round(min(today_temps))
+
+    # Simple sunrise/sunset estimation (winter times, adjust as needed)
+    from datetime import datetime
+
+    current_dt = datetime.fromtimestamp(current_timestamp)
+    today_date = current_dt.date()
+
+    # Approximate times (7:30 AM / 5:30 PM local time)
+    sunrise_time = datetime.combine(today_date, datetime.min.time()).replace(
+        hour=7, minute=30
+    )
+    sunset_time = datetime.combine(today_date, datetime.min.time()).replace(
+        hour=17, minute=30
+    )
+
+    sunrise_timestamp = int(sunrise_time.timestamp())
+    sunset_timestamp = int(sunset_time.timestamp())
 
     # Build current weather data
     current_weather = {
@@ -96,6 +134,7 @@ def transform_open_meteo_response(api_response, timezone_offset_hours):
         "current_timestamp": current_timestamp,
         "sunrise_timestamp": sunrise_timestamp,
         "sunset_timestamp": sunset_timestamp,
+        "uv_index": round(current_uv_index, 1) if current_uv_index else 0,
     }
 
     # Add formatted sunrise/sunset times
@@ -115,28 +154,31 @@ def transform_open_meteo_response(api_response, timezone_offset_hours):
 
     forecast_items = []
     # Use all hourly forecast data (skip first hour which is current)
-    for i in range(1, min(len(temps), 72)):  # Start at hour 1, up to 72 hours
-        if i < len(temps):
-            # Convert UTC timestamp to local time
-            utc_dt = (
-                _parse_iso_timestamp(times[i])
-                if i < len(times)
-                else utc_timestamp + (i * 3600)
-            )
-            local_dt = utc_to_local(utc_dt, timezone_offset_hours)
+    if temps and len(temps) > 1:
+        for i in range(1, min(len(temps), 72)):  # Start at hour 1, up to 72 hours
+            if i < len(temps):
+                # Convert UTC timestamp to local time
+                utc_dt = (
+                    _parse_iso_timestamp(times[i])
+                    if times and i < len(times)
+                    else utc_timestamp + (i * 3600)
+                )
+                local_dt = utc_to_local(utc_dt, timezone_offset_hours)
 
-            forecast_item = {
-                "dt": local_dt,
-                "temp": round(temps[i]),
-                "pop": (pops[i] / 100.0)
-                if i < len(pops) and pops[i] is not None
-                else 0.0,
-                "icon": map_weather_code_to_icon(codes[i] if i < len(codes) else 0),
-                "description": map_weather_code_to_description(
-                    codes[i] if i < len(codes) else 0
-                ),
-            }
-            forecast_items.append(forecast_item)
+                forecast_item = {
+                    "dt": local_dt,
+                    "temp": round(temps[i]),
+                    "pop": (pops[i] / 100.0)
+                    if pops and i < len(pops) and pops[i] is not None
+                    else 0.0,
+                    "icon": map_weather_code_to_icon(
+                        codes[i] if codes and i < len(codes) else 0
+                    ),
+                    "description": map_weather_code_to_description(
+                        codes[i] if codes and i < len(codes) else 0
+                    ),
+                }
+                forecast_items.append(forecast_item)
 
     # Generate weather narrative using the same function as OpenWeatherMap
     from weather.narrative import get_weather_narrative
@@ -159,10 +201,20 @@ def transform_open_meteo_response(api_response, timezone_offset_hours):
     if sunset_timestamp:
         city_info["sunset"] = sunset_timestamp
 
+    # Parse air quality data
+    air_quality_data = parse_air_quality_data(aqi_response) if aqi_response else None
+    if not air_quality_data:
+        # Fallback for when AQI API fails
+        air_quality_data = {
+            "aqi": 1,
+            "raw_aqi": 25,
+            "description": "Good",
+        }
+
     return {
         "current": current_weather,
         "forecast": forecast_items,
-        "air_quality": {"description": "Good"},  # Open-Meteo doesn't provide AQI
+        "air_quality": air_quality_data,
         "city": city_info,
         # Add generated narrative for display
         "weather_desc": narrative,
@@ -226,6 +278,48 @@ def map_weather_code_to_icon(code):
         return "11d"  # Thunderstorm
     else:
         return "01d"  # Default to clear
+
+
+def parse_air_quality_data(aqi_response):
+    """Parse Open-Meteo air quality response and map to OpenWeatherMap format"""
+    if not aqi_response or "current" not in aqi_response:
+        return None
+
+    try:
+        current_aqi = aqi_response["current"]
+
+        # Get raw US AQI value
+        raw_aqi = current_aqi.get("us_aqi", 0)
+        if raw_aqi is None:
+            raw_aqi = 0
+
+        # Map US AQI to OpenWeatherMap 1-5 scale
+        if raw_aqi <= 50:
+            aqi_scale = 1
+            description = "Good"
+        elif raw_aqi <= 100:
+            aqi_scale = 2
+            description = "Fair"
+        elif raw_aqi <= 150:
+            aqi_scale = 3
+            description = "Moderate"
+        elif raw_aqi <= 200:
+            aqi_scale = 4
+            description = "Poor"
+        else:
+            aqi_scale = 5
+            description = "Very Poor"
+
+        return {
+            "aqi": aqi_scale,
+            "raw_aqi": int(raw_aqi),
+            "description": description,
+            "list": [],  # Empty list for compatibility
+        }
+
+    except (KeyError, TypeError, ValueError) as e:
+        log(f"Error parsing air quality data: {e}")
+        return None
 
 
 def _parse_iso_timestamp(time_str):

@@ -265,6 +265,7 @@
                                 </option>
                             </select>
                         </div>
+
                         <div class="form-group">
                             <small
                                 >Use arrow keys: ←→ time (3h), ↑↓ week, Space
@@ -332,6 +333,7 @@
                     useMockWeather: document.getElementById("use_mock_weather").checked,
                     mockScenario: document.getElementById("mock_scenario").value,
                     currentTimestamp: currentTimestamp,
+
                 };
                 localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
             }
@@ -379,6 +381,8 @@
                                 settings.mockScenario;
                             currentScenario = settings.mockScenario;
                         }
+
+
 
                         // Restore current timestamp
                         if (settings.currentTimestamp) {
