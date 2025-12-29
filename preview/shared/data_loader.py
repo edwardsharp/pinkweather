@@ -245,3 +245,32 @@ class CSVWeatherLoader:
             raise RuntimeError(
                 f"Failed to transform record at timestamp {timestamp}: {e}"
             )
+
+    def get_record_by_timestamp(self, target_timestamp):
+        """Find a CSV record by timestamp (exact match or closest)"""
+        try:
+            # Search through records to find exact or closest match
+            closest_record = None
+            min_diff = float("inf")
+
+            for record in self.get_records():
+                record_timestamp = int(record["timestamp"])
+                diff = abs(record_timestamp - target_timestamp)
+
+                if diff == 0:
+                    # Exact match found
+                    return record
+                elif diff < min_diff:
+                    # Keep track of closest match
+                    min_diff = diff
+                    closest_record = record
+
+            # Return closest match if within reasonable range (1 hour)
+            if closest_record and min_diff <= 3600:
+                return closest_record
+
+            return None
+
+        except Exception as e:
+            print(f"Error finding record by timestamp {target_timestamp}: {e}")
+            return None

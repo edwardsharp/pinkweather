@@ -3,9 +3,10 @@ Caching HTTP client wrapper that combines requests with API cache
 """
 
 import hashlib
+import time
 
-from api_cache import APICache
-from http_client import HTTPClient
+from .api_cache import APICache
+from .http_client import HTTPClient
 
 
 class CachingHTTPClient:
@@ -26,12 +27,17 @@ class CachingHTTPClient:
         # Check cache first
         cached_response = self.cache.get(provider, lat, lon)
         if cached_response is not None:
+            print(f"DEBUG CACHE: Cache HIT for {provider} {lat},{lon}")
             return cached_response
 
+        print(f"DEBUG CACHE: Cache MISS for {provider} {lat},{lon} - making API call")
+
         # Make actual request
+        print(f"DEBUG CACHE: Making HTTP request to {url}")
         response = self.http_client.get(url)
 
         # Cache the response
+        print(f"DEBUG CACHE: Caching response for {provider} {lat},{lon}")
         self.cache.set(provider, lat, lon, response)
 
         return response

@@ -100,13 +100,16 @@ def log(message):
     Args:
         message: String message to log
     """
+    # In silent mode, do nothing at all
+    if _silent_mode:
+        return
+
     # Get timestamp for both console and file
     timestamp = _get_timestamp()
     timestamped_message = f"{timestamp} {message}"
 
-    # Print to console with timestamp (same format as log file) unless silenced
-    if not _silent_mode:
-        print(timestamped_message)
+    # Print to console with timestamp
+    print(timestamped_message)
 
     # Try to write to filesystem with same timestamp
     if _filesystem_available():

@@ -197,12 +197,16 @@
                                 name="display_type"
                                 onchange="switchDisplay()"
                             >
-                                <option value="250x122">
-                                    250×122 Weather Station
-                                </option>
                                 <option value="400x300">
                                     400×300 Weather Display
                                 </option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="api_source">API Source:</label>
+                            <select id="api_source" name="api_source" onchange="updateDisplay(); saveSettings();">
+                                <option value="openweathermap">OpenWeatherMap</option>
+                                <option value="open-meteo">Open-Meteo</option>
                             </select>
                         </div>
                     </div>
@@ -217,7 +221,7 @@
                                     checked
                                     onchange="toggleScale()"
                                 />
-                                2× Scale (244×500px)
+                                2× Scale (800×600px)
                             </label>
                         </div>
                         <div class="form-group">
@@ -227,41 +231,12 @@
                                     id="auto-update"
                                     onchange="toggleAutoUpdate()"
                                 />
-                                Auto-update (5s)
+                                Auto-update (30s)
                             </label>
                         </div>
                     </div>
 
-                    <div class="scenario-group" id="weather-controls">
-                        <h4>Test Scenarios</h4>
-                        <div class="form-group">
-                            <label for="csv_scenario">Historical Data:</label>
-                            <select id="csv_scenario" name="csv_scenario">
-                                <option value="normal">Normal Data</option>
-                                <option value="trending_up">Trending Up</option>
-                                <option value="trending_down">
-                                    Trending Down
-                                </option>
-                                <option value="volatile">Volatile Data</option>
-                                <option value="seasonal">
-                                    Seasonal Pattern
-                                </option>
-                                <option value="empty">No Data</option>
-                            </select>
-                        </div>
 
-                        <div class="form-group">
-                            <label for="status_scenario">System Status:</label>
-                            <select id="status_scenario" name="status_scenario">
-                                <option value="normal">Normal Operation</option>
-                                <option value="no_sd">No SD Card</option>
-                                <option value="long_running">
-                                    Long Running
-                                </option>
-                                <option value="fresh_boot">Fresh Boot</option>
-                            </select>
-                        </div>
-                    </div>
 
                     <div class="scenario-group" id="weather-data-controls">
                         <h4>Weather Data</h4>
@@ -272,11 +247,11 @@
                                     id="use_mock_weather"
                                     onchange="toggleWeatherSource()"
                                 />
-                                Use Mock Weather Data
+                                Use Historical CSV Data
                             </label>
                         </div>
                         <div class="form-group">
-                            <label for="mock_scenario">Mock Scenario:</label>
+                            <label for="mock_scenario">CSV Dataset:</label>
                             <select
                                 id="mock_scenario"
                                 name="mock_scenario"
@@ -288,32 +263,6 @@
                                 <option value="toronto_2025">
                                     Toronto 2025 Historical Data
                                 </option>
-                                <option value="winter_clear">
-                                    Clear Winter Day
-                                </option>
-                                <option value="winter_storm">
-                                    Winter Storm
-                                </option>
-                                <option value="winter_mixed">
-                                    Mixed Winter
-                                </option>
-                                <option value="spring_mild">Mild Spring</option>
-                                <option value="spring_rain">Spring Rain</option>
-                                <option value="spring_variable">
-                                    Variable Spring
-                                </option>
-                                <option value="summer_hot">Hot Summer</option>
-                                <option value="summer_storms">
-                                    Summer Storms
-                                </option>
-                                <option value="summer_humid">
-                                    Humid Summer
-                                </option>
-                                <option value="fall_crisp">Crisp Fall</option>
-                                <option value="fall_rain">Fall Rain</option>
-                                <option value="fall_variable">
-                                    Variable Fall
-                                </option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -324,34 +273,7 @@
                         </div>
                     </div>
 
-                    <div class="scenario-group" id="sensor-controls">
-                        <h4>Sensor Override</h4>
-                        <div class="form-group">
-                            <label for="temp_c">Temperature (°C):</label>
-                            <input
-                                type="number"
-                                id="temp_c"
-                                name="temp_c"
-                                step="0.1"
-                                min="-40"
-                                max="60"
-                                placeholder="Auto"
-                            />
-                        </div>
 
-                        <div class="form-group">
-                            <label for="humidity">Humidity (%):</label>
-                            <input
-                                type="number"
-                                id="humidity"
-                                name="humidity"
-                                step="0.1"
-                                min="0"
-                                max="100"
-                                placeholder="Auto"
-                            />
-                        </div>
-                    </div>
                     <button type="submit" class="button" id="update-display-btn">Update Display</button>
                     <button type="button" class="button" onclick="resetSettings()" style="background: #ff6666;">
                         Reset All Settings
@@ -383,49 +305,7 @@
                             </p>
                         </div>
                     </div>-->
-                    <div class="info-panel" id="quick-tests">
-                        <div class="scenario-group" >
-                            <h4>Quick Tests</h4>
-                            <button
-                                type="button"
-                                class="button"
-                                onclick="loadScenario('extreme_cold')"
-                            >
-                                Extreme Cold
-                            </button>
-                            <button
-                                type="button"
-                                class="button"
-                                onclick="loadScenario('extreme_hot')"
-                            >
-                                Extreme Hot
-                            </button>
-                            <button
-                                type="button"
-                                class="button"
-                                onclick="loadScenario('high_humidity')"
-                            >
-                                High Humidity
-                            </button>
-                            <button
-                                type="button"
-                                class="button"
-                                onclick="loadScenario('low_humidity')"
-                            >
-                                Low Humidity
-                            </button>
-                        </div>
 
-                        <!--<div class="status-info">
-                            <h4>About</h4>
-                            <p>
-                                This tool previews the weather display layout using the
-                                same rendering logic as the hardware. Test different
-                                scenarios to ensure the display works correctly in
-                                various conditions.
-                            </p>
-                        </div>-->
-                    </div>
 
                 </form>
             </div>
@@ -446,6 +326,7 @@
             function saveSettings() {
                 const settings = {
                     displayType: document.getElementById("display_type").value,
+                    apiSource: document.getElementById("api_source").value,
                     scale2x: document.getElementById("scale2x").checked,
                     autoUpdate: document.getElementById("auto-update").checked,
                     useMockWeather: document.getElementById("use_mock_weather").checked,
@@ -466,6 +347,12 @@
                         if (settings.displayType) {
                             document.getElementById("display_type").value =
                                 settings.displayType;
+                        }
+
+                        // Restore API source
+                        if (settings.apiSource) {
+                            document.getElementById("api_source").value =
+                                settings.apiSource;
                         }
 
                         // Restore scale setting
@@ -508,10 +395,21 @@
 
             // Reset all settings and localStorage
             function resetSettings() {
-                if (confirm("This will reset all settings and reload the page. Continue?")) {
+                if (confirm("This will reset all settings, clear API cache, and reload the page. Continue?")) {
                     localStorage.removeItem(SETTINGS_KEY);
                     console.log("All settings cleared from localStorage");
-                    location.reload();
+
+                    // Clear API cache
+                    fetch('/api/clear-cache')
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log("API cache cleared:", data);
+                            location.reload();
+                        })
+                        .catch(error => {
+                            console.error("Error clearing API cache:", error);
+                            location.reload(); // Reload anyway
+                        });
                 }
             }
 
@@ -582,37 +480,10 @@
                 const specs = document.getElementById("display-specs");
                 const scale2x = document.getElementById("scale2x");
 
-                // Show/hide controls based on display type
-                const weatherControls =
-                    document.getElementById("weather-controls");
-                const sensorControls =
-                    document.getElementById("sensor-controls");
-                const quickTests = document.getElementById("quick-tests");
-                const updateButton = document.getElementById("update-display-btn");
-
-                if (displayType === "400x300") {
-                    // Switch to 400x300 display
-                    img.width = scale2x.checked ? 800 : 400;
-                    img.height = scale2x.checked ? 600 : 300;
-                    specs.innerHTML = `Display: 400×300 pixels | Tri-color E-ink | ${scale2x.checked ? "2×" : "1:1"} scale<br />Fonts: Vollkorn 20px (regular, bold, italic, bold-italic) + Atkinson Hyperlegible 15px (regular) and 20px (regular, bold) + Terminal 8px (matching hardware)`;
-
-                    // Hide weather controls for 400x300
-                    weatherControls.style.display = "none";
-                    sensorControls.style.display = "none";
-                    quickTests.style.display = "none";
-                    updateButton.style.display = "none";
-                } else {
-                    // Switch to 250x122 display
-                    img.width = scale2x.checked ? 244 : 122;
-                    img.height = scale2x.checked ? 500 : 250;
-                    specs.innerHTML = `Display: 122×250 pixels | Tri-color E-ink | ${scale2x.checked ? "2×" : "1:1"} scale<br />Fonts: Barlow Condensed 60px/30px + Terminal 8px (matching hardware)`;
-
-                    // Show weather controls for 250x122
-                    weatherControls.style.display = "block";
-                    sensorControls.style.display = "block";
-                    quickTests.style.display = "block";
-                    updateButton.style.display = "inline-block";
-                }
+                // Always use 400x300 display
+                img.width = scale2x.checked ? 800 : 400;
+                img.height = scale2x.checked ? 600 : 300;
+                specs.innerHTML = `Display: 400×300 pixels | Tri-color E-ink | ${scale2x.checked ? "2×" : "1:1"} scale<br />Fonts: Vollkorn 20px (regular, bold, italic, bold-italic) + Atkinson Hyperlegible 15px (regular) and 20px (regular, bold) + Terminal 8px (matching hardware)`;
 
                 updateDisplay();
             }
@@ -622,33 +493,17 @@
                 const img = document.getElementById("display-image");
                 const specs = document.getElementById("display-specs");
                 const scale2x = document.getElementById("scale2x");
-                const displayType =
-                    document.getElementById("display_type").value;
 
-                if (displayType === "400x300") {
-                    if (scale2x.checked) {
-                        img.width = 800;
-                        img.height = 600;
-                        specs.innerHTML =
-                            "Display: 400×300 pixels | Tri-color E-ink | 2× scale<br />Fonts: Vollkorn 20px (regular, bold, italic, bold-italic) + Atkinson Hyperlegible 15px (regular) and 20px (regular, bold) + Terminal 8px (matching hardware)";
-                    } else {
-                        img.width = 400;
-                        img.height = 300;
-                        specs.innerHTML =
-                            "Display: 400×300 pixels | Tri-color E-ink | 1:1 scale<br />Fonts: Vollkorn 20px (regular, bold, italic, bold-italic) + Atkinson Hyperlegible 15px (regular) and 20px (regular, bold) + Terminal 8px (matching hardware)";
-                    }
+                if (scale2x.checked) {
+                    img.width = 800;
+                    img.height = 600;
+                    specs.innerHTML =
+                        "Display: 400×300 pixels | Tri-color E-ink | 2× scale<br />Fonts: Vollkorn 20px (regular, bold, italic, bold-italic) + Atkinson Hyperlegible 15px (regular) and 20px (regular, bold) + Terminal 8px (matching hardware)";
                 } else {
-                    if (scale2x.checked) {
-                        img.width = 244;
-                        img.height = 500;
-                        specs.innerHTML =
-                            "Display: 122×250 pixels | Tri-color E-ink | 2× scale<br />Fonts: Barlow Condensed 60px/30px + Terminal 8px (matching hardware)";
-                    } else {
-                        img.width = 122;
-                        img.height = 250;
-                        specs.innerHTML =
-                            "Display: 122×250 pixels | Tri-color E-ink | 1:1 scale<br />Fonts: Barlow Condensed 60px/30px + Terminal 8px (matching hardware)";
-                    }
+                    img.width = 400;
+                    img.height = 300;
+                    specs.innerHTML =
+                        "Display: 400×300 pixels | Tri-color E-ink | 1:1 scale<br />Fonts: Vollkorn 20px (regular, bold, italic, bold-italic) + Atkinson Hyperlegible 15px (regular) and 20px (regular, bold) + Terminal 8px (matching hardware)";
                 }
             }
 

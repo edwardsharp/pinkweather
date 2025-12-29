@@ -75,10 +75,10 @@ server:
 	@echo "Open http://localhost:8000 in your browser"
 	@if [ -f "venv/bin/activate" ]; then \
 		echo "Using virtual environment..."; \
-		. venv/bin/activate && cd web && python http_server.py; \
+		. venv/bin/activate && cd preview && python -m web.server; \
 	else \
 		echo "No virtual environment found. Run 'make setup' first or activate manually."; \
-		cd web && python http_server.py; \
+		cd preview && python -m web.server; \
 	fi
 
 # Generate preview images
