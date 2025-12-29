@@ -211,10 +211,10 @@ def _describe_current_conditions(
     temp_range = high_temp - low_temp
     if temp_range >= 15:
         # Very large daily temperature swing - highlight in red
-        temp_desc += f", lo:<red><h>{format_temp(low_temp)}</h>° hi:<h>{format_temp(high_temp)}</h>°</red>"
+        temp_desc += f", l:<red><h>{format_temp(low_temp)}</h>° h:<h>{format_temp(high_temp)}</h>°</red>"
     elif temp_range >= 10:
         # Moderate swing - make it bold
-        temp_desc += f", lo:<b><h>{format_temp(low_temp)}</h>° hi:<h>{format_temp(high_temp)}</h>°</b>"
+        temp_desc += f", l:<b><h>{format_temp(low_temp)}</h>° h:<h>{format_temp(high_temp)}</h>°</b>"
     # elif temp_range >= 3:  # Lower threshold to show range more often
     #     temp_desc += f", ranging <h>{format_temp(low_temp)}</h>° to <h>{format_temp(high_temp)}</h>°"
 
@@ -368,13 +368,13 @@ def _describe_tomorrow_outlook(
     temp_range = upcoming_high - upcoming_low
     if temp_range >= 15:
         # Very large temperature swing - highlight it
-        temp_desc = f"<red>high <h>{format_temp(upcoming_high)}</h>° low <h>{format_temp(upcoming_low)}</h>°</red>"
+        temp_desc = f"<red>h:<h>{format_temp(upcoming_high)}</h>° l:<h>{format_temp(upcoming_low)}</h>°</red>"
     elif temp_range >= 10:
         # Moderate temperature swing
-        temp_desc = f"<b>high <h>{format_temp(upcoming_high)}</h>° low <h>{format_temp(upcoming_low)}</h>°</b>"
+        temp_desc = f"<b>h:<h>{format_temp(upcoming_high)}</h>° l:<h>{format_temp(upcoming_low)}</h>°</b>"
     else:
         # Always show both high and low for upcoming period
-        temp_desc = f"high <h>{format_temp(upcoming_high)}</h>° low <h>{format_temp(upcoming_low)}</h>°"
+        temp_desc = f"h:<h>{format_temp(upcoming_high)}</h>° l:<h>{format_temp(upcoming_low)}</h>°"
 
     # Analyze upcoming conditions from forecast data with time ranges
     rain_periods = _analyze_weather_periods(
