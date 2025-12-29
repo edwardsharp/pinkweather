@@ -28,7 +28,7 @@ update with yr own values.
 import board
 
 # Weather Provider Configuration
-WEATHER_PROVIDER = "openweathermap"  # "openweathermap" or "open_meteo"
+WEATHER_PROVIDER = "open_meteo"  # "openweathermap" or "open_meteo"
 
 # WiFi Configuration
 WIFI_SSID = None  # WiFi network name (ssid)
