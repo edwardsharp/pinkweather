@@ -338,7 +338,7 @@
                 const display = document.getElementById("weather-display");
                 // Construct image filename from timestamp if not provided
                 const imageFilename =
-                    record.image_filename ||
+                    `weather_${record.timestamp}.png` ||
                     (() => {
                         const date = new Date(record.timestamp * 1000);
                         const year = date.getFullYear();
@@ -397,6 +397,8 @@
                 const possiblePaths = [];
                 if (currentDataset) {
                     // Try dataset key format first (e.g., images/ny_2024/)
+                    possiblePaths.push(`images/${imageFilename}`);
+
                     possiblePaths.push(
                         `images/${currentDataset}/${imageFilename}`,
                     );
