@@ -97,6 +97,13 @@ class WeatherImageRenderer:
         # In batch mode, use cached imports and skip directory changes
         if _batch_mode and _batch_display_function and _batch_imports_setup:
             try:
+                # Set up CSV history data source if available (dependency injection)
+                if (
+                    hasattr(self, "_weather_history_manager")
+                    and self._weather_history_manager
+                ):
+                    self._weather_history_manager.setup_csv_history_data_source()
+
                 # Use cached display function
                 layout = _batch_display_function(
                     weather_data,
@@ -122,6 +129,13 @@ class WeatherImageRenderer:
             os.chdir(hardware_path)
 
         try:
+            # Set up CSV history data source if available (dependency injection)
+            if (
+                hasattr(self, "_weather_history_manager")
+                and self._weather_history_manager
+            ):
+                self._weather_history_manager.setup_csv_history_data_source()
+
             # Import the display function
             from display.weather_display import create_weather_display_layout
 
