@@ -76,7 +76,7 @@ class APIValidator:
                         f"Missing '{key}' from {self.source}, using fallback: {fallback}"
                     )
                 except ImportError:
-                    print(
+                    log(
                         f"Missing '{key}' from {self.source}, using fallback: {fallback}"
                     )
             return fallback

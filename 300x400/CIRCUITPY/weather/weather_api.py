@@ -179,21 +179,21 @@ def consolidate_forecast_items(
         # Check if this should start a NIGHT period (00:00-01:59 to sunrise)
         # Only start NIGHT if we have multiple nighttime items to consolidate
         if current_hour == 0 or current_hour == 1:  # 00:00 or 01:00
-            print(
+            log(
                 f"DEBUG NIGHT: Found potential night start at hour {current_hour} (ts: {current_item['dt']})"
             )
             night_items, next_i = collect_night_items(
                 items, i, sunrise_ts, tomorrow_sunrise_ts
             )
-            print(f"DEBUG NIGHT: Collected {len(night_items)} night items")
+            log(f"DEBUG NIGHT: Collected {len(night_items)} night items")
             if len(night_items) > 1:  # Only create NIGHT if multiple items
                 night_cell = create_night_cell(night_items)
-                print(f"DEBUG NIGHT: Created NIGHT cell with {len(night_items)} items")
+                log(f"DEBUG NIGHT: Created NIGHT cell with {len(night_items)} items")
                 consolidated.append(night_cell)
                 i = next_i
                 continue
             else:
-                print(
+                log(
                     f"DEBUG NIGHT: Not enough items for NIGHT cell, proceeding normally"
                 )
 

@@ -316,7 +316,9 @@ class WeatherImageRenderer:
                 narrative = generate_weather_narrative(weather_data)
 
                 # Use pygame manager for text measurement while in hardware directory
-                line_count = self.pygame_display._get_wrapped_line_count(narrative)
+                wrap_result = self.pygame_display._get_wrapped_text_and_count(narrative)
+                line_count = wrap_result["line_count"]
+                wrapped_text = wrap_result["wrapped_text"]
                 char_count = len(self.pygame_display._strip_markup_tags(narrative))
                 stripped_text = self.pygame_display._strip_markup_tags(narrative)
             finally:
@@ -330,6 +332,7 @@ class WeatherImageRenderer:
                 "line_count": line_count,
                 "char_count": char_count,
                 "stripped_text": stripped_text,
+                "wrapped_text": wrapped_text,  # Hard-wrapped text with newlines
                 "narrative_text": narrative,
                 "height": line_count * 20,  # Estimated line height
                 "width": char_count * 8,  # Estimated char width

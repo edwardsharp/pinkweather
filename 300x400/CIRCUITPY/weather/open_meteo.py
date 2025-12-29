@@ -139,7 +139,7 @@ def transform_open_meteo_response(api_response, timezone_offset_hours):
             forecast_items.append(forecast_item)
 
     # Generate weather narrative using the same function as OpenWeatherMap
-    from weather.weather_narrative import get_weather_narrative
+    from weather.narrative import get_weather_narrative
 
     try:
         narrative = get_weather_narrative(

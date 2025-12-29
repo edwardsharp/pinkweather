@@ -133,6 +133,36 @@ def get_hour_from_timestamp(timestamp):
     return hour
 
 
+def get_day_from_timestamp(timestamp):
+    """Get day of month from Unix timestamp
+
+    Args:
+        timestamp: Unix timestamp (seconds since epoch)
+
+    Returns:
+        int: Day of month (1-31)
+    """
+    year, month, day, hour, minute, second, weekday = _timestamp_to_components(
+        timestamp
+    )
+    return day
+
+
+def get_month_from_timestamp(timestamp):
+    """Get month from Unix timestamp
+
+    Args:
+        timestamp: Unix timestamp (seconds since epoch)
+
+    Returns:
+        int: Month number (1-12)
+    """
+    year, month, day, hour, minute, second, weekday = _timestamp_to_components(
+        timestamp
+    )
+    return month
+
+
 def is_nighttime(timestamp):
     """Check if timestamp represents nighttime hours (6pm - 6am)
 

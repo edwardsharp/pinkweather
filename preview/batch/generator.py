@@ -167,7 +167,9 @@ def generate_narratives(csv_file, output_file=None, max_count=None):
                         {
                             "timestamp": timestamp,
                             "date": readable_date,
-                            "text": text_metrics.get("stripped_text", ""),
+                            "text": text_metrics.get(
+                                "wrapped_text", text_metrics.get("stripped_text", "")
+                            ),
                             "narrative_text": text_metrics.get(
                                 "narrative_text", "Weather narrative unavailable"
                             ),

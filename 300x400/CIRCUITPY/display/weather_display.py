@@ -8,7 +8,7 @@ import time
 import config
 from utils.logger import log
 from weather import weather_api
-from weather.weather_narrative import get_weather_narrative
+from weather.narrative import get_weather_narrative
 
 from display.header import create_weather_layout
 

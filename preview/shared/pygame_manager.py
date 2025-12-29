@@ -214,9 +214,15 @@ class PersistentPygameDisplay:
 
     def _get_wrapped_line_count(self, narrative_text):
         """Get line count using cached measurement for performance"""
+        result = self._get_wrapped_text_and_count(narrative_text)
+        return result["line_count"]
+
+    def _get_wrapped_text_and_count(self, narrative_text):
+        """Get both wrapped text with newlines and line count"""
         # Check cache first
-        if narrative_text in self._text_measurement_cache:
-            return self._text_measurement_cache[narrative_text]
+        cache_key = f"wrapped_{narrative_text}"
+        if cache_key in self._text_measurement_cache:
+            return self._text_measurement_cache[cache_key]
 
         try:
             # Use singleton text renderer instance to avoid repeated creation
@@ -231,17 +237,34 @@ class PersistentPygameDisplay:
 
             line_count = len(wrapped_lines)
 
-            # Cache the result
-            self._text_measurement_cache[narrative_text] = line_count
+            # Convert wrapped lines to text with newlines
+            wrapped_text_lines = []
+            for line_segments in wrapped_lines:
+                line_text = ""
+                for text_content, style, color in line_segments:
+                    line_text += text_content
+                wrapped_text_lines.append(line_text)
 
-            return line_count
+            wrapped_text = "\n".join(wrapped_text_lines)
+
+            result = {"line_count": line_count, "wrapped_text": wrapped_text}
+
+            # Cache the result
+            self._text_measurement_cache[cache_key] = result
+
+            return result
 
         except Exception as e:
-            print(f"Failed to get wrapped line count: {e}")
+            print(f"Failed to get wrapped text and count: {e}")
             # Fallback: use fast estimation
             line_count = self._estimate_line_count_fast(narrative_text)
-            self._text_measurement_cache[narrative_text] = line_count
-            return line_count
+            stripped_text = self._strip_markup_tags(narrative_text)
+            result = {
+                "line_count": line_count,
+                "wrapped_text": stripped_text,  # Fallback to untrapped text
+            }
+            self._text_measurement_cache[cache_key] = result
+            return result
 
     def _estimate_line_count_fast(self, narrative_text):
         """Fast line count estimation without full text rendering"""

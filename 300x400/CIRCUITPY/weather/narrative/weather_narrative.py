@@ -5,7 +5,17 @@ weather narrative generator - creates contextual weather description text string
 from utils import moon_phase
 from utils.logger import log
 
-from weather.date_utils import _timestamp_to_components, get_hour_from_timestamp
+from weather.date_utils import (
+    get_day_from_timestamp,
+    get_hour_from_timestamp,
+    get_month_from_timestamp,
+)
+from weather.narrative.calendar_events import (
+    get_calendar_events,
+    get_seasonal_suggestions,
+    get_weather_suggestions,
+)
+from weather.narrative.content_prioritizer import ContentPrioritizer
 from weather.weather_history import compare_with_yesterday
 
 
@@ -21,25 +31,28 @@ def format_temp(temp):
     return f"{rounded:.0f}"
 
 
-def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
-    """Generate dynamic weather narrative based on current conditions and forecast
+def get_weather_narrative(
+    weather_data, forecast_data, current_timestamp=None, max_length=400
+):
+    """Generate enhanced weather narrative with priority system and improvements
 
     Args:
         weather_data: Current weather data dict with temp, feels_like, weather, etc.
         forecast_data: List of forecast items for next ~24 hours
         current_timestamp: Unix timestamp for current time (in local time)
+        max_length: Maximum length for the narrative
 
     Returns:
-        String: contextual weather description
+        str: Enhanced contextual weather description
     """
     if not weather_data:
         return "Weather data unavailable."
 
-    # Get current local time info using centralized utilities
     if not current_timestamp:
         return "Weather narrative unavailable - no timestamp provided"
 
-    current_hour = get_hour_from_timestamp(current_timestamp)
+    # Initialize content prioritizer
+    prioritizer = ContentPrioritizer(max_length=max_length)
 
     # Extract key current conditions
     current_temp = weather_data.get("current_temp", 0)
@@ -52,17 +65,14 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
     wind_speed = weather_data.get("wind_speed", 0)
     wind_gust = weather_data.get("wind_gust", 0)
 
-    # Determine if it's evening by comparing current time to sunset timestamp
-    if sunset_timestamp:
-        sunset_hour = get_hour_from_timestamp(sunset_timestamp)
-        is_evening = current_hour >= sunset_hour
-    else:
-        is_evening = False  # Can't determine, assume not evening
+    current_hour = get_hour_from_timestamp(current_timestamp)
+    current_day = get_day_from_timestamp(current_timestamp)
+    current_month = get_month_from_timestamp(current_timestamp)
 
-    # Build narrative components
-    narrative_parts = []
+    # Determine if it's daytime (before 9pm)
+    is_daytime = current_hour < 21
 
-    # 1. Current conditions with temperature context
+    # 1. Current conditions (HIGHEST PRIORITY - always include)
     current_conditions = _describe_current_conditions(
         weather_desc,
         current_temp,
@@ -73,22 +83,34 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
         wind_speed,
         wind_gust,
     )
+    prioritizer.add_item(current_conditions, priority=10, category="current")
 
-    # Add yesterday comparison if available
+    # 2. Yesterday comparison (HIGH PRIORITY if significant)
     yesterday_comparison = compare_with_yesterday(
         current_temp, high_temp, low_temp, current_timestamp
     )
     if yesterday_comparison:
-        current_conditions += f", {yesterday_comparison}"
+        priority = 9 if "much" in yesterday_comparison.lower() else 7
+        prioritizer.add_item(
+            yesterday_comparison, priority=priority, category="comparison"
+        )
 
-    narrative_parts.append(current_conditions)
-
-    # 2. Current precipitation status
-    current_precip = _describe_current_precipitation(weather_desc, forecast_data)
+    # 3. Current precipitation status (HIGH PRIORITY)
+    current_precip = _describe_current_precipitation(
+        weather_desc, forecast_data, use_short_format=False
+    )
+    current_precip_short = _describe_current_precipitation(
+        weather_desc, forecast_data, use_short_format=True
+    )
     if current_precip:
-        narrative_parts.append(current_precip)
+        prioritizer.add_item(
+            current_precip,
+            priority=9,
+            short_text=current_precip_short,
+            category="current_weather",
+        )
 
-    # 3. Coordinate precipitation timing to avoid contradictions
+    # 4. Upcoming precipitation (MEDIUM-HIGH PRIORITY)
     current_has_precip = (
         any(
             precip in weather_desc.lower()
@@ -98,68 +120,71 @@ def get_weather_narrative(weather_data, forecast_data, current_timestamp=None):
         else False
     )
 
-    # Get end time if currently precipitating
+    # Only add upcoming precipitation if current precipitation didn't already handle timing
     precip_end_time = None
     if current_has_precip:
         precip_end_time = _find_when_precipitation_ends(
             forecast_data, ["rain", "snow", "storm"]
         )
 
-    # Only look for upcoming precipitation that starts after the end time
-    upcoming_precip = _analyze_upcoming_precipitation(
-        forecast_data, current_has_precip, precip_end_time
-    )
-    if upcoming_precip:
-        narrative_parts.append(upcoming_precip)
-
-    # 4. Tomorrow's forecast (include more often, not just evenings)
-    if forecast_data:
-        tomorrow_info = _describe_tomorrow_outlook(
-            forecast_data, weather_desc, current_timestamp
-        )
-        if tomorrow_info:
-            narrative_parts.append(tomorrow_info)
-
-    # 5. Moon phase if notable
-    if current_timestamp:
-        moon_info = _describe_moon_phase(current_timestamp)
-        if moon_info:
-            narrative_parts.append(moon_info)
-
-    # Join parts and ensure it fits display constraints
-    # Handle parts that might already end with periods (like yesterday comparisons)
-    joined_parts = []
-    for i, part in enumerate(narrative_parts):
-        if i == 0:
-            joined_parts.append(part)
-        else:
-            # Check if previous part already ends with a period
-            prev_part = joined_parts[-1]
-            if prev_part.endswith(".") or prev_part.endswith(".</red>"):
-                joined_parts.append(" " + part)
-            else:
-                joined_parts.append(". " + part)
-
-    full_narrative = "".join(joined_parts)
-
-    # Add final period if not already present
-    if not (full_narrative.endswith(".") or full_narrative.endswith(".</red>")):
-        full_narrative += "."
-
-    # If narrative is short and we have tomorrow's forecast, make sure to include it
-    if (
-        len(full_narrative) < 200
-        and forecast_data
-        and not any("Tomorrow:" in part for part in narrative_parts)
-        and "Tomorrow:" not in full_narrative
+    # Skip upcoming precip if current precip already mentioned timing
+    if not current_precip or (
+        "expected" not in current_precip.lower()
+        and "return" not in current_precip.lower()
     ):
-        tomorrow_info = _describe_tomorrow_outlook(
-            forecast_data, weather_desc, current_timestamp
+        upcoming_precip = _analyze_upcoming_precipitation(
+            forecast_data, current_has_precip, precip_end_time
         )
-        if tomorrow_info:
-            full_narrative = full_narrative[:-1] + tomorrow_info + "."
+        if upcoming_precip:
+            prioritizer.add_item(
+                upcoming_precip, priority=8, category="upcoming_weather"
+            )
 
-    return _truncate_for_display(full_narrative)
+    # 5. Tomorrow's forecast (MEDIUM PRIORITY)
+    tomorrow_info = _describe_tomorrow_outlook(
+        forecast_data, weather_desc, current_timestamp
+    )
+    if tomorrow_info:
+        prioritizer.add_item(tomorrow_info, priority=6, category="tomorrow")
+
+    # 6. Calendar events (VARIABLE PRIORITY based on event)
+    calendar_events = get_calendar_events(current_timestamp, priority_threshold=5)
+    for event in calendar_events:
+        prioritizer.add_item(
+            event["text"],
+            priority=event["priority"],
+            short_text=event["short_text"],
+            category="calendar",
+        )
+
+    # 7. Weather suggestions (MEDIUM PRIORITY)
+    rain_chance = _estimate_rain_chance(forecast_data)
+    weather_suggestions = get_weather_suggestions(
+        current_temp, weather_desc, is_daytime, rain_chance, wind_speed
+    )
+    for suggestion in weather_suggestions:
+        suggestion["category"] = "weather_suggestion"
+    prioritizer.add_items(weather_suggestions)
+
+    # 8. Seasonal suggestions (MEDIUM PRIORITY)
+    seasonal_suggestions = get_seasonal_suggestions(
+        current_month, current_day, current_temp, weather_desc
+    )
+    for suggestion in seasonal_suggestions:
+        suggestion["category"] = "seasonal"
+    prioritizer.add_items(seasonal_suggestions)
+
+    # 9. Moon phase (LOW-MEDIUM PRIORITY)
+    moon_info = _describe_moon_phase(current_timestamp)
+    if moon_info:
+        # Shorter version for space constraints
+        moon_short = moon_info.replace("tonight.", "!").replace("tonight", "!")
+        prioritizer.add_item(
+            moon_info, priority=4, short_text=moon_short, category="astronomy"
+        )
+
+    # Generate optimized narrative
+    return prioritizer.optimize_narrative()
 
 
 def _describe_current_conditions(
@@ -644,8 +669,10 @@ def _get_temperature_context(temp):
         return None
 
 
-def _describe_current_precipitation(weather_desc, forecast_data):
-    """Describe current precipitation and when it will clear"""
+def _describe_current_precipitation(
+    weather_desc, forecast_data, use_short_format=False
+):
+    """Describe current precipitation and when it will clear/return - with merged timing"""
     current_desc_lower = weather_desc.lower()
 
     # Also check forecast data for current conditions (first item shows current weather icons)
@@ -667,27 +694,84 @@ def _describe_current_precipitation(weather_desc, forecast_data):
     )
 
     if is_snowing:
-        # Check when snow will end
+        # Check when snow will end and when it returns
         clear_time = _find_when_precipitation_ends(forecast_data, ["snow"])
         if clear_time:
-            return f"<red>Currently snowing,</red> <i>expected</i> to stop {clear_time}"
+            # Find when snow returns after it clears
+            end_timestamp = None
+            for item in forecast_data:
+                if (
+                    item.get("weather_desc", "").lower().find("clear") != -1
+                    or item.get("weather_desc", "").lower().find("overcast") != -1
+                ):
+                    if not any(
+                        precip in item.get("weather_desc", "").lower()
+                        for precip in ["snow", "rain", "storm"]
+                    ):
+                        end_timestamp = item.get("timestamp", 0)
+                        break
+
+            return_time = (
+                _find_when_precipitation_returns(forecast_data, ["snow"], end_timestamp)
+                if end_timestamp
+                else None
+            )
+
+            if return_time:
+                if use_short_format:
+                    return f"<i>Exp</i> to stop ~{clear_time} and return ~{return_time}"
+                else:
+                    return f"<i>Expected</i> to stop around {clear_time} and return around {return_time}"
+            else:
+                if use_short_format:
+                    return f"<i>Exp</i> to stop ~{clear_time}"
+                else:
+                    return f"<i>Expected</i> to stop around {clear_time}"
         else:
-            return "<red>Currently snowing</red>"
+            return None  # Don't say "currently snowing" - it's redundant with weather condition
     elif is_raining:
-        # Check when rain will end
+        # Check when rain will end and return
         clear_time = _find_when_precipitation_ends(forecast_data, ["rain", "drizzle"])
         if clear_time:
-            return f"Currently raining, <i>expected</i> to end {clear_time}"
+            end_timestamp = None
+            for item in forecast_data:
+                if item.get("weather_desc", "").lower().find("clear") != -1:
+                    if not any(
+                        precip in item.get("weather_desc", "").lower()
+                        for precip in ["rain", "snow", "storm"]
+                    ):
+                        end_timestamp = item.get("timestamp", 0)
+                        break
+
+            return_time = (
+                _find_when_precipitation_returns(forecast_data, ["rain"], end_timestamp)
+                if end_timestamp
+                else None
+            )
+
+            if return_time:
+                if use_short_format:
+                    return f"<i>Exp</i> to end ~{clear_time} and return ~{return_time}"
+                else:
+                    return f"<i>Expected</i> to end around {clear_time} and return around {return_time}"
+            else:
+                if use_short_format:
+                    return f"<i>Exp</i> to end ~{clear_time}"
+                else:
+                    return f"<i>Expected</i> to end around {clear_time}"
         else:
-            return "Currently raining"
+            return None
     elif is_stormy:
         clear_time = _find_when_precipitation_ends(
             forecast_data, ["storm", "thunder", "rain"]
         )
         if clear_time:
-            return f"<red>Thunderstorms ongoing,</red> <i>clearing</i> {clear_time}"
+            if use_short_format:
+                return f"<red>T-storms</red> <i>clearing</i> ~{clear_time}"
+            else:
+                return f"<red>T-storms</red> <i>clearing</i> around {clear_time}"
         else:
-            return "<red>Thunderstorms ongoing</red>"
+            return None
 
     return None
 
@@ -883,6 +967,39 @@ def _describe_moon_phase(current_timestamp):
 
 
 # Removed time string parsing - now using sunset timestamp directly
+
+
+def _estimate_rain_chance(forecast_data):
+    """Estimate rain chance from forecast data"""
+    if not forecast_data:
+        return 0
+
+    rain_count = 0
+    total_items = min(8, len(forecast_data))  # Next 8 hours
+
+    for item in forecast_data[:total_items]:
+        weather_desc = item.get("weather_desc", "").lower()
+        if "rain" in weather_desc or "storm" in weather_desc:
+            rain_count += 1
+
+    return int((rain_count / total_items) * 100) if total_items > 0 else 0
+
+
+def _find_when_precipitation_returns(forecast_data, precip_types, after_timestamp):
+    """Find when precipitation returns after it ends"""
+    if not forecast_data or not after_timestamp:
+        return None
+
+    for item in forecast_data:
+        timestamp = item.get("timestamp", 0)
+        weather_desc = item.get("weather_desc", "").lower()
+
+        # Look for precipitation after the end time
+        if timestamp > after_timestamp:
+            if any(precip in weather_desc for precip in precip_types):
+                return _format_time_for_narrative(timestamp)
+
+    return None
 
 
 def _truncate_for_display(text, max_length=400):

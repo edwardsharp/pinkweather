@@ -22,7 +22,6 @@ sys.path.insert(0, str(preview_dir))
 from shared.data_loader import CSVWeatherLoader
 from shared.image_renderer import WeatherImageRenderer
 from shared.weather_history_manager import WeatherHistoryManager
-
 from web.api_cache import api_cache
 
 
@@ -309,7 +308,7 @@ class WeatherPreviewHandler(BaseHTTPRequestHandler):
             # Map CSV scenarios to files
             scenario_to_csv = {
                 "ny_2024": "open-meteo-40.65N73.98W25m.csv",
-                "toronto_2025": "open-meteo-43.70N79.40W76m.csv",
+                "toronto_2025": "open-meteo-43.70N79.40W165m.csv",
             }
 
             csv_filename = scenario_to_csv.get(mock_scenario)
