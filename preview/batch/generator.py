@@ -12,9 +12,17 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Set silent mode IMMEDIATELY before any hardware imports
+from shared.logger import set_silent_mode
+from shared.setup_filesystem import set_hardware_silent_mode
+
+# Enable silent mode for bulk operations at module level
+set_silent_mode(True)
+set_hardware_silent_mode(True)
+
+# Now import hardware-related modules with silent mode already active
 from shared.data_loader import CSVWeatherLoader
 from shared.image_renderer import WeatherImageRenderer
-from shared.logger import set_silent_mode
 from shared.weather_history_manager import WeatherHistoryManager
 
 
@@ -104,8 +112,9 @@ def _create_html_viewer(output_dir, dataset_name, narratives_file, image_count):
 def generate_narratives(csv_file, output_file=None, max_count=None):
     """Generate narratives.csv with real text measurements using pygame"""
 
-    # Set logger to silent mode for bulk operations
+    # Set logger to silent mode for bulk operations (silent mode already set at module level)
     set_silent_mode(True)
+    set_hardware_silent_mode(True)
 
     # Determine dataset info and output structure
     dataset_name, location, year = _get_dataset_info(csv_file, max_count)
@@ -129,48 +138,53 @@ def generate_narratives(csv_file, output_file=None, max_count=None):
     start_time = time.time()
 
     try:
-        for i, record in enumerate(records):
-            try:
-                # Transform data to hardware format
-                weather_data = loader.transform_record(record)
+        # Use batch mode for performance
+        with renderer.batch_mode() as batch_renderer:
+            for i, record in enumerate(records):
+                try:
+                    # Transform data to hardware format with historical context
+                    weather_data = loader.transform_record(record, include_history=True)
 
-                # Add efficient history data
-                timestamp = int(record["timestamp"])
-                history_data = history_manager.get_history_for_csv_record(
-                    record, timestamp
-                )
-                weather_data.update(history_data)
+                    # Get historical context for enhanced narrative generation
+                    timestamp = int(record["timestamp"])
+                    historical_context = weather_data.get("historical_context", [])
 
-                # Use centralized renderer for accurate text measurement
-                text_metrics = renderer.measure_narrative_text(weather_data)
+                    # Add efficient history data with enhanced context
+                    history_data = history_manager.get_history_for_csv_record(
+                        record, timestamp, historical_context
+                    )
+                    weather_data.update(history_data)
 
-                # Create human-readable date from timestamp
-                dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-                readable_date = dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+                    # Use centralized renderer for accurate text measurement
+                    text_metrics = batch_renderer.measure_narrative_text(weather_data)
 
-                # Store results with generated narrative text (captured from measurement)
-                results.append(
-                    {
-                        "timestamp": timestamp,
-                        "date": readable_date,
-                        "text": text_metrics.get("stripped_text", ""),
-                        "narrative_text": text_metrics.get(
-                            "narrative_text", "Weather narrative unavailable"
-                        ),
-                        "fits_in_space": text_metrics["fits_in_space"],
-                        "line_count": text_metrics["line_count"],
-                        "char_count": text_metrics.get("char_count", 0),
-                        "temperature": record.get("temperature", 0),
-                        "description": record.get("description", ""),
-                    }
-                )
+                    # Create human-readable date from timestamp
+                    dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                    readable_date = dt.strftime("%Y-%m-%d %H:%M:%S UTC")
 
-                # Show progress
-                show_progress(i + 1, len(records), start_time)
+                    # Store results with generated narrative text (captured from measurement)
+                    results.append(
+                        {
+                            "timestamp": timestamp,
+                            "date": readable_date,
+                            "text": text_metrics.get("stripped_text", ""),
+                            "narrative_text": text_metrics.get(
+                                "narrative_text", "Weather narrative unavailable"
+                            ),
+                            "fits_in_space": text_metrics["fits_in_space"],
+                            "line_count": text_metrics["line_count"],
+                            "char_count": text_metrics.get("char_count", 0),
+                            "temperature": record.get("temperature", 0),
+                            "description": record.get("description", ""),
+                        }
+                    )
 
-            except Exception as e:
-                print(f"\nError processing record {i}: {e}")
-                continue
+                    # Show progress
+                    show_progress(i + 1, len(records), start_time)
+
+                except Exception as e:
+                    print(f"\nError processing record {i}: {e}")
+                    continue
 
         # Write results to CSV
         if results:
@@ -197,17 +211,18 @@ def generate_narratives(csv_file, output_file=None, max_count=None):
             return False
 
     finally:
-        renderer.shutdown()
         history_manager.clear_cache()
         # Restore normal logging
         set_silent_mode(False)
+        set_hardware_silent_mode(False)
 
 
 def generate_images(csv_file, output_dir=None, max_count=None):
     """Generate batch PNG images with centralized renderer"""
 
-    # Set logger to silent mode for bulk operations
+    # Set logger to silent mode for bulk operations (silent mode already set at module level)
     set_silent_mode(True)
+    set_hardware_silent_mode(True)
 
     # Determine dataset info and output structure
     dataset_name, location, year = _get_dataset_info(csv_file, max_count)
@@ -233,40 +248,45 @@ def generate_images(csv_file, output_dir=None, max_count=None):
     successful_renders = 0
 
     try:
-        for i, record in enumerate(records):
-            try:
-                # Transform data to hardware format
-                weather_data = loader.transform_record(record)
+        # Use batch mode for performance
+        with renderer.batch_mode() as batch_renderer:
+            for i, record in enumerate(records):
+                try:
+                    # Transform data to hardware format with historical context
+                    weather_data = loader.transform_record(record, include_history=True)
 
-                # Add efficient history data
-                timestamp = int(record["timestamp"])
-                history_data = history_manager.get_history_for_csv_record(
-                    record, timestamp
-                )
-                weather_data.update(history_data)
+                    # Get historical context for enhanced narrative generation
+                    timestamp = int(record["timestamp"])
+                    historical_context = weather_data.get("historical_context", [])
 
-                # Generate output filename
-                output_file = output_path / f"weather_{timestamp}.png"
+                    # Add efficient history data with enhanced context
+                    history_data = history_manager.get_history_for_csv_record(
+                        record, timestamp, historical_context
+                    )
+                    weather_data.update(history_data)
 
-                # Render image using centralized renderer
-                result = renderer.render_weather_data_to_file(
-                    weather_data,
-                    output_file,
-                    use_icons=True,
-                    indoor_temp_humidity="20° 45%",
-                )
+                    # Generate output filename
+                    output_file = output_path / f"weather_{timestamp}.png"
 
-                if not result:
-                    raise Exception(f"Failed to render {output_file}")
+                    # Render image using centralized renderer
+                    result = batch_renderer.render_weather_data_to_file(
+                        weather_data,
+                        output_file,
+                        use_icons=True,
+                        indoor_temp_humidity="20° 45%",
+                    )
 
-                successful_renders += 1
+                    if not result:
+                        raise Exception(f"Failed to render {output_file}")
 
-                # Show progress
-                show_progress(i + 1, len(records), start_time)
+                    successful_renders += 1
 
-            except Exception as e:
-                print(f"\nError processing record {i}: {e}")
-                continue
+                    # Show progress
+                    show_progress(i + 1, len(records), start_time)
+
+                except Exception as e:
+                    print(f"\nError processing record {i}: {e}")
+                    continue
 
         print(
             f"\nBatch image generation complete. {successful_renders}/{len(records)} images saved to {output_dir}"
@@ -284,17 +304,18 @@ def generate_images(csv_file, output_dir=None, max_count=None):
         return successful_renders > 0
 
     finally:
-        renderer.shutdown()
         history_manager.clear_cache()
         # Restore normal logging
         set_silent_mode(False)
+        set_hardware_silent_mode(False)
 
 
 def generate_complete_dataset(csv_file, max_count=None):
     """Generate both narratives and images for a complete dataset"""
 
-    # Set logger to silent mode for bulk operations
+    # Set logger to silent mode for bulk operations (silent mode already set at module level)
     set_silent_mode(True)
+    set_hardware_silent_mode(True)
 
     try:
         dataset_name, location, year = _get_dataset_info(csv_file, max_count)
@@ -337,6 +358,7 @@ def generate_complete_dataset(csv_file, max_count=None):
     finally:
         # Restore normal logging
         set_silent_mode(False)
+        set_hardware_silent_mode(False)
 
 
 def main():

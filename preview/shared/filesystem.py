@@ -11,8 +11,8 @@ class FileSystem:
     """Simple preview filesystem - just the essentials"""
 
     def __init__(self):
-        # Store files in preview/.cache/
-        self.base_path = Path(__file__).parent / ".cache"
+        # Store files in preview/.cache/ (not preview/shared/.cache/)
+        self.base_path = Path(__file__).parent.parent / ".cache"
         self.base_path.mkdir(exist_ok=True)
 
     def is_available(self):

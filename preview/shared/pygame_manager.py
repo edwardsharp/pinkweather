@@ -30,6 +30,12 @@ class PersistentPygameDisplay:
         current_file = Path(__file__).resolve()  # Resolve file path first
         self.hardware_path = current_file.parent.parent.parent / "300x400" / "CIRCUITPY"
         self.icons_path = current_file.parent.parent.parent / "iconz" / "bmp"
+
+        # Performance optimization: cache text measurements and reuse renderer
+        self._text_measurement_cache = {}
+        self._text_renderer_instance = None
+        self.fast_mode = False  # Skip expensive text rendering when True
+
         self._setup_mocks()
 
     def _setup_mocks(self):
@@ -207,29 +213,52 @@ class PersistentPygameDisplay:
             }
 
     def _get_wrapped_line_count(self, narrative_text):
-        """Get actual line count by using text renderer's wrapping logic"""
-        try:
-            # Import text renderer from hardware directory
-            from display.text_renderer import TextRenderer
+        """Get line count using cached measurement for performance"""
+        # Check cache first
+        if narrative_text in self._text_measurement_cache:
+            return self._text_measurement_cache[narrative_text]
 
-            # Create text renderer instance
-            renderer = TextRenderer()
+        try:
+            # Use singleton text renderer instance to avoid repeated creation
+            if self._text_renderer_instance is None:
+                from display.text_renderer import TextRenderer
+
+                self._text_renderer_instance = TextRenderer()
 
             # Parse markup and wrap text using the same logic as display
-            segments = renderer.parse_markup(narrative_text)
-            wrapped_lines = renderer.hard_wrap_text(segments)
+            segments = self._text_renderer_instance.parse_markup(narrative_text)
+            wrapped_lines = self._text_renderer_instance.hard_wrap_text(segments)
 
-            return len(wrapped_lines)
+            line_count = len(wrapped_lines)
+
+            # Cache the result
+            self._text_measurement_cache[narrative_text] = line_count
+
+            return line_count
 
         except Exception as e:
             print(f"Failed to get wrapped line count: {e}")
-            # Fallback: estimate based on character count
-            chars_per_line = 50  # Conservative estimate
-            stripped_text = self._strip_markup_tags(narrative_text)
-            estimated_lines = max(
-                1, (len(stripped_text) + chars_per_line - 1) // chars_per_line
-            )
-            return estimated_lines
+            # Fallback: use fast estimation
+            line_count = self._estimate_line_count_fast(narrative_text)
+            self._text_measurement_cache[narrative_text] = line_count
+            return line_count
+
+    def _estimate_line_count_fast(self, narrative_text):
+        """Fast line count estimation without full text rendering"""
+        stripped_text = self._strip_markup_tags(narrative_text)
+
+        # Improved estimation based on actual display width
+        # Weather narratives are typically short, so conservative estimate
+        chars_per_line = 45  # Based on typical font and display width
+        estimated_lines = max(
+            1, (len(stripped_text) + chars_per_line - 1) // chars_per_line
+        )
+
+        # Add small buffer for markup formatting
+        if "<h>" in narrative_text or "<i>" in narrative_text:
+            estimated_lines += 1
+
+        return min(estimated_lines, 4)  # Weather narratives rarely exceed 4 lines
 
     def _strip_markup_tags(self, text):
         """Remove markup tags like <h>, <i>, <b>, <red> from text"""
@@ -239,8 +268,17 @@ class PersistentPygameDisplay:
         cleaned = re.sub(r"<[^>]+>", "", text)
         return cleaned.strip()
 
+    def clear_cache(self):
+        """Clear text measurement cache to free memory"""
+        self._text_measurement_cache.clear()
+        if hasattr(self, "_text_renderer_instance"):
+            self._text_renderer_instance = None
+
     def shutdown(self):
         """Clean shutdown with proper DisplayIO thread handling"""
+        # Clear caches
+        self.clear_cache()
+
         if self.display:
             # Clear any remaining groups
             self.display.root_group = None

@@ -43,9 +43,6 @@ clean:
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-	rm -f *.png
-	rm -f weather_preview.png
-	rm -f text_preview.png
 
 # Testing
 test:
@@ -120,14 +117,15 @@ build:
 install-package:
 	pip install -e .
 
-# Data generation target with dataset support
+# Data generation target with dataset support - using optimized preview system
 generate-dataset:
-	@# Parse arguments to extract dataset, csv-only, and count
-	@DATASET=""; CSV_ONLY=""; COUNT=""; UNKNOWN_ARG=""; \
+	@# Parse arguments to extract csv-only and count
+	@CSV_ONLY=""; COUNT=""; UNKNOWN_ARG=""; CSV_FILE="../misc/open-meteo-40.65N73.98W25m.csv"; \
 	for arg in $(filter-out generate-dataset,$(MAKECMDGOALS)); do \
 		case $$arg in \
-			ny_2024|toronto_2025) DATASET=$$arg ;; \
-			csv-only) CSV_ONLY="--csv-only" ;; \
+			ny_2024) CSV_FILE="../misc/open-meteo-40.65N73.98W25m.csv" ;; \
+			toronto_2025) CSV_FILE="../misc/open-meteo-43.70N79.40W165m.csv" ;; \
+			csv-only) CSV_ONLY="true" ;; \
 			[0-9]*) COUNT=$$arg ;; \
 			*) UNKNOWN_ARG=$$arg ;; \
 		esac; \
@@ -140,22 +138,23 @@ generate-dataset:
 	fi; \
 	if [ "$$CSV_ONLY" ]; then \
 		if [ "$$COUNT" ]; then \
-			echo "Generating CSV-only for dataset $${DATASET:-ny_2024} with count $$COUNT..."; \
+			echo "Generating narratives CSV with count $$COUNT using optimized preview system..."; \
+			COMMAND="batch-narratives $$CSV_FILE --max-count $$COUNT"; \
 		else \
-			echo "Generating CSV-only for dataset $${DATASET:-ny_2024} (all records)..."; \
+			echo "Generating narratives CSV (all records) using optimized preview system..."; \
+			COMMAND="batch-narratives $$CSV_FILE"; \
 		fi; \
 	elif [ "$$COUNT" ]; then \
-		echo "Generating complete dataset for $${DATASET:-ny_2024} with count $$COUNT..."; \
+		echo "Generating complete dataset with count $$COUNT using optimized preview system..."; \
+		COMMAND="complete $$CSV_FILE --max-count $$COUNT"; \
 	else \
-		echo "Generating complete dataset for $${DATASET:-ny_2024} (all records)..."; \
+		echo "Generating complete dataset (all records) using optimized preview system..."; \
+		COMMAND="complete $$CSV_FILE"; \
 	fi; \
-	ARGS="$$CSV_ONLY"; \
-	[ "$$DATASET" ] && ARGS="$$ARGS $$DATASET"; \
-	[ "$$COUNT" ] && ARGS="$$ARGS $$COUNT"; \
 	if [ -f "venv/bin/activate" ]; then \
-		. venv/bin/activate && cd web/static && python generate_historical_data.py $$ARGS; \
+		. venv/bin/activate && cd preview && python main.py $$COMMAND; \
 	else \
-		cd web/static && python generate_historical_data.py $$ARGS; \
+		cd preview && python main.py $$COMMAND; \
 	fi
 
 csv-only ny_2024 toronto_2025:

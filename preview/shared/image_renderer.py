@@ -39,6 +39,12 @@ from shared.pygame_manager import PersistentPygameDisplay
 # Global display instance to prevent "Too many displays" error
 _global_display = None
 
+# Batch mode optimization globals
+_batch_mode = False
+_batch_icon_loader = None
+_batch_display_function = None
+_batch_imports_setup = False
+
 # Cache display function to avoid repeated imports
 _display_function = None
 
@@ -54,6 +60,7 @@ class WeatherImageRenderer:
         self.height = height
         self.pygame_display = None
         self.original_cwd = os.getcwd()
+        self._in_batch_context = False
 
     def _ensure_display(self):
         """Ensure pygame display is initialized (using global instance)"""
@@ -87,8 +94,33 @@ class WeatherImageRenderer:
         """Create layout and capture the generated narrative"""
         global _last_generated_narrative
 
-        # Change to hardware directory for imports
-        os.chdir(hardware_path)
+        # In batch mode, use cached imports and skip directory changes
+        if _batch_mode and _batch_display_function and _batch_imports_setup:
+            try:
+                # Use cached display function
+                layout = _batch_display_function(
+                    weather_data,
+                    icon_loader=icon_loader,
+                    indoor_temp_humidity="20° 45%",
+                )
+
+                # Generate narrative using cached import
+                from display.weather_display import generate_weather_narrative
+
+                narrative = generate_weather_narrative(weather_data)
+                _last_generated_narrative = narrative
+
+                return layout, narrative
+            except Exception as e:
+                print(f"Batch mode layout creation failed: {e}")
+                # Fall back to regular mode
+                pass
+
+        # Regular mode: change directory for imports
+        # Don't change directory if we're already in batch context
+        if not self._in_batch_context:
+            os.chdir(hardware_path)
+
         try:
             # Import the display function
             from display.weather_display import create_weather_display_layout
@@ -108,7 +140,9 @@ class WeatherImageRenderer:
 
             return layout, narrative
         finally:
-            os.chdir(self.original_cwd)
+            # Only change back if we changed in the first place
+            if not self._in_batch_context:
+                os.chdir(self.original_cwd)
 
     def render_weather_data_to_file(
         self, weather_data, output_file, use_icons=True, indoor_temp_humidity="20° 45%"
@@ -122,46 +156,76 @@ class WeatherImageRenderer:
             indoor_temp_humidity: Indoor temperature/humidity string
 
         Returns:
-            Path to created file on success, None on failure
+            Path to output file on success, None on failure
         """
         try:
             self._ensure_display()
 
+            # In batch mode, reuse cached components for performance
+            if _batch_mode and _batch_icon_loader:
+                icon_loader = _batch_icon_loader
+            else:
+                icon_loader = self.pygame_display.create_icon_loader(
+                    use_icons=use_icons
+                )
+
             # Create layout and capture narrative
             layout, narrative = self._capture_narrative_from_layout(
                 weather_data,
-                self.pygame_display.create_icon_loader(use_icons=use_icons),
+                icon_loader,
             )
 
             # Ensure display exists before using it
             if self.pygame_display.display is None:
                 self.pygame_display.start()
 
-            # Change to hardware directory for font loading during render
-            os.chdir(hardware_path)
-            try:
-                # Render image
-                import pygame
+            # Optimize directory changes in batch mode
+            if _batch_mode:
+                # In batch mode, we should already be in the right context
+                try:
+                    import pygame
 
-                self.pygame_display.display.root_group = layout
-                self.pygame_display.display.refresh()
-                pygame.image.save(
-                    self.pygame_display.display._pygame_screen, str(output_file)
-                )
-                self.pygame_display.display.root_group = None
+                    self.pygame_display.display.root_group = layout
+                    self.pygame_display.display.refresh()
+                    pygame.image.save(
+                        self.pygame_display.display._pygame_screen, str(output_file)
+                    )
+                    self.pygame_display.display.root_group = None
+                except ImportError:
+                    # Fallback to directory change if imports fail
+                    return self._render_with_directory_change(layout, output_file)
+            else:
+                return self._render_with_directory_change(layout, output_file)
 
-                # Verify file was created
-                if Path(output_file).exists():
-                    return Path(output_file)
-                else:
-                    return None
-            finally:
-                # Always restore original directory
-                os.chdir(self.original_cwd)
+            # Verify file was created
+            if Path(output_file).exists():
+                return Path(output_file)
+            else:
+                return None
 
         except Exception as e:
             print(f"Error rendering weather image: {e}")
             return None
+
+    def _render_with_directory_change(self, layout, output_file):
+        """Render with directory change (fallback method)"""
+        os.chdir(hardware_path)
+        try:
+            import pygame
+
+            self.pygame_display.display.root_group = layout
+            self.pygame_display.display.refresh()
+            pygame.image.save(
+                self.pygame_display.display._pygame_screen, str(output_file)
+            )
+            self.pygame_display.display.root_group = None
+
+            if Path(output_file).exists():
+                return Path(output_file)
+            else:
+                return None
+        finally:
+            os.chdir(self.original_cwd)
 
     def render_weather_data_to_bytes(
         self, weather_data, use_icons=True, indoor_temp_humidity="20° 45%"
@@ -226,6 +290,59 @@ class WeatherImageRenderer:
             Dict with measurement info: fits_in_space, line_count, height, width
         """
         try:
+            # Fast text-only measurement - skip expensive layout creation
+            return self._fast_text_measurement(weather_data)
+
+        except Exception as e:
+            print(f"Error measuring narrative text: {e}")
+            return {
+                "fits_in_space": False,
+                "line_count": 0,
+                "height": 0,
+                "width": 0,
+            }
+
+    def _fast_text_measurement(self, weather_data):
+        """Fast text measurement without creating full display layout"""
+        try:
+            self._ensure_display()
+
+            # Generate just the narrative text without creating full layout
+            os.chdir(hardware_path)
+            try:
+                # Import only what we need for narrative generation
+                from display.weather_display import generate_weather_narrative
+
+                narrative = generate_weather_narrative(weather_data)
+
+                # Use pygame manager for text measurement while in hardware directory
+                line_count = self.pygame_display._get_wrapped_line_count(narrative)
+                char_count = len(self.pygame_display._strip_markup_tags(narrative))
+                stripped_text = self.pygame_display._strip_markup_tags(narrative)
+            finally:
+                os.chdir(self.original_cwd)
+
+            # Estimate if it fits (screen can show 7 lines max)
+            fits_in_space = line_count <= 7
+
+            return {
+                "fits_in_space": fits_in_space,
+                "line_count": line_count,
+                "char_count": char_count,
+                "stripped_text": stripped_text,
+                "narrative_text": narrative,
+                "height": line_count * 20,  # Estimated line height
+                "width": char_count * 8,  # Estimated char width
+            }
+
+        except Exception as e:
+            print(f"Fast text measurement failed: {e}")
+            # Fallback to original method if fast method fails
+            return self._full_layout_measurement(weather_data)
+
+    def _full_layout_measurement(self, weather_data):
+        """Full layout measurement (original method) as fallback"""
+        try:
             self._ensure_display()
 
             # Create layout and capture narrative
@@ -262,7 +379,7 @@ class WeatherImageRenderer:
                 os.chdir(self.original_cwd)
 
         except Exception as e:
-            print(f"Error measuring narrative text: {e}")
+            print(f"Full layout measurement failed: {e}")
             return {
                 "fits_in_space": False,
                 "line_count": 0,
@@ -270,8 +387,88 @@ class WeatherImageRenderer:
                 "width": 0,
             }
 
+    def start_batch_mode(self):
+        """Start batch mode for high-performance bulk operations"""
+        global \
+            _batch_mode, \
+            _batch_icon_loader, \
+            _batch_display_function, \
+            _batch_imports_setup
+
+        try:
+            print("Initializing batch mode...")
+            _batch_mode = True
+            self._in_batch_context = True
+
+            # Set silent mode for hardware logger to suppress verbose logging
+            from shared.setup_filesystem import set_hardware_silent_mode
+
+            set_hardware_silent_mode(True)
+
+            # Ensure display is ready
+            self._ensure_display()
+
+            # Setup hardware environment once
+            os.chdir(hardware_path)
+
+            # Setup hardware imports once
+            self.pygame_display._setup_hardware_imports()
+
+            # Cache display function import
+            from display.weather_display import create_weather_display_layout
+
+            _batch_display_function = create_weather_display_layout
+
+            # Create reusable icon loader
+            _batch_icon_loader = self.pygame_display.create_icon_loader(use_icons=True)
+
+            _batch_imports_setup = True
+            print("Batch mode initialized successfully")
+
+        except Exception as e:
+            print(f"Failed to initialize batch mode: {e}")
+            self.stop_batch_mode()
+            raise
+
+    def stop_batch_mode(self):
+        """Stop batch mode and cleanup resources"""
+        global \
+            _batch_mode, \
+            _batch_icon_loader, \
+            _batch_display_function, \
+            _batch_imports_setup
+
+        try:
+            # Restore hardware logger silent mode
+            try:
+                from shared.setup_filesystem import set_hardware_silent_mode
+
+                set_hardware_silent_mode(False)
+            except:
+                pass  # Ignore if hardware logger not available
+
+            # Restore directory
+            if self._in_batch_context:
+                os.chdir(self.original_cwd)
+                self._in_batch_context = False
+
+            # Clear cached resources
+            _batch_mode = False
+            _batch_icon_loader = None
+            _batch_display_function = None
+            _batch_imports_setup = False
+
+            print("Batch mode stopped")
+
+        except Exception as e:
+            print(f"Error stopping batch mode: {e}")
+
     def shutdown(self):
         """Clean shutdown of pygame resources"""
+        # Stop batch mode if active
+        if _batch_mode:
+            self.stop_batch_mode()
+
         # Don't shutdown global display, just clear our reference
         self.pygame_display = None
 
@@ -282,6 +479,25 @@ class WeatherImageRenderer:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit with cleanup"""
         self.shutdown()
+
+    # Batch mode context manager
+    def batch_mode(self):
+        """Context manager for batch mode operations"""
+        return BatchModeContext(self)
+
+
+class BatchModeContext:
+    """Context manager for batch mode operations"""
+
+    def __init__(self, renderer):
+        self.renderer = renderer
+
+    def __enter__(self):
+        self.renderer.start_batch_mode()
+        return self.renderer
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.renderer.stop_batch_mode()
 
 
 # Convenience functions for one-off rendering

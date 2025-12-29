@@ -54,6 +54,7 @@ class CSVWeatherLoader:
                             row.get("wind_speed_10m (km/h)", 0)
                         ),
                         "description": "Clear sky",  # Will be generated from weather_code
+                        "csv_index": i,  # Store original index for historical lookback
                     }
                     records.append(record)
 
@@ -144,11 +145,56 @@ class CSVWeatherLoader:
             "city": openweather_data.get("city", {}),
         }
 
-    def transform_record(self, record):
+    def get_historical_context(self, record, lookback_hours=30):
+        """Get previous N hours of data for historical context"""
+        if "csv_index" not in record:
+            return []
+
+        current_index = record["csv_index"]
+        history = []
+
+        # Get previous records (up to lookback_hours)
+        start_index = max(0, current_index - lookback_hours)
+        # print(
+        #     f"DEBUG: get_historical_context - current_index={current_index}, lookback_hours={lookback_hours}, start_index={start_index}"
+        # )
+
+        for i in range(start_index, current_index):
+            if i < len(self.converter.hourly_data):
+                row = self.converter.hourly_data[i]
+                timestamp = self.converter._parse_timestamp(row["time"])
+                if timestamp:
+                    historical_record = {
+                        "timestamp": timestamp,
+                        "temperature": self.converter._safe_float(
+                            row.get("temperature_2m (°C)", 20)
+                        ),
+                        "humidity": self.converter._safe_int(
+                            row.get("relative_humidity_2m (%)", 65)
+                        ),
+                        "weather_code": self.converter._safe_int(
+                            row.get("weather_code (wmo code)", 0)
+                        ),
+                        "is_day": self.converter._safe_int(row.get("is_day ()", 1)),
+                        "wind_speed": self.converter._safe_float(
+                            row.get("wind_speed_10m (km/h)", 0)
+                        ),
+                    }
+                    history.append(historical_record)
+
+        # print(f"DEBUG: get_historical_context returning {len(history)} records")
+        return history
+
+    def transform_record(self, record, include_history=True):
         """Transform CSV record to hardware module format using existing converter logic"""
         timestamp = int(record["timestamp"])
 
         try:
+            # Get historical context for richer narratives
+            historical_context = []
+            if include_history:
+                historical_context = self.get_historical_context(record)
+
             # Use converter to get full weather data at this timestamp (OpenWeather API format)
             raw_weather_data = self.converter.get_data_at_timestamp(
                 timestamp, hours_count=20
@@ -161,15 +207,31 @@ class CSVWeatherLoader:
             if not intermediate_data:
                 raise ValueError("Failed to convert OpenWeatherMap format")
 
+            # Add historical context to intermediate data for narrative enrichment
+            if historical_context:
+                intermediate_data["historical_context"] = historical_context
+
             # Import weather_api module to process the data into display format
             hardware_path = preview_dir.parent / "300x400" / "CIRCUITPY"
             if str(hardware_path) not in sys.path:
                 sys.path.insert(0, str(hardware_path))
 
-            from weather import weather_api
+            # Change to hardware directory for proper import context
+            import os
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(hardware_path)
+                from weather import weather_api
+            finally:
+                os.chdir(original_cwd)
 
             # Transform from intermediate format to display variables format
             display_data = weather_api.get_display_variables(intermediate_data)
+
+            # Preserve historical context in display_data for downstream use
+            if historical_context:
+                display_data["historical_context"] = historical_context
 
             if display_data:
                 return display_data
@@ -179,18 +241,7 @@ class CSVWeatherLoader:
 
         except Exception as e:
             print(f"Error transforming record: {e}")
-            # Fallback transformation
-            return {
-                "current_timestamp": timestamp,
-                "forecast_data": [
-                    {"dt": timestamp + 3600, "temp": 20, "pop": 0.1, "icon": "01d"},
-                    {"dt": timestamp + 7200, "temp": 22, "pop": 0.2, "icon": "02d"},
-                ],
-                "weather_desc": record.get("description", "Clear sky"),
-                "day_name": "MON",
-                "day_num": 15,
-                "month_name": "DEC",
-                "air_quality": {"aqi_text": "GOOD"},
-                "zodiac_sign": "CAP",
-                "indoor_temp_humidity": f"{record.get('temperature', 20):.0f}° 65%",
-            }
+            # Re-raise the error instead of using fake fallback data
+            raise RuntimeError(
+                f"Failed to transform record at timestamp {timestamp}: {e}"
+            )

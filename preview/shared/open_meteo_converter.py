@@ -585,9 +585,9 @@ def _store_yesterday_history(converter, current_timestamp):
         # Store yesterday's data as if it were "today" at that time
         store_today_temperatures(yesterday_timestamp, current_temp, high_temp, low_temp)
 
-        log(
-            f"DEBUG: Stored yesterday's history - temp: {current_temp}°, high: {high_temp}°, low: {low_temp}°"
-        )
+        # log(
+        #     f"DEBUG: Stored yesterday's history - temp: {current_temp}°, high: {high_temp}°, low: {low_temp}°"
+        # )
 
     except Exception as e:
         log_error(f"Could not store yesterday's history: {e}")
