@@ -6,6 +6,8 @@ yet another weather display for e-ink; does indoor temp + humidity and weather f
 ![front-facing view of pink cloud weather display](misc/model0.jpeg)
 ![web preview image](misc/current_image400x300.png)
 
+[cad files over here](https://edwardsharp.github.io/modelz/pinkweather/)
+
 ### 0. Microcontroller Usage
 
 **DEPLOY:**
@@ -79,7 +81,8 @@ then use https://adafruit.github.io/web-bdftopcf/ to convert this `.bdf` to a `.
 ## HARDWARE
 
 - [Raspberry Pi Pico 2W](https://www.adafruit.com/product/6087)
-- [Adafruit 2.13" Tri-Color eInk Display (SSD1680)](https://www.adafruit.com/product/6382)
+- [4.2" 300x400 Tri-Color eInk / ePaper - Bare Display - SSD1683](https://www.adafruit.com/product/6382)
+- [Adafruit eInk Feather Friend with 32KB SRAM](https://www.adafruit.com/product/4446)
 - [Adafruit HDC3022 Precision Temperature & Humidity Sensor](https://www.adafruit.com/product/5989)
 - [Magnetic Connector](https://www.adafruit.com/product/5360)
 
