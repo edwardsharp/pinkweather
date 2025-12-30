@@ -22,6 +22,7 @@ def fetch_open_meteo_data(http_client, lat, lon, timezone_offset_hours=-5):
         "longitude": lon,
         "current": "temperature_2m,relative_humidity_2m,weather_code,uv_index",
         "hourly": "temperature_2m,precipitation_probability,weather_code,uv_index",
+        "daily": "sunrise,sunset",
         "forecast_days": 3,
         "temperature_unit": "celsius",
         "timezone": "UTC",
@@ -94,9 +95,7 @@ def transform_open_meteo_response(
     current_humidity = current_validator.optional("relative_humidity_2m", 0)
     current_uv_index = current_validator.optional("uv_index", 0)
 
-    # Calculate high/low temps from hourly data and estimate sunrise/sunset
-    sunrise_timestamp = None
-    sunset_timestamp = None
+    # Calculate high/low temps from hourly data
     high_temp = current_temp + 5  # Fallback
     low_temp = current_temp - 5  # Fallback
 
@@ -109,18 +108,33 @@ def transform_open_meteo_response(
             high_temp = round(max(today_temps))
             low_temp = round(min(today_temps))
 
-    # Simple sunrise/sunset estimation (winter times, adjust as needed)
-    # Get date components from current timestamp
-    date_info = format_timestamp_to_date(current_timestamp)
+    # Get sunrise/sunset from daily data
+    sunrise_timestamp = None
+    sunset_timestamp = None
 
-    # Calculate start of day timestamp (midnight)
-    # Days since epoch calculation
-    days_since_epoch = current_timestamp // 86400
-    start_of_day = days_since_epoch * 86400
+    daily = api_response.get("daily", {})
+    if (
+        "sunrise" in daily
+        and daily["sunrise"]
+        and "sunset" in daily
+        and daily["sunset"]
+    ):
+        # Parse today's sunrise/sunset (first entries)
+        sunrise_iso = daily["sunrise"][0]
+        sunset_iso = daily["sunset"][0]
 
-    # Approximate times (7:30 AM / 5:30 PM local time)
-    sunrise_timestamp = start_of_day + (7 * 3600) + (30 * 60)  # 7:30 AM
-    sunset_timestamp = start_of_day + (17 * 3600) + (30 * 60)  # 5:30 PM
+        # Convert from UTC to local time
+        sunrise_utc = _parse_iso_timestamp(sunrise_iso)
+        sunset_utc = _parse_iso_timestamp(sunset_iso)
+
+        sunrise_timestamp = utc_to_local(sunrise_utc, timezone_offset_hours)
+        sunset_timestamp = utc_to_local(sunset_utc, timezone_offset_hours)
+    else:
+        # Fallback to approximate times if daily data missing
+        days_since_epoch = current_timestamp // 86400
+        start_of_day = days_since_epoch * 86400
+        sunrise_timestamp = start_of_day + (7 * 3600) + (30 * 60)  # 7:30 AM
+        sunset_timestamp = start_of_day + (17 * 3600) + (30 * 60)  # 5:30 PM
 
     # Build current weather data
     current_weather = {
