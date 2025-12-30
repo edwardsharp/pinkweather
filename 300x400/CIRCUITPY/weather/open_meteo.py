@@ -5,7 +5,11 @@ Free weather API service as alternative to OpenWeatherMap
 
 from utils.logger import log
 
-from weather.date_utils import format_timestamp_to_time, utc_to_local
+from weather.date_utils import (
+    format_timestamp_to_date,
+    format_timestamp_to_time,
+    utc_to_local,
+)
 from weather.weather_models import APIValidator
 
 
@@ -106,21 +110,17 @@ def transform_open_meteo_response(
             low_temp = round(min(today_temps))
 
     # Simple sunrise/sunset estimation (winter times, adjust as needed)
-    from datetime import datetime
+    # Get date components from current timestamp
+    date_info = format_timestamp_to_date(current_timestamp)
 
-    current_dt = datetime.fromtimestamp(current_timestamp)
-    today_date = current_dt.date()
+    # Calculate start of day timestamp (midnight)
+    # Days since epoch calculation
+    days_since_epoch = current_timestamp // 86400
+    start_of_day = days_since_epoch * 86400
 
     # Approximate times (7:30 AM / 5:30 PM local time)
-    sunrise_time = datetime.combine(today_date, datetime.min.time()).replace(
-        hour=7, minute=30
-    )
-    sunset_time = datetime.combine(today_date, datetime.min.time()).replace(
-        hour=17, minute=30
-    )
-
-    sunrise_timestamp = int(sunrise_time.timestamp())
-    sunset_timestamp = int(sunset_time.timestamp())
+    sunrise_timestamp = start_of_day + (7 * 3600) + (30 * 60)  # 7:30 AM
+    sunset_timestamp = start_of_day + (17 * 3600) + (30 * 60)  # 5:30 PM
 
     # Build current weather data
     current_weather = {

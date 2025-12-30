@@ -138,64 +138,48 @@ generate-images:
 # Deploy to CIRCUITPY device
 deploy:
 	@echo "Deploying code to CIRCUITPY device..."
-	@# Validate source code.py exists
+	@# Check source exists
 	@if [ ! -f "300x400/CIRCUITPY/code.py" ]; then \
 		echo "Error: Source code.py not found at 300x400/CIRCUITPY/code.py"; \
 		exit 1; \
-	fi; \
-	echo "✓ Source code.py found"
-	@# Try to auto-detect CIRCUITPY mount point on macOS
-	@CIRCUITPY_PATH=""; \
-	if [ "$$(uname)" = "Darwin" ]; then \
-		CIRCUITPY_PATH=$$(ls -d /Volumes/CIRCUITPY 2>/dev/null || echo ""); \
-	elif [ "$$(uname)" = "Linux" ]; then \
-		CIRCUITPY_PATH=$$(ls -d /media/*/CIRCUITPY /mnt/CIRCUITPY 2>/dev/null | head -n1 || echo ""); \
-	fi; \
-	if [ -z "$$CIRCUITPY_PATH" ] || [ ! -d "$$CIRCUITPY_PATH" ]; then \
+	fi
+	@echo "Source code.py found"
+	@# Try to find CIRCUITPY device
+	@if [ -d "/Volumes/CIRCUITPY" ]; then \
+		DEST="/Volumes/CIRCUITPY"; \
+	elif [ -d "/media/CIRCUITPY" ]; then \
+		DEST="/media/CIRCUITPY"; \
+	else \
 		echo "Could not auto-detect CIRCUITPY device."; \
 		echo -n "Please enter the full path to your CIRCUITPY device: "; \
-		read CIRCUITPY_PATH; \
-		if [ ! -d "$$CIRCUITPY_PATH" ]; then \
-			echo "Error: Directory $$CIRCUITPY_PATH does not exist"; \
-			exit 1; \
-		fi; \
-	else \
-		echo "Found CIRCUITPY device at: $$CIRCUITPY_PATH"; \
+		read DEST; \
 	fi; \
-	if [ ! -f "$$CIRCUITPY_PATH/code.py" ]; then \
-		echo "Error: Destination code.py not found at $$CIRCUITPY_PATH/code.py"; \
-		echo "This doesn't appear to be a valid CIRCUITPY device."; \
+	if [ ! -d "$$DEST" ]; then \
+		echo "Error: Directory $$DEST does not exist"; \
 		exit 1; \
 	fi; \
-	echo "✓ Destination code.py found"; \
+	if [ ! -f "$$DEST/code.py" ]; then \
+		echo "Error: $$DEST does not appear to be a CIRCUITPY device (no code.py)"; \
+		exit 1; \
+	fi; \
+	echo "Found CIRCUITPY device at: $$DEST"; \
 	echo ""; \
-	echo "=== DRY RUN: Showing what would be synced ==="; \
-	rsync -av --dry-run --delete --info=progress2 \
-		--exclude='config.py' \
-		--exclude='__pycache__/' \
-		--exclude='sd/' \
-		--exclude='settings.toml' \
-		--exclude='boot_out.txt' \
-		--exclude='.DS_Store' \
-		300x400/CIRCUITPY/ "$$CIRCUITPY_PATH/"; \
+	echo "=== DRY RUN ==="; \
+	rsync -av --dry-run --delete --checksum --modify-window=1 \
+		--exclude='config.py' --exclude='__pycache__/' --exclude='sd/' \
+		--exclude='settings.toml' --exclude='boot_out.txt' --exclude='.DS_Store' \
+		--exclude='._*' --exclude='.Trashes' \
+		300x400/CIRCUITPY/ "$$DEST/"; \
 	echo ""; \
-	echo "=== END DRY RUN ==="; \
-	echo ""; \
-	echo "The above shows what files would be copied/updated/deleted."; \
-	echo "Files excluded: config.py, __pycache__/, sd/, settings.toml, boot_out.txt"; \
-	echo ""; \
-	echo -n "Press ENTER to proceed with the actual sync (or Ctrl+C to cancel): "; \
+	echo "Files excluded: config.py, __pycache__/, sd/, settings.toml, boot_out.txt, ._*, .Trashes"; \
+	echo -n "Press ENTER to proceed with sync (or Ctrl+C to cancel): "; \
 	read CONFIRM; \
-	echo ""; \
-	echo "Syncing files from 300x400/CIRCUITPY/ to $$CIRCUITPY_PATH/"; \
-	rsync -av --delete --info=progress2 \
-		--exclude='config.py' \
-		--exclude='__pycache__/' \
-		--exclude='sd/' \
-		--exclude='settings.toml' \
-		--exclude='boot_out.txt' \
-		--exclude='.DS_Store' \
-		300x400/CIRCUITPY/ "$$CIRCUITPY_PATH/"; \
+	echo "Syncing..."; \
+	rsync -av --delete --checksum --modify-window=1 \
+		--exclude='config.py' --exclude='__pycache__/' --exclude='sd/' \
+		--exclude='settings.toml' --exclude='boot_out.txt' --exclude='.DS_Store' \
+		--exclude='._*' --exclude='.Trashes' \
+		300x400/CIRCUITPY/ "$$DEST/"; \
 	echo "Deployment complete!"
 
 # Show activation instructions

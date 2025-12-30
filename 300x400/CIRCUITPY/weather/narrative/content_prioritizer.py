@@ -419,8 +419,8 @@ class ContentPrioritizer:
             return test_full
         else:
             # Use compact "T:" format for longer text
-            compact_format = f" {tomorrow_text.replace('Tomorrow:', 'T:', 1)}"
-            log("✓ Tomorrow: using compact 'T:' format to save space")
+            compact_format = " " + tomorrow_text.replace("Tomorrow:", "T:", 1)
+            log("Tomorrow: using compact 'T:' format to save space")
             return current_result + compact_format
 
     def _apply_text_alternatives(self, text):
