@@ -1,6 +1,6 @@
 # pinkweather
 
-yet another weather display for e-ink; does indoor temp + humidity and weather forecast from open-meteo.com (openweathermap.org) api + severe alertz from weatherbit.io api, runs on a pico 2w micro-controller, in a lil' pink cloud i 3d printed
+yet another weather display for e-ink; does indoor temp + humidity and weather forecast from open-meteo.com (openweathermap.org) api + severe alertz from weatherbit.io api, runs on a pico 2w micro-controller, in a lil' pink cloud i 3d printed. mostly a spaghetti-monster-mash of python code that claude ai helped me write 🥺
 
 ![a lil dramatic side photo of pink cloud](misc/model.jpeg)
 ![front-facing view of pink cloud weather display](misc/model0.jpeg)
