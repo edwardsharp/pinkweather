@@ -440,7 +440,7 @@ def _describe_tomorrow_outlook(
 
     # Generate contextual description based on actual forecast
     # Use newline for upcoming when there's space, but keep compact when needed
-    upcoming_prefix = "\n\n<b>Tomorrow:</b>"
+    upcoming_prefix = "<b>Tomorrow:</b>"
 
     # Build comprehensive description
     weather_parts = []

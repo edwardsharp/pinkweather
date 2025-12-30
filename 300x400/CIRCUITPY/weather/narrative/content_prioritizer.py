@@ -6,6 +6,8 @@ to maximize useful information while staying within display constraints.
 
 import re
 
+from utils.logger import log
+
 
 class ContentItem:
     """Represents a piece of content with priority and text alternatives"""
@@ -40,6 +42,19 @@ class ContentPrioritizer:
         self.content_items = []
         self.text_alternatives = self._get_text_alternatives()
         self.use_short_format = False
+        self._text_renderer = None
+        self._setup_text_renderer()
+
+    def _setup_text_renderer(self):
+        """Initialize text renderer for accurate line counting"""
+        try:
+            from display.text_renderer import TextRenderer
+
+            self._text_renderer = TextRenderer()
+            log("Text renderer initialized for content prioritizer")
+        except Exception as e:
+            log(f"Failed to initialize text renderer: {e}")
+            self._text_renderer = None
 
     def _strip_formatting_tags(self, text):
         """Strip all formatting tags to get clean text content"""
@@ -77,36 +92,133 @@ class ContentPrioritizer:
             self.content_items, key=lambda x: x.priority, reverse=True
         )
 
-        # Try to fit as much high-priority content as possible
-        selected_texts = []
-        total_length = 0
+        # Use iterative optimization to maximize space utilization
+        return self._optimize_narrative_iteratively(sorted_items)
 
-        for item in sorted_items:
-            # Try full text first
-            candidate_text = item.text
-            candidate_length = len(candidate_text)
+    def _optimize_narrative_iteratively(self, sorted_items):
+        """Try multiple combinations to maximize space utilization"""
+        log(f"Starting iterative optimization with {len(sorted_items)} content items")
+        best_narrative = ""
+        best_line_count = 0
 
-            # Check if adding this item would exceed limits
-            test_length = total_length + candidate_length
-            if selected_texts:
-                test_length += 2  # Account for ". " separator
+        # Try up to 5 different combinations
+        for attempt in range(5):
+            try:
+                # Try different combinations of content
+                candidate_content = self._try_combination(sorted_items, attempt)
+                candidate_narrative = self._smart_join_parts(candidate_content)
 
-            if test_length <= self.max_length:
-                selected_texts.append(candidate_text)
-                total_length = test_length
-            else:
-                # Try short text
-                candidate_text = item.short_text
-                candidate_length = len(candidate_text)
-                test_length = total_length + candidate_length
-                if selected_texts:
-                    test_length += 2
+                # Measure actual line count
+                line_count = self._get_actual_line_count(candidate_narrative)
 
-                if test_length <= self.max_length:
-                    selected_texts.append(candidate_text)
-                    total_length = test_length
-                # If short text doesn't fit either, skip this item
+                log(
+                    f"Attempt {attempt}: {len(candidate_content)} items, {line_count} lines, {len(candidate_narrative)} chars"
+                )
 
+                # Keep if it fits and is better than what we have
+                if line_count <= self.max_lines and line_count > best_line_count:
+                    best_narrative = candidate_narrative
+                    best_line_count = line_count
+                    log(f"New best: {best_line_count} lines")
+
+                # Perfect fit - stop trying
+                if line_count == self.max_lines:
+                    log(f"Perfect fit found on attempt {attempt}!")
+                    break
+
+            except Exception as e:
+                log(f"Attempt {attempt} failed: {e}")
+                continue
+
+        # Fallback to original algorithm if iterative optimization fails
+        if not best_narrative:
+            log("Iterative optimization failed, using fallback")
+            best_narrative = self._fallback_optimize(sorted_items)
+        else:
+            log(f"Final optimized narrative: {best_line_count} lines")
+
+        return best_narrative
+
+    def _try_combination(self, sorted_items, attempt):
+        """Try different combinations of content based on attempt number"""
+        # Attempt 0: Core high-priority content only
+        # Attempt 1: Core + time-based content
+        # Attempt 2: Core + activity suggestions
+        # Attempt 3: Core + multiple lower-priority categories
+        # Attempt 4: Use short text variants for more content
+
+        if attempt == 0:
+            # Just core content (priority 6+)
+            return [item for item in sorted_items if item.priority >= 6]
+
+        elif attempt == 1:
+            # Core + time-based/greeting content (priority 4-5)
+            core_items = [item for item in sorted_items if item.priority >= 6]
+            time_items = [
+                item
+                for item in sorted_items
+                if 4 <= item.priority < 6
+                and any(
+                    word in item.text.lower()
+                    for word in ["morning", "evening", "afternoon", "night"]
+                )
+            ]
+            return core_items + time_items[:1]  # Add one time-based item
+
+        elif attempt == 2:
+            # Core + activity suggestions
+            core_items = [item for item in sorted_items if item.priority >= 6]
+            activity_items = [
+                item
+                for item in sorted_items
+                if 3 <= item.priority < 6
+                and any(
+                    word in item.text.lower()
+                    for word in ["day", "outside", "get", "lovely", "nice"]
+                )
+            ]
+            return core_items + activity_items[:1]
+
+        elif attempt == 3:
+            # Core + multiple lower-priority items
+            core_items = [item for item in sorted_items if item.priority >= 6]
+            lower_items = [item for item in sorted_items if 2 <= item.priority < 6]
+            return core_items + lower_items[:2]  # Add up to 2 lower priority items
+
+        else:  # attempt == 4
+            # Use short text variants to fit more content
+            self.use_short_format = True
+            return sorted_items[:6]  # Try top 6 items with short text
+
+    def _get_actual_line_count(self, narrative_text):
+        """Get actual line count using text measurement"""
+        try:
+            # Try to use TextRenderer for accurate measurement
+            if not self._text_renderer:
+                self._setup_text_renderer()
+
+            if self._text_renderer:
+                # Parse and wrap the text to count actual lines
+                segments = self._text_renderer.parse_markup(narrative_text)
+                wrapped_lines = self._text_renderer.hard_wrap_text(segments)
+                line_count = len(wrapped_lines)
+                log(
+                    f"Text renderer measured {line_count} lines for text: {narrative_text[:50]}..."
+                )
+                return line_count
+
+        except Exception as e:
+            log(f"Text renderer failed: {e}")
+
+        # Fallback to character estimation
+        # 400 chars / 7 lines = ~57 chars per line average
+        estimated_lines = max(1, len(narrative_text) // 57)
+        result = min(estimated_lines, self.max_lines)
+        log(f"Character estimation: {result} lines for {len(narrative_text)} chars")
+        return result
+
+    def _fallback_optimize(self, sorted_items):
+        """Fallback to original optimization algorithm"""
         # Try progressive optimization - first with long format, then short
         for use_short in [False, True]:
             self.use_short_format = use_short
@@ -204,33 +316,91 @@ class ContentPrioritizer:
         return sorted(selected_items, key=lambda x: x.priority, reverse=True)
 
     def _smart_join_parts(self, parts):
-        """Join text parts with smart punctuation handling"""
+        """Join text parts with smart punctuation handling and Tomorrow: placement"""
         if not parts:
             return ""
 
-        if len(parts) == 1:
-            text = parts[0]
+        # Extract items by type for better organization
+        content_items = []
+        for item in parts:
+            if hasattr(item, "text"):
+                content_items.append(item.text)
+            else:
+                content_items.append(str(item))
+
+        if not content_items:
+            return ""
+
+        if len(content_items) == 1:
+            text = content_items[0]
             clean_text = self._strip_formatting_tags(text)
             if clean_text and not clean_text.rstrip().endswith((".", "!", "?")):
                 return text + "."
             return text
 
-        # Join multiple parts
-        result = parts[0]
-        for part in parts[1:]:
-            # Check if previous part already ends with punctuation
-            clean_previous = self._strip_formatting_tags(result).rstrip()
-            if clean_previous.endswith((".", "!", "?")):
-                result += f" {part}"
+        # Separate Tomorrow: content from other content
+        tomorrow_parts = []
+        regular_parts = []
+
+        for part in content_items:
+            if "Tomorrow:" in part or "tomorrow" in part.lower():
+                tomorrow_parts.append(part)
             else:
-                result += f". {part}"
+                regular_parts.append(part)
+
+        # Join regular parts first
+        result = ""
+        if regular_parts:
+            result = regular_parts[0]
+            for part in regular_parts[1:]:
+                # Check if previous part already ends with punctuation
+                clean_previous = self._strip_formatting_tags(result).rstrip()
+                if clean_previous.endswith((".", "!", "?")):
+                    result += f" {part}"
+                else:
+                    result += f". {part}"
+
+        # Add Tomorrow: content with simple space-saving formatting
+        if tomorrow_parts:
+            result = self._add_tomorrow_simply(result, tomorrow_parts)
 
         # Ensure final punctuation
-        clean_final = self._strip_formatting_tags(result).rstrip()
-        if not clean_final.endswith((".", "!", "?")):
-            result += "."
+        # Ensure final result has appropriate ending punctuation
+        if result:
+            final_clean = self._strip_formatting_tags(result).rstrip()
+            if not final_clean.endswith((".", "!", "?")):
+                result += "."
 
         return result
+
+    def _add_tomorrow_simply(self, current_result, tomorrow_parts):
+        """Add Tomorrow: content with simple space-saving - no new lines, just T: vs Tomorrow:"""
+        if not tomorrow_parts:
+            return current_result
+
+        # Ensure current content ends with punctuation
+        if current_result:
+            clean_result = self._strip_formatting_tags(current_result).rstrip()
+            if not clean_result.endswith((".", "!", "?")):
+                current_result += "."
+
+        # Prepare Tomorrow: content
+        tomorrow_text = tomorrow_parts[0]
+        for i, part in enumerate(tomorrow_parts[1:], 1):
+            tomorrow_text += f" {part}"
+
+        # Try "Tomorrow:" first, then "T:" if it doesn't fit
+        full_format = f" {tomorrow_text}"
+        test_full = current_result + full_format
+
+        if self._get_actual_line_count(test_full) <= self.max_lines:
+            log("✓ Tomorrow: using full 'Tomorrow:' format")
+            return test_full
+        else:
+            # Use compact "T:" format
+            compact_format = f" {tomorrow_text.replace('Tomorrow:', 'T:', 1)}"
+            log("✓ Tomorrow: using compact 'T:' format to save space")
+            return current_result + compact_format
 
     def _apply_text_alternatives(self, text):
         """Apply text alternatives to shorten the narrative"""
