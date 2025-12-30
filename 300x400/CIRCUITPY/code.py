@@ -21,7 +21,9 @@ import fourwire
 import microcontroller
 import socketpool
 import storage
+import terminalio
 import wifi
+from adafruit_display_text import label, wrap_text_to_pixels
 from digitalio import DigitalInOut
 
 # shared display functions
@@ -159,6 +161,76 @@ def check_memory():
     return free_mem
 
 
+def read_failure_state():
+    """Read WiFi failure state from SD card"""
+    if not sd_available:
+        return {"failures": 0, "ever_succeeded": False}
+
+    try:
+        with open("/sd/wifi_state.txt", "r") as f:
+            lines = f.read().strip().split("\n")
+            failures = int(lines[0]) if len(lines) > 0 else 0
+            ever_succeeded = lines[1] == "True" if len(lines) > 1 else False
+            return {"failures": failures, "ever_succeeded": ever_succeeded}
+    except:
+        return {"failures": 0, "ever_succeeded": False}
+
+
+def write_failure_state(failures, ever_succeeded):
+    """Write WiFi failure state to SD card"""
+    if not sd_available:
+        return
+
+    try:
+        with open("/sd/wifi_state.txt", "w") as f:
+            f.write(f"{failures}\n{ever_succeeded}\n")
+    except Exception as e:
+        log(f"Failed to write failure state: {e}")
+
+
+def show_error_screen(message):
+    """Display error screen with sad cloud icon and message"""
+    log(f"Showing error screen: {message}")
+
+    # Create display group
+    error_group = displayio.Group()
+
+    # Load sad cloud background if available
+    sad_cloud = load_bmp_icon("sadcloud.bmp")
+    if sad_cloud:
+        sad_cloud.y = 5
+        error_group.append(sad_cloud)
+
+    error_group.append(
+        label.Label(
+            terminalio.FONT,
+            text="onoz! error! don't panic ucanfix!",
+            color=WHITE,
+            background_color=RED,
+            x=5,
+            y=10,
+            scale=2,
+        )
+    )
+
+    message = f"if this doesn't go away, connect pinkweather to yr computer via usb and fix config.py? check the wifi settings? \n{message}"
+
+    text_area = label.Label(
+        terminalio.FONT,
+        text="\n".join(wrap_text_to_pixels(message, 380, terminalio.FONT)),
+        color=BLACK,
+        background_color=WHITE,
+        x=10,
+        y=205,
+    )
+    error_group.append(text_area)
+
+    # Update display
+    display.root_group = error_group
+    display.refresh()
+    time.sleep(20)
+
+
 def load_bmp_icon(filename):
     """Load BMP icon from SD card with error handling"""
     if not sd_available:
@@ -216,7 +288,7 @@ log(
 
 
 def connect_wifi():
-    """Connect to WiFi network with fresh connection"""
+    """Connect to WiFi network with fresh connection and error screen logic"""
     if config.WIFI_SSID is None or config.WIFI_PASSWORD is None:
         log("WiFi credentials not configured, skipping WiFi connection")
         return False
@@ -237,11 +309,28 @@ def connect_wifi():
         log(f"Connected to {config.WIFI_SSID}")
         log(f"IP address: {wifi.radio.ipv4_address}")
 
+        # Success! Reset failure count and mark success
+        write_failure_state(0, True)
+
         # Give a moment for network to be ready
         time.sleep(2)
         return True
     except Exception as e:
         log(f"Failed to connect to WiFi: {e}")
+
+        # Handle failure state
+        state = read_failure_state()
+        new_failures = state["failures"] + 1
+        ever_succeeded = state["ever_succeeded"]
+
+        write_failure_state(new_failures, ever_succeeded)
+
+        # Show error screen if appropriate
+        if not ever_succeeded or new_failures >= 3:
+            show_error_screen(
+                f"{config.WIFI_SSID} wifi error (count #{new_failures}): {e}"
+            )
+
         return False
 
 
