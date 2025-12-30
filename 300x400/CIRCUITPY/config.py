@@ -72,3 +72,8 @@ SD_CS_PIN = board.GP21  # SD card chip select
 # I2C Pins (Temperature Sensor)
 I2C_SCL_PIN = board.GP27
 I2C_SDA_PIN = board.GP26
+
+# Logging Configuration
+# "ERROR" = only show errors (no print, no SD writes for regular logs)
+# "INFO" = show all logs (print + write to SD for everything)
+LOG_LEVEL = "INFO"  # "ERROR" or "INFO"

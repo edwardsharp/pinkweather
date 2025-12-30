@@ -30,7 +30,7 @@ from digitalio import DigitalInOut
 from display.text_renderer import get_text_capacity
 from display.weather_display import create_weather_display_layout
 from filesystem.filesystem import FileSystem
-from utils.logger import log
+from utils.logger import log, set_log_level
 from utils.logger import set_filesystem as set_logger_filesystem
 from weather import weather_api
 from weather.weather_history import set_filesystem as set_weather_history_filesystem
@@ -112,6 +112,9 @@ except Exception as e:
     log(f"SD card failed: {e}")
     log("Continuing without SD card...")
     sd_available = False
+
+# Initialize logging level from config
+set_log_level(getattr(config, "LOG_LEVEL", "INFO"))
 
 # Initialize temperature/humidity sensor
 sensor = None

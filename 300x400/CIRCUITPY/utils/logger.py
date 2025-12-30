@@ -9,6 +9,7 @@ import time
 # Global logging configuration
 _filesystem = None
 _silent_mode = False  # When True, suppress all print() output
+_log_level = "INFO"  # "ERROR" or "INFO"
 LOG_FILENAME = "log.txt"
 MAX_LOG_LINES = 100000
 
@@ -17,6 +18,21 @@ def set_filesystem(filesystem):
     """Set the filesystem to use for logging (dependency injection)"""
     global _filesystem
     _filesystem = filesystem
+
+
+def set_log_level(level):
+    """Set the logging level from config
+
+    Args:
+        level: "ERROR" or "INFO"
+    """
+    global _log_level
+    _log_level = level.upper() if level else "INFO"
+
+
+def _should_log():
+    """Check if regular logging should happen based on log level"""
+    return _log_level == "INFO"
 
 
 def _filesystem_available():
@@ -104,6 +120,10 @@ def log(message):
     if _silent_mode:
         return
 
+    # In ERROR level mode, do nothing for regular logs
+    if not _should_log():
+        return
+
     # Get timestamp for both console and file
     timestamp = _get_timestamp()
     timestamped_message = f"{timestamp} {message}"
@@ -121,12 +141,25 @@ def log(message):
 
 
 def log_error(message):
-    """Log error message with ERROR prefix
+    """Log error message with ERROR prefix - always logs regardless of level
 
     Args:
         message: Error message to log
     """
-    log(f"ERROR: {message}")
+    # In silent mode, do nothing at all
+    if _silent_mode:
+        return
+
+    # Errors always log regardless of log level
+    timestamp = _get_timestamp()
+    timestamped_message = f"{timestamp} ERROR: {message}"
+
+    # Print to console with timestamp
+    print(timestamped_message)
+
+    # Try to write to filesystem with same timestamp
+    if _filesystem_available():
+        _write_to_filesystem(timestamped_message)
 
 
 def force_truncate_log():
