@@ -1,20 +1,15 @@
 # Makefile for pinkweather project
 # Provides easy commands for setup, development, and deployment
 
-.PHONY: help install install-dev clean test lint format server deploy-check preview activate generate-dataset
+.PHONY: help install server preview deploy activate generate-dataset
 
 # Default target
 help:
 	@echo "Available commands:"
 	@echo "  install      - Install basic dependencies"
-	@echo "  install-dev  - Install development dependencies"
-	@echo "  clean        - Clean up temporary files"
-	@echo "  test         - Run tests"
-	@echo "  lint         - Run code linting"
-	@echo "  format       - Format code with black"
 	@echo "  server       - Start development web server"
 	@echo "  preview      - Generate weather display preview"
-	@echo "  deploy-check - Check files ready for microcontroller deployment"
+	@echo "  deploy       - Deploy code to CIRCUITPY device"
 	@echo "  generate-dataset [DATASET] [csv-only] [COUNT] - Generate dataset (csv-only for fast iteration)"
 	@echo "    Available datasets: ny_2024 (default), toronto_2025"
 	@echo "    Examples: make generate-dataset toronto_2025 csv-only 50"
@@ -34,40 +29,6 @@ venv:
 # Install dependencies
 install:
 	pip install -r requirements.txt
-
-install-dev:
-	pip install -r requirements-dev.txt
-
-# Clean up temporary files
-clean:
-	find . -type f -name "*.pyc" -delete
-	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-
-# Testing
-test:
-	@if [ -f "venv/bin/activate" ]; then \
-		. venv/bin/activate && python -m pytest tests/ -v; \
-	else \
-		python -m pytest tests/ -v; \
-	fi
-
-# Code quality
-lint:
-	@if [ -f "venv/bin/activate" ]; then \
-		. venv/bin/activate && flake8 *.py --max-line-length=88 --ignore=E203,W503 && mypy *.py --ignore-missing-imports; \
-	else \
-		flake8 *.py --max-line-length=88 --ignore=E203,W503; \
-		mypy *.py --ignore-missing-imports; \
-	fi
-
-format:
-	@if [ -f "venv/bin/activate" ]; then \
-		. venv/bin/activate && black *.py && isort *.py; \
-	else \
-		black *.py; \
-		isort *.py; \
-	fi
 
 # Development server
 server:
@@ -90,19 +51,6 @@ preview:
 		python weather_example.py; \
 	fi
 	@echo "Preview images saved as weather_preview.png and text_preview.png"
-
-# Check deployment readiness for microcontroller
-deploy-check:
-	@echo "Checking files for microcontroller deployment..."
-	@echo "Required files:"
-	@if [ -f "display_renderer.py" ]; then echo "  ✓ display_renderer.py"; else echo "  ✗ display_renderer.py (MISSING)"; fi
-	@if [ -f "code.py" ]; then echo "  ✓ code.py"; else echo "  ✗ code.py (MISSING)"; fi
-	@if [ -f "AndaleMono.ttf" ]; then echo "  ✓ AndaleMono.ttf"; else echo "  ✗ AndaleMono.ttf (MISSING)"; fi
-	@echo ""
-	@echo "Optional files:"
-	@if [ -f "weather_example.py" ]; then echo "  ✓ weather_example.py (for weather API)"; else echo "  - weather_example.py (not needed for basic display)"; fi
-	@echo ""
-	@echo "Copy these files to your Pi Pico 2W CircuitPython drive"
 
 # Quick development setup
 setup: venv install-dev
@@ -186,6 +134,69 @@ generate-images:
 		fi \
 	fi
 	@echo "Images generated in web/static/images/"
+
+# Deploy to CIRCUITPY device
+deploy:
+	@echo "Deploying code to CIRCUITPY device..."
+	@# Validate source code.py exists
+	@if [ ! -f "300x400/CIRCUITPY/code.py" ]; then \
+		echo "Error: Source code.py not found at 300x400/CIRCUITPY/code.py"; \
+		exit 1; \
+	fi; \
+	echo "✓ Source code.py found"
+	@# Try to auto-detect CIRCUITPY mount point on macOS
+	@CIRCUITPY_PATH=""; \
+	if [ "$$(uname)" = "Darwin" ]; then \
+		CIRCUITPY_PATH=$$(ls -d /Volumes/CIRCUITPY 2>/dev/null || echo ""); \
+	elif [ "$$(uname)" = "Linux" ]; then \
+		CIRCUITPY_PATH=$$(ls -d /media/*/CIRCUITPY /mnt/CIRCUITPY 2>/dev/null | head -n1 || echo ""); \
+	fi; \
+	if [ -z "$$CIRCUITPY_PATH" ] || [ ! -d "$$CIRCUITPY_PATH" ]; then \
+		echo "Could not auto-detect CIRCUITPY device."; \
+		echo -n "Please enter the full path to your CIRCUITPY device: "; \
+		read CIRCUITPY_PATH; \
+		if [ ! -d "$$CIRCUITPY_PATH" ]; then \
+			echo "Error: Directory $$CIRCUITPY_PATH does not exist"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "Found CIRCUITPY device at: $$CIRCUITPY_PATH"; \
+	fi; \
+	if [ ! -f "$$CIRCUITPY_PATH/code.py" ]; then \
+		echo "Error: Destination code.py not found at $$CIRCUITPY_PATH/code.py"; \
+		echo "This doesn't appear to be a valid CIRCUITPY device."; \
+		exit 1; \
+	fi; \
+	echo "✓ Destination code.py found"; \
+	echo ""; \
+	echo "=== DRY RUN: Showing what would be synced ==="; \
+	rsync -av --dry-run --delete --info=progress2 \
+		--exclude='config.py' \
+		--exclude='__pycache__/' \
+		--exclude='sd/' \
+		--exclude='settings.toml' \
+		--exclude='boot_out.txt' \
+		--exclude='.DS_Store' \
+		300x400/CIRCUITPY/ "$$CIRCUITPY_PATH/"; \
+	echo ""; \
+	echo "=== END DRY RUN ==="; \
+	echo ""; \
+	echo "The above shows what files would be copied/updated/deleted."; \
+	echo "Files excluded: config.py, __pycache__/, sd/, settings.toml, boot_out.txt"; \
+	echo ""; \
+	echo -n "Press ENTER to proceed with the actual sync (or Ctrl+C to cancel): "; \
+	read CONFIRM; \
+	echo ""; \
+	echo "Syncing files from 300x400/CIRCUITPY/ to $$CIRCUITPY_PATH/"; \
+	rsync -av --delete --info=progress2 \
+		--exclude='config.py' \
+		--exclude='__pycache__/' \
+		--exclude='sd/' \
+		--exclude='settings.toml' \
+		--exclude='boot_out.txt' \
+		--exclude='.DS_Store' \
+		300x400/CIRCUITPY/ "$$CIRCUITPY_PATH/"; \
+	echo "Deployment complete!"
 
 # Show activation instructions
 activate:
