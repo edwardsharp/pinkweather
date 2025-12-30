@@ -49,3 +49,11 @@ blinka-displayio-pygamedisplay @ git+https://github.com/FoamyGuy/Blinka_Displayi
 #
 # For microcontroller deployment:
 # Just copy the 300x400/CIRCUITPY/ directory to the device
+
+# Code formatting and linting
+black>=22.0.0
+flake8>=4.0.0
+isort>=5.10.0
+
+# Type checking
+mypy>=0.950
