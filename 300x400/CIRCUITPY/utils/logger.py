@@ -129,33 +129,6 @@ def log_error(message):
     log(f"ERROR: {message}")
 
 
-def log_warning(message):
-    """Log warning message with WARNING prefix
-
-    Args:
-        message: Warning message to log
-    """
-    log(f"WARNING: {message}")
-
-
-def log_debug(message):
-    """Log debug message with DEBUG prefix
-
-    Args:
-        message: Debug message to log
-    """
-    log(f"DEBUG: {message}")
-
-
-def log_info(message):
-    """Log info message with INFO prefix
-
-    Args:
-        message: Info message to log
-    """
-    log(f"INFO: {message}")
-
-
 def force_truncate_log():
     """Force log file truncation (for testing or maintenance)"""
     _truncate_log_if_needed()
@@ -186,10 +159,7 @@ def get_log_stats():
 def test_logger():
     """Test the logger functionality"""
     log("Logger test started")
-    log_info("This is an info message")
-    log_warning("This is a warning message")
     log_error("This is an error message")
-    log_debug("This is a debug message")
 
     stats = get_log_stats()
     if stats:
