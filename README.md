@@ -30,9 +30,7 @@ make activate
 python -m venv venv
 
 # Activate it
-source venv/bin/activate  # Linux/Mac
-# or
-venv\Scripts\activate     # Windows
+source venv/bin/activate 
 
 # Install dependencies
 pip install -r requirements.txt
@@ -43,30 +41,10 @@ pip install -r requirements.txt
 Start the web development server to design and test layouts:
 
 ```bash
-# Direct execution
-python http_server.py
-
-# Or using make
 make server
-
-# Or if installed as package
-weather-server
 ```
 
-Then open http://localhost:8000 in your browser.
-
-
-## font stuff
-
-convert some `.ttf` font file to `.bdf` like:
-
-```sh
-otf2bdf googz/Barlow_Condensed/BarlowCondensed-Regular.ttf -p 30 -o barlowcond30.bdf
-
-otf2bdf googz/Barlow_Condensed/BarlowCondensed-Regular.ttf -p 60 -o barlowcond60.bdf
-```
-
-then use https://adafruit.github.io/web-bdftopcf/ to convert this `.bdf` to a `.pcf` file
+Then open http://localhost:8000 in yr browser.
 
 ## generate static dataset (for some broad analysis)
 
@@ -83,10 +61,20 @@ make generate-dataset 100
 make generate-dataset csv-only 100
 ```
 
-then see output in:
+then see output in: `preview/static/`
 
-web/static/narratives.csv
-web/static/viewer.html
+
+## font stuff
+
+convert some `.ttf` font file to `.bdf` like:
+
+```sh
+otf2bdf googz/Barlow_Condensed/BarlowCondensed-Regular.ttf -p 30 -o barlowcond30.bdf
+
+otf2bdf googz/Barlow_Condensed/BarlowCondensed-Regular.ttf -p 60 -o barlowcond60.bdf
+```
+
+then use https://adafruit.github.io/web-bdftopcf/ to convert this `.bdf` to a `.pcf` file
 
 ## HARDWARE
 
@@ -98,18 +86,11 @@ web/static/viewer.html
 
 ## Weather API Integration
 
-### OpenWeatherMap Setup
+### API
 
 1. Sign up at https://openweathermap.org/api & https://www.weatherbit.io/
 2. Get API key
 3. Update `config.py` with API keys:
-
-```python
-station = WeatherStation(
-    api_key="your_api_key_here",
-    location="YourCity,CountryCode"
-)
-```
 
 ### some handy-dandy Makefile scriptz
 
