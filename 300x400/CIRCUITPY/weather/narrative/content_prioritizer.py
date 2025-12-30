@@ -96,46 +96,66 @@ class ContentPrioritizer:
         return self._optimize_narrative_iteratively(sorted_items)
 
     def _optimize_narrative_iteratively(self, sorted_items):
-        """Try multiple combinations to maximize space utilization"""
+        """Try multiple combinations to maximize space utilization using character-based pre-filtering"""
         log(f"Starting iterative optimization with {len(sorted_items)} content items")
+
+        # Target ~200 chars (rough estimate for good line usage)
+        char_target = 200
+        char_max = 250  # Soft max before we definitely need to measure
+
         best_narrative = ""
         best_line_count = 0
+        candidates_to_measure = []
 
-        # Try up to 5 different combinations
+        # Phase 1: Character-based filtering (fast)
         for attempt in range(5):
             try:
-                # Try different combinations of content
                 candidate_content = self._try_combination(sorted_items, attempt)
                 candidate_narrative = self._smart_join_parts(candidate_content)
-
-                # Measure actual line count
-                line_count = self._get_actual_line_count(candidate_narrative)
+                char_count = len(candidate_narrative)
 
                 log(
-                    f"Attempt {attempt}: {len(candidate_content)} items, {line_count} lines, {len(candidate_narrative)} chars"
+                    f"Attempt {attempt}: {len(candidate_content)} items, {char_count} chars"
                 )
 
-                # Keep if it fits and is better than what we have
-                if line_count <= self.max_lines and line_count > best_line_count:
-                    best_narrative = candidate_narrative
-                    best_line_count = line_count
-                    log(f"New best: {best_line_count} lines")
-
-                # Perfect fit - stop trying
-                if line_count == self.max_lines:
-                    log(f"Perfect fit found on attempt {attempt}!")
-                    break
+                # Only measure expensive text rendering for promising candidates
+                if char_count <= char_max:
+                    candidates_to_measure.append(
+                        (attempt, candidate_narrative, char_count)
+                    )
+                    log(f"  → Adding to measurement queue (under {char_max} chars)")
+                else:
+                    log(f"  → Skipping measurement (over {char_max} chars)")
 
             except Exception as e:
                 log(f"Attempt {attempt} failed: {e}")
                 continue
+
+        # Phase 2: Expensive text rendering (limited to promising candidates)
+        for attempt_num, narrative, char_count in candidates_to_measure:
+            line_count = self._get_actual_line_count(narrative)
+            log(
+                f"Measured attempt {attempt_num}: {char_count} chars → {line_count} lines"
+            )
+
+            if line_count <= self.max_lines and line_count > best_line_count:
+                best_narrative = narrative
+                best_line_count = line_count
+                log(f"New best: {best_line_count} lines")
+
+            # Perfect fit - stop trying
+            if line_count == self.max_lines:
+                log(f"Perfect fit found!")
+                break
 
         # Fallback to original algorithm if iterative optimization fails
         if not best_narrative:
             log("Iterative optimization failed, using fallback")
             best_narrative = self._fallback_optimize(sorted_items)
         else:
-            log(f"Final optimized narrative: {best_line_count} lines")
+            log(
+                f"Final optimized narrative: {best_line_count} lines ({len(best_narrative)} chars)"
+            )
 
         return best_narrative
 
@@ -393,11 +413,12 @@ class ContentPrioritizer:
         full_format = f" {tomorrow_text}"
         test_full = current_result + full_format
 
-        if self._get_actual_line_count(test_full) <= self.max_lines:
-            log("✓ Tomorrow: using full 'Tomorrow:' format")
+        # Use character count as rough approximation first (much faster)
+        if len(test_full) <= 200:  # Rough char limit for good line usage
+            log("✓ Tomorrow: using full 'Tomorrow:' format (under char limit)")
             return test_full
         else:
-            # Use compact "T:" format
+            # Use compact "T:" format for longer text
             compact_format = f" {tomorrow_text.replace('Tomorrow:', 'T:', 1)}"
             log("✓ Tomorrow: using compact 'T:' format to save space")
             return current_result + compact_format

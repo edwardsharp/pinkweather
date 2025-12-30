@@ -268,8 +268,7 @@
 
                         <div class="form-group">
                             <small
-                                >Use arrow keys: ←→ time (3h), ↑↓ week, Space
-                                regenerate</small
+                                >Use arrow keys: ←→ time (3h), ↑↓ week, [<b>r</b>]andom</small
                             >
                         </div>
                     </div>
@@ -595,6 +594,11 @@
                 if (document.getElementById("display_type").value !== "400x300")
                     return;
 
+                // Allow Ctrl+R and Cmd+R for page reload
+                if (e.key === "r" && (e.ctrlKey || e.metaKey)) {
+                    return;
+                }
+
                 console.log("Key pressed:", e.key, "Mock enabled:", document.getElementById("use_mock_weather").checked);
 
                 switch (e.key) {
@@ -617,6 +621,10 @@
                     case " ":
                         e.preventDefault();
                         regenerateScenario();
+                        break;
+                    case "r":
+                        e.preventDefault();
+                        jumpToRandomTimestamp();
                         break;
                 }
             });
@@ -648,13 +656,46 @@
                         winter: "winter_storm",
                         spring: "spring_rain",
                         summer: "summer_hot",
-                        fall: "fall_rain",
+                        fall: "fall_crisp",
                     };
-                    currentScenario = scenarios[season];
                     document.getElementById("mock_scenario").value =
-                        currentScenario;
-                    updateDisplay();
+                        scenarios[season];
+                    regenerateScenario();
                 }
+            }
+
+            function jumpToRandomTimestamp() {
+                // Only works for historical data scenarios
+                if (currentScenario !== "ny_2024" && currentScenario !== "toronto_2025") {
+                    console.log("Random timestamp only available for historical data (ny_2024, toronto_2025)");
+                    return;
+                }
+
+                // Use estimated ranges based on known CSV data (full year ranges)
+                let range;
+                if (currentScenario === "ny_2024") {
+                    range = { start: 1704067200, end: 1735689600 }; // 2024: Jan 1 - Dec 31
+                } else if (currentScenario === "toronto_2025") {
+                    range = { start: 1735689600, end: 1767225600 }; // 2025: Jan 1 - Dec 31
+                } else {
+                    console.log("Unknown historical scenario:", currentScenario);
+                    return;
+                }
+
+                console.log("Using data range for", currentScenario, ":", range);
+
+                // Generate random timestamp within range, rounded to nearest hour
+                const rangeSpan = range.end - range.start;
+                const randomOffset = Math.floor(Math.random() * rangeSpan);
+
+                // Round to nearest hour (3600 seconds) since data is hourly
+                const randomTimestamp = range.start + Math.floor(randomOffset / 3600) * 3600;
+
+                currentTimestamp = randomTimestamp;
+                console.log("Jumped to random timestamp:", currentTimestamp, new Date(currentTimestamp * 1000).toISOString());
+                updateTimestampDisplay();
+                saveSettings();
+                updateDisplay();
             }
 
             function regenerateScenario() {
