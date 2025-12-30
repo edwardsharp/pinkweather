@@ -108,3 +108,7 @@ make generate-images # [COUNT] - Generate images for existing narratives_*.csv
 make venv             # Create virtual environment
 make activate         # Show how to activate virtual environment
 ```
+
+---
+
+made with ⛈️ in NYC
