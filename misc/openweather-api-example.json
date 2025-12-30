@@ -1,5 +1,5 @@
 [
-  "https://api.openweathermap.org/data/2.5/weather?lon=-73.9585369&lat=40.655786&appid=fa855144ffc3cea23d1a8b461aecf7f1",
+  "https://api.openweathermap.org/data/2.5/weather?lon=-73.9585369&lat=40.655786&appid=key",
   {
     "coord": { "lon": -73.9585, "lat": 40.6558 },
     "weather": [
@@ -75,7 +75,7 @@
     "cod": 200
   },
 
-  "http://api.openweathermap.org/data/2.5/air_pollution?lon=-73.9585369&lat=40.655786&appid=fa855144ffc3cea23d1a8b461aecf7f1",
+  "http://api.openweathermap.org/data/2.5/air_pollution?lon=-73.9585369&lat=40.655786&appid=key",
   {
     "coord": { "lon": -73.9616, "lat": 40.6573 },
     "list": [
@@ -96,7 +96,7 @@
     ]
   },
 
-  "https://api.openweathermap.org/data/2.5/forecast?lon=-73.9585369&lat=40.655786&appid=fa855144ffc3cea23d1a8b461aecf7f1",
+  "https://api.openweathermap.org/data/2.5/forecast?lon=-73.9585369&lat=40.655786&appid=key",
   {
     "cod": "200",
     "message": 0,
