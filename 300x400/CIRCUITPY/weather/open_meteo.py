@@ -3,7 +3,7 @@ Open-Meteo API provider
 Free weather API service as alternative to OpenWeatherMap
 """
 
-from utils.logger import log
+from utils.logger import log, log_error
 
 from weather.date_utils import (
     format_timestamp_to_date,
@@ -55,14 +55,14 @@ def fetch_open_meteo_data(http_client, lat, lon, timezone_offset_hours=-5):
             log("Fetching air quality data from Open-Meteo...")
             aqi_response = http_client.get(aqi_full_url)
         except Exception as e:
-            log(f"Air quality fetch failed: {e}")
+            log_error(f"Air quality fetch failed: {e}")
 
         return transform_open_meteo_response(
             weather_response, timezone_offset_hours, aqi_response
         )
 
     except Exception as e:
-        log(f"Open-Meteo API error: {e}")
+        log_error(f"Open-Meteo API error: {e}")
         raise
 
 
@@ -211,7 +211,7 @@ def transform_open_meteo_response(
             current_weather, forecast_items, current_timestamp
         )
     except Exception as e:
-        log(f"Error generating weather narrative: {e}")
+        log_error(f"Error generating weather narrative: {e}")
         narrative = weather_desc
 
     return {
@@ -321,7 +321,7 @@ def parse_air_quality_data(aqi_response):
         }
 
     except (KeyError, TypeError, ValueError) as e:
-        log(f"Error parsing air quality data: {e}")
+        log_error(f"Error parsing air quality data: {e}")
         return None
 
 

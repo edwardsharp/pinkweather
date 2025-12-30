@@ -30,7 +30,7 @@ from digitalio import DigitalInOut
 from display.text_renderer import get_text_capacity
 from display.weather_display import create_weather_display_layout
 from filesystem.filesystem import FileSystem
-from utils.logger import log, set_log_level
+from utils.logger import log, log_error, set_log_level
 from utils.logger import set_filesystem as set_logger_filesystem
 from weather import weather_api
 from weather.weather_history import set_filesystem as set_weather_history_filesystem
@@ -109,7 +109,7 @@ try:
     log("SD card ready and filesystem dependencies injected")
 
 except Exception as e:
-    log(f"SD card failed: {e}")
+    log_error(f"SD card failed: {e}")
     log("Continuing without SD card...")
     sd_available = False
 
@@ -126,7 +126,7 @@ try:
     current_humidity = int(round(sensor.relative_humidity))
     log(f"Sensor reading - temp: {current_temp}°C, humidity: {current_humidity}%")
 except Exception as e:
-    log(f"Temperature sensor failed to initialize: {e}")
+    log_error(f"Temperature sensor failed to initialize: {e}")
     log("Continuing without temperature sensor...")
     sensor = None
 
@@ -150,7 +150,7 @@ def get_indoor_temp_humidity():
         log(f"Sensor reading - temp: {current_temp}°C, humidity: {current_humidity}%")
         return f"{current_temp}°{current_humidity}%"
     except Exception as e:
-        log(f"Failed to read sensor: {e}")
+        log_error(f"Failed to read sensor: {e}")
         return None
 
 
@@ -188,7 +188,7 @@ def write_failure_state(failures, ever_succeeded):
         with open("/sd/wifi_state.txt", "w") as f:
             f.write(f"{failures}\n{ever_succeeded}\n")
     except Exception as e:
-        log(f"Failed to write failure state: {e}")
+        log_error(f"Failed to write failure state: {e}")
 
 
 def show_error_screen(message):
@@ -244,7 +244,7 @@ def load_bmp_icon(filename):
         pic = displayio.OnDiskBitmap(file_path)
         return displayio.TileGrid(pic, pixel_shader=pic.pixel_shader)
     except Exception as e:
-        log(f"Failed to load {filename}: {e}")
+        log_error(f"Failed to load {filename}: {e}")
         return None
 
 
@@ -319,7 +319,7 @@ def connect_wifi():
         time.sleep(2)
         return True
     except Exception as e:
-        log(f"Failed to connect to WiFi: {e}")
+        log_error(f"Failed to connect to WiFi: {e}")
 
         # Handle failure state
         state = read_failure_state()
@@ -348,7 +348,7 @@ def disconnect_wifi():
         log("WiFi disconnected and radio disabled")
         return True
     except Exception as e:
-        log(f"Error disconnecting WiFi: {e}")
+        log_error(f"Error disconnecting WiFi: {e}")
         return False
 
 
@@ -421,7 +421,7 @@ def get_weather_display_data():
             return None
 
         except Exception as e:
-            log(f"Weather fetch error (attempt {attempt + 1}): {e}")
+            log_error(f"Weather fetch error (attempt {attempt + 1}): {e}")
             if attempt < 2 and "Name or service not known" in str(e):
                 log("DNS error detected, waiting 10 seconds before retry...")
                 time.sleep(10)
@@ -439,7 +439,7 @@ def main():
     last_successful_update = 0
     current_weather_data = None
 
-    log("pinkweather starting...")
+    print("hello pinkweather!")
 
     # Turn on LED at boot
     led.value = True
@@ -458,7 +458,7 @@ def main():
             else:
                 log("Initial weather fetch failed")
         except Exception as e:
-            log(f"Error in initial weather fetch: {e}")
+            log_error(f"Error in initial weather fetch: {e}")
     else:
         log("WiFi connection failed on boot")
 
@@ -496,10 +496,11 @@ def main():
                     else:
                         log("Weather fetch failed")
             except Exception as e:
-                log(f"Error during weather refresh: {e}")
+                log_error(f"Error during weather refresh: {e}")
 
         # Sleep for 60 minutes, then reboot for fresh network stack
         log("Entering deep sleep for 60 minutes...")
+        print("done! gonna take a 60 minute nap zZz...")
         deep_sleep(60)
 
         # After waking from deep sleep, soft reboot for fresh network stack

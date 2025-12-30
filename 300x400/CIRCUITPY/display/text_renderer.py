@@ -8,7 +8,7 @@ import terminalio
 from adafruit_bitmap_font import bitmap_font
 from adafruit_display_text import label
 from utils import ElementTree as ET
-from utils.logger import log
+from utils.logger import log, log_error
 
 # Display constants
 DISPLAY_WIDTH = 400
@@ -37,7 +37,7 @@ class TextRenderer:
             self.header_font_regular = bitmap_font.load_font("fonts/hyperl20reg.pcf")
             self.header_font_bold = bitmap_font.load_font("fonts/hyperl20bold.pcf")
         except Exception as e:
-            log(f"ERROR font loading failed: {e}")
+            log_error(f"font loading failed: {e}")
             # Fallback to terminal font
             self.font_regular = terminalio.FONT
             self.font_bold = terminalio.FONT
@@ -143,7 +143,7 @@ class TextRenderer:
             self._parse_element(root, segments, "regular", BLACK)
 
         except Exception as e:
-            log(f"DEBUG: XML parsing failed: {e}, falling back to plain text")
+            log_error(f"XML parsing failed: {e}, falling back to plain text")
             # If XML parsing fails, treat as plain text
             segments.append((text, "regular", BLACK))
 

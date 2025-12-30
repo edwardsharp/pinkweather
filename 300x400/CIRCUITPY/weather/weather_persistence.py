@@ -3,8 +3,6 @@ weather data persistence module for saving/loading api data
 Accepts injected filesystem for dependency injection pattern
 """
 
-import json
-
 from utils.logger import log
 
 # Global filesystem reference

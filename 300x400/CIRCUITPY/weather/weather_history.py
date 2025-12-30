@@ -3,8 +3,6 @@ weather history persistence module for storing yesterday's temperatures
 Refactored to use dependency injection for data sources
 """
 
-import json
-
 from utils.logger import log, log_error
 
 from weather.date_utils import _timestamp_to_components

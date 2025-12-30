@@ -1,9 +1,8 @@
 """
-Weatherbit.io API provider for severe weather alerts
-Only used for weather alerts - not general weather data
+Weatherbit.io API integration for severe weather alerts
 """
 
-from utils.logger import log
+from utils.logger import log, log_error
 
 
 def fetch_weatherbit_alerts(http_client, lat, lon, api_key):
@@ -17,9 +16,7 @@ def fetch_weatherbit_alerts(http_client, lat, lon, api_key):
 
     try:
         log("Fetching severe weather alerts from Weatherbit...")
-        # Use longer cache time for weatherbit due to 50 req/day limit
-        # Cache for 3 hours (10800 seconds) instead of default 1 hour
-        api_response = http_client.get(url, cache_duration=10800)
+        api_response = http_client.get(url)
 
         if not api_response:
             log("Weatherbit alerts: Empty response")
@@ -28,7 +25,7 @@ def fetch_weatherbit_alerts(http_client, lat, lon, api_key):
         return parse_weatherbit_alerts(api_response)
 
     except Exception as e:
-        log(f"Weatherbit alerts API error: {e}")
+        log_error(f"Weatherbit alerts API error: {e}")
         return None
 
 
@@ -92,7 +89,7 @@ def parse_weatherbit_alerts(api_response):
         }
 
     except Exception as e:
-        log(f"Error parsing Weatherbit alerts: {e}")
+        log_error(f"Error parsing Weatherbit alerts: {e}")
         return {"has_alerts": False, "alerts": []}
 
 

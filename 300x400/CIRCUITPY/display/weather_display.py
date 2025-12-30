@@ -6,7 +6,7 @@ Extracted from code.py to be shared between hardware and preview
 import time
 
 import config
-from utils.logger import log
+from utils.logger import log, log_error
 from weather import weather_api
 from weather.narrative import get_weather_narrative
 
@@ -44,7 +44,7 @@ def generate_weather_narrative(weather_data):
         return narrative
 
     except Exception as e:
-        log(f"Error generating weather narrative: {e}")
+        log_error(f"Error generating weather narrative: {e}")
         # Use basic description instead
         return weather_data.get("weather_desc", "Weather information unavailable")
 
@@ -92,7 +92,7 @@ def get_weather_display_data(http_client=None):
             return None
 
         except Exception as e:
-            log(f"Weather fetch error (attempt {attempt + 1}): {e}")
+            log_error(f"Weather fetch error (attempt {attempt + 1}): {e}")
             if attempt < 2 and "Name or service not known" in str(e):
                 log("DNS error detected, waiting 10 seconds before retry...")
                 time.sleep(10)

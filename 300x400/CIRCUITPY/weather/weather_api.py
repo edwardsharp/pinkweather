@@ -16,12 +16,6 @@ from weather.date_utils import (
 )
 from weather.weather_models import WeatherData
 
-# Optional imports that may fail on different platforms
-try:
-    import wifi
-except ImportError:
-    wifi = None
-
 
 def parse_current_weather_from_forecast(weather_data):
     """Parse current weather from provider data format"""

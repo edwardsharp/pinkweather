@@ -4,8 +4,6 @@ This module handles special calendar events like holidays, awareness days,
 and seasonal celebrations that should be included in weather narratives.
 """
 
-from utils.logger import log
-
 from weather.date_utils import get_day_from_timestamp, get_month_from_timestamp
 
 

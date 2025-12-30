@@ -4,7 +4,7 @@ Handles display of severe weather alert icon overlay
 """
 
 import displayio
-from utils.logger import log
+from utils.logger import log, log_error
 
 
 def create_alert_overlay(icon_loader, alerts_data):
@@ -52,7 +52,7 @@ def create_alert_overlay(icon_loader, alerts_data):
         return alert_group
 
     except Exception as e:
-        log(f"Error creating alert overlay: {e}")
+        log_error(f"Error creating alert overlay: {e}")
         return None
 
 

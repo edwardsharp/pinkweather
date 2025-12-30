@@ -6,7 +6,8 @@ to maximize useful information while staying within display constraints.
 
 import re
 
-from utils.logger import log
+from display.text_renderer import TextRenderer
+from utils.logger import log, log_error
 
 
 class ContentItem:
@@ -48,12 +49,10 @@ class ContentPrioritizer:
     def _setup_text_renderer(self):
         """Initialize text renderer for accurate line counting"""
         try:
-            from display.text_renderer import TextRenderer
-
             self._text_renderer = TextRenderer()
             log("Text renderer initialized for content prioritizer")
         except Exception as e:
-            log(f"Failed to initialize text renderer: {e}")
+            log_error(f"Failed to initialize text renderer: {e}")
             self._text_renderer = None
 
     def _strip_formatting_tags(self, text):
@@ -128,7 +127,7 @@ class ContentPrioritizer:
                     log(f"  → Skipping measurement (over {char_max} chars)")
 
             except Exception as e:
-                log(f"Attempt {attempt} failed: {e}")
+                log_error(f"Attempt {attempt} failed: {e}")
                 continue
 
         # Phase 2: Expensive text rendering (limited to promising candidates)

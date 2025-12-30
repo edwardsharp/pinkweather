@@ -5,7 +5,6 @@ hourly forecast row with stacked cells (time, icon, temperature)
 import displayio
 import terminalio
 from adafruit_bitmap_font import bitmap_font
-from adafruit_display_shapes.line import Line
 from adafruit_display_shapes.rect import Rect
 from adafruit_display_text import label
 from weather.date_utils import format_timestamp_to_hhmm

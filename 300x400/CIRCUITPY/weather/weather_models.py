@@ -3,7 +3,7 @@ Common weather data model for all providers
 Keeps API-specific details contained within provider modules
 """
 
-from utils.logger import log
+from utils.logger import log, log_error
 
 
 class WeatherData:
@@ -76,7 +76,7 @@ class APIValidator:
                         f"Missing '{key}' from {self.source}, using fallback: {fallback}"
                     )
                 except ImportError:
-                    log(
+                    log_error(
                         f"Missing '{key}' from {self.source}, using fallback: {fallback}"
                     )
             return fallback

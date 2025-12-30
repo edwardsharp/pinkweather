@@ -3,7 +3,7 @@ OpenWeatherMap API module for PinkWeather
 Handles API calls and data parsing for OpenWeatherMap.org
 """
 
-from utils.logger import log
+from utils.logger import log, log_error
 
 from weather.date_utils import utc_to_local
 
@@ -55,7 +55,7 @@ def parse_air_quality_data(aqi_data):
         }
 
     except (KeyError, TypeError, ValueError) as e:
-        log(f"Error parsing air quality data: {e}")
+        log_error(f"Error parsing air quality data: {e}")
         return None
 
 
@@ -108,7 +108,7 @@ def parse_current_weather(forecast_data, timezone_offset_hours):
         return parsed
 
     except (KeyError, TypeError, ValueError) as e:
-        log(f"Error parsing current weather: {e}")
+        log_error(f"Error parsing current weather: {e}")
         return None
 
 
@@ -162,7 +162,7 @@ def parse_forecast_data(forecast_data, timezone_offset_hours, air_quality_data=N
         return forecast_items
 
     except (KeyError, TypeError, ValueError) as e:
-        log(f"Error parsing forecast data: {e}")
+        log_error(f"Error parsing forecast data: {e}")
         return []
 
 
@@ -226,12 +226,12 @@ def fetch_openweathermap_data(http_client, config, timezone_offset_hours):
             log("Fetching air quality data from OpenWeatherMap...")
             air_quality_data = http_client.get(urls["air_quality"])
         except Exception as e:
-            log(f"Air quality fetch failed: {e}")
+            log_error(f"Air quality fetch failed: {e}")
 
         return parse_full_response(
             forecast_data, air_quality_data, timezone_offset_hours
         )
 
     except Exception as e:
-        log(f"Error fetching OpenWeatherMap data: {e}")
+        log_error(f"Error fetching OpenWeatherMap data: {e}")
         return None

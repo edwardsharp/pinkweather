@@ -67,8 +67,6 @@ def get_weather_narrative(
     air_quality = weather_data.get("air_quality")
     uv_index = weather_data.get("uv_index", 0)
 
-    from utils.logger import log
-
     current_hour = get_hour_from_timestamp(current_timestamp)
     current_day = get_day_from_timestamp(current_timestamp)
     current_month = get_month_from_timestamp(current_timestamp)
