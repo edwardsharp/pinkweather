@@ -4,6 +4,8 @@ This module handles special calendar events like holidays, awareness days,
 and seasonal celebrations that should be included in weather narratives.
 """
 
+from utils.logger import log
+
 from weather.date_utils import get_day_from_timestamp, get_month_from_timestamp
 
 
@@ -408,31 +410,49 @@ def get_weather_suggestions(
             {"text": "wear yr sunnyz out!", "short_text": "wear sunnyz!", "priority": 6}
         )
 
-    # Air quality warnings (only when AQI >= 3, which is 101+ US AQI)
-    if air_quality and air_quality.get("aqi", 1) >= 3:
+    # Air quality warnings (when AQI is not good - level 2+, which is 51+ US AQI)
+    if air_quality and air_quality.get("aqi", 1) >= 2:
         raw_aqi = air_quality.get("raw_aqi", 0)
-        if raw_aqi >= 200:
+        aqi_level = air_quality.get("aqi", 1)
+
+        if aqi_level >= 5 or raw_aqi >= 301:  # Hazardous
             suggestions.append(
                 {
-                    "text": f"very unhealthy air (AQI {raw_aqi})! stay indoors.",
-                    "short_text": f"bad air {raw_aqi}!",
+                    "text": f"Air quality hazardous! Stay indoors!",
+                    "short_text": f"Hazardous air!",
+                    "priority": 10,
+                }
+            )
+        elif aqi_level >= 4 or raw_aqi >= 201:  # Very Unhealthy
+            suggestions.append(
+                {
+                    "text": f"Air quality very poor! Limit outdoor time",
+                    "short_text": f"Very poor air",
                     "priority": 9,
                 }
             )
-        elif raw_aqi >= 151:
+        elif aqi_level >= 4 or raw_aqi >= 151:  # Unhealthy
             suggestions.append(
                 {
-                    "text": f"poor air quality (AQI {raw_aqi}) - limit outdoor time",
-                    "short_text": f"poor air {raw_aqi}",
+                    "text": f"Air not good! Sensitive people stay inside",
+                    "short_text": f"Poor air",
                     "priority": 8,
                 }
             )
-        else:  # 101-150 range
+        elif aqi_level >= 3 or raw_aqi >= 101:  # Moderate/Unhealthy for Sensitive
             suggestions.append(
                 {
-                    "text": "moderate air quality - sensitive folks limit outdoor time",
-                    "short_text": "moderate air",
+                    "text": "Air quality moderate - sensitive folks be careful",
+                    "short_text": "Moderate air",
                     "priority": 7,
+                }
+            )
+        elif aqi_level >= 2 or raw_aqi >= 51:  # Fair/Moderate
+            suggestions.append(
+                {
+                    "text": "Air quality fair",
+                    "short_text": "Fair air",
+                    "priority": 4,
                 }
             )
 

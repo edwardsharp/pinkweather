@@ -67,6 +67,8 @@ def get_weather_narrative(
     air_quality = weather_data.get("air_quality")
     uv_index = weather_data.get("uv_index", 0)
 
+    from utils.logger import log
+
     current_hour = get_hour_from_timestamp(current_timestamp)
     current_day = get_day_from_timestamp(current_timestamp)
     current_month = get_month_from_timestamp(current_timestamp)
@@ -161,7 +163,7 @@ def get_weather_narrative(
 
     # 7. Weather suggestions (MEDIUM PRIORITY)
     rain_chance = _estimate_rain_chance(forecast_data)
-    weather_suggestions = get_weather_suggestions(
+    suggestions = get_weather_suggestions(
         current_temp,
         weather_desc,
         is_daytime,
@@ -170,9 +172,13 @@ def get_weather_narrative(
         air_quality,
         uv_index,
     )
-    for suggestion in weather_suggestions:
-        suggestion["category"] = "weather_suggestion"
-    prioritizer.add_items(weather_suggestions)
+    for suggestion in suggestions:
+        # Give air quality suggestions their own category to avoid competition
+        if "air quality" in suggestion.get("text", "").lower():
+            suggestion["category"] = "air_quality"
+        else:
+            suggestion["category"] = "weather_suggestion"
+    prioritizer.add_items(suggestions)
 
     # 8. Seasonal suggestions (MEDIUM PRIORITY)
     seasonal_suggestions = get_seasonal_suggestions(

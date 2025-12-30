@@ -29,6 +29,7 @@ def generate_weather_narrative(weather_data):
             "humidity": weather_data.get("humidity", 0),
             "wind_speed": weather_data.get("wind_speed", 0),
             "wind_gust": weather_data.get("wind_gust", 0),
+            "air_quality": weather_data.get("air_quality"),
         }
 
         forecast_data = weather_data.get("forecast_data", [])

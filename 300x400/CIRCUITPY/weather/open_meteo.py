@@ -180,17 +180,6 @@ def transform_open_meteo_response(
                 }
                 forecast_items.append(forecast_item)
 
-    # Generate weather narrative using the same function as OpenWeatherMap
-    from weather.narrative import get_weather_narrative
-
-    try:
-        narrative = get_weather_narrative(
-            current_weather, forecast_items, current_timestamp
-        )
-    except Exception as e:
-        log(f"Error generating weather narrative: {e}")
-        narrative = weather_desc
-
     # Build city info
     city_info = {
         "name": "Location",  # Open-Meteo doesn't provide city name
@@ -210,6 +199,20 @@ def transform_open_meteo_response(
             "raw_aqi": 25,
             "description": "Good",
         }
+
+    # Add air quality to current weather data for narrative generation
+    current_weather["air_quality"] = air_quality_data
+
+    # Generate weather narrative using the same function as OpenWeatherMap
+    from weather.narrative import get_weather_narrative
+
+    try:
+        narrative = get_weather_narrative(
+            current_weather, forecast_items, current_timestamp
+        )
+    except Exception as e:
+        log(f"Error generating weather narrative: {e}")
+        narrative = weather_desc
 
     return {
         "current": current_weather,

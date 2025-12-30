@@ -507,7 +507,7 @@ def convert_weather_data_to_legacy_format(weather_data):
 
     if isinstance(weather_data, WeatherData):
         # Convert WeatherData object to legacy format
-        return {
+        result = {
             "current": {
                 "current_temp": weather_data.current_temp,
                 "feels_like": weather_data.current_temp,  # Open-Meteo doesn't have feels_like
@@ -526,8 +526,12 @@ def convert_weather_data_to_legacy_format(weather_data):
                 "country": "",
             },
         }
+        return result
 
-    # If already in legacy format, return as-is
+    # If already in legacy format, preserve air_quality if present
+    if isinstance(weather_data, dict) and "air_quality" in weather_data:
+        return weather_data
+
     return weather_data
 
 
