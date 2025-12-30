@@ -168,7 +168,7 @@ deploy:
 	rsync -av --dry-run --delete --checksum --modify-window=1 \
 		--exclude='config.py' --exclude='__pycache__/' --exclude='sd/' \
 		--exclude='settings.toml' --exclude='boot_out.txt' --exclude='.DS_Store' \
-		--exclude='._*' --exclude='.Trashes' \
+		--exclude='._*' --exclude='.Trashes' --exclude='.Trash-1000' \
 		300x400/CIRCUITPY/ "$$DEST/"; \
 	echo ""; \
 	echo "Files excluded: config.py, __pycache__/, sd/, settings.toml, boot_out.txt, ._*, .Trashes"; \
@@ -178,7 +178,7 @@ deploy:
 	rsync -av --delete --checksum --modify-window=1 \
 		--exclude='config.py' --exclude='__pycache__/' --exclude='sd/' \
 		--exclude='settings.toml' --exclude='boot_out.txt' --exclude='.DS_Store' \
-		--exclude='._*' --exclude='.Trashes' \
+		--exclude='._*' --exclude='.Trashes' --exclude='.Trash-1000' \
 		300x400/CIRCUITPY/ "$$DEST/"; \
 	echo "Deployment complete!"
 
