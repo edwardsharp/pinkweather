@@ -90,7 +90,7 @@ def get_seasonal_suggestions(month, day, temperature, conditions):
         if temperature >= 20 and "clear" in conditions.lower():
             suggestions.append(
                 {
-                    "text": "Spring vibes! Get outside and touch grass!",
+                    "text": "Spring vibes! Get outside 'n touch grass!",
                     "short_text": "Spring vibes!",
                     "priority": 6,
                 }
@@ -98,8 +98,8 @@ def get_seasonal_suggestions(month, day, temperature, conditions):
         elif temperature >= 15:
             suggestions.append(
                 {
-                    "text": "warmer today! get yr shortyz out?!",
-                    "short_text": "get yr shortyz!",
+                    "text": "Get yr shortyz out today?!",
+                    "short_text": "Get yr shortyz!",
                     "priority": 7,
                 }
             )
@@ -108,10 +108,10 @@ def get_seasonal_suggestions(month, day, temperature, conditions):
     elif (month == 6 and day >= 21) or month in [7, 8] or (month == 9 and day <= 22):
         if temperature >= 31:
             suggestions.append(
-                {"text": "it's too hot!", "short_text": "too hot!", "priority": 8}
+                {"text": "It's too hot!", "short_text": "Too hot!", "priority": 8}
             )
             suggestions.append(
-                {"text": "wear sunscreen!", "short_text": "sunscreen!", "priority": 7}
+                {"text": "Wear sunscreen!", "short_text": "Sunscreen!", "priority": 7}
             )
 
     return suggestions
@@ -214,7 +214,7 @@ CALENDAR_EVENTS = [
         "month": 10,
         "day": 11,
         "text": "Coming Out Day!",
-        "short_text": "Coming Out!",
+        "short_text": "Coming Out Day!",
         "priority": 8,
         "type": "fixed",
     },
@@ -240,7 +240,7 @@ CALENDAR_EVENTS = [
     {
         "month": 11,
         "day": 11,
-        "text": "11/11 - Make a wish!",
+        "text": "11/11!",
         "short_text": "11/11!",
         "priority": 6,
         "type": "fixed",
@@ -322,24 +322,24 @@ def get_weather_suggestions(
         suggestions.extend(
             [
                 {
-                    "text": "bitterly cold, stay inside!",
-                    "short_text": "stay inside!",
+                    "text": "Stay inside!",
+                    "short_text": "Stay inside!",
                     "priority": 9,
                 },
-                {"text": "dress warm!", "short_text": "dress warm!", "priority": 8},
+                {"text": "Dress warm!", "short_text": "Dress warm!", "priority": 8},
             ]
         )
     elif temperature <= 0:
         suggestions.extend(
             [
                 {
-                    "text": "freezing! bundle up!",
-                    "short_text": "bundle up!",
+                    "text": "Bundle up!",
+                    "short_text": "Bundle up!",
                     "priority": 8,
                 },
                 {
-                    "text": "wear glovez outside!",
-                    "short_text": "wear glovez!",
+                    "text": "Wear gloves outside!",
+                    "short_text": "Wear gloves!",
                     "priority": 7,
                 },
             ]
@@ -348,16 +348,16 @@ def get_weather_suggestions(
         if wind_speed > 15:
             suggestions.append(
                 {
-                    "text": "cold and windy, yuck!",
-                    "short_text": "cold & windy!",
+                    "text": "Cold and windy, yuck!",
+                    "short_text": "Cold & windy!",
                     "priority": 8,
                 }
             )
         else:
             suggestions.append(
                 {
-                    "text": "chilly! wear a jacket!",
-                    "short_text": "wear jacket!",
+                    "text": "Chilly; Wear a jacket!",
+                    "short_text": "Wear jacket!",
                     "priority": 7,
                 }
             )
@@ -370,7 +370,7 @@ def get_weather_suggestions(
         and "rain" not in conditions.lower()
     ):
         suggestions.append(
-            {"text": "pack umbrella!", "short_text": "pack umbrella!", "priority": 7}
+            {"text": "Pack an umbrella?", "short_text": "Pack umbrella?", "priority": 7}
         )
 
     # Nice weather suggestions
@@ -382,14 +382,14 @@ def get_weather_suggestions(
     ):
         suggestions.extend(
             [
-                {"text": "lovely day!", "short_text": "lovely day!", "priority": 6},
+                {"text": "Lovely day!", "short_text": "Lovely day!", "priority": 6},
                 {
-                    "text": "get outside today!",
-                    "short_text": "get outside!",
+                    "text": "Get outside today!",
+                    "short_text": "Get outside!",
                     "priority": 6,
                 },
-                {"text": "splendid day!", "short_text": "splendid!", "priority": 5},
-                {"text": "right nice, innit?", "short_text": "nice!", "priority": 5},
+                {"text": "Splendid day!", "short_text": "Splendid!", "priority": 5},
+                {"text": "Right nice, innit?", "short_text": "Nice!", "priority": 5},
             ]
         )
 
@@ -397,15 +397,19 @@ def get_weather_suggestions(
     if temperature >= 31:
         suggestions.extend(
             [
-                {"text": "it's too hot!", "short_text": "too hot!", "priority": 8},
-                {"text": "wear sunscreen!", "short_text": "sunscreen!", "priority": 7},
+                {"text": "It's too hot!", "short_text": "Too hot!", "priority": 8},
+                {"text": "Wear sunscreen!", "short_text": "Sunscreen!", "priority": 7},
             ]
         )
 
     # Sunny weather
     if "clear" in conditions.lower() and "sun" in conditions.lower() and is_daytime:
         suggestions.append(
-            {"text": "wear yr sunnyz out!", "short_text": "wear sunnyz!", "priority": 6}
+            {
+                "text": "Wear yr sunnyz out!",
+                "short_text": "Wear yr sunnyz!",
+                "priority": 6,
+            }
         )
 
     # Air quality warnings (when AQI is not good - level 2+, which is 51+ US AQI)
@@ -416,32 +420,32 @@ def get_weather_suggestions(
         if aqi_level >= 5 or raw_aqi >= 301:  # Hazardous
             suggestions.append(
                 {
-                    "text": f"Air quality hazardous! Stay indoors!",
-                    "short_text": f"Hazardous air!",
+                    "text": "Air quality hazardous! Stay indoors!",
+                    "short_text": "Hazardous AQ!",
                     "priority": 10,
                 }
             )
         elif aqi_level >= 4 or raw_aqi >= 201:  # Very Unhealthy
             suggestions.append(
                 {
-                    "text": f"Air quality very poor! Limit outdoor time",
-                    "short_text": f"Very poor air",
+                    "text": "Air quality very poor! Limit outdoor time",
+                    "short_text": "Very poor AQ",
                     "priority": 9,
                 }
             )
         elif aqi_level >= 4 or raw_aqi >= 151:  # Unhealthy
             suggestions.append(
                 {
-                    "text": f"Air not good! Sensitive people stay inside",
-                    "short_text": f"Poor air",
+                    "text": "Air not good! Sensitive people stay inside",
+                    "short_text": "Poor AQ",
                     "priority": 8,
                 }
             )
         elif aqi_level >= 3 or raw_aqi >= 101:  # Moderate/Unhealthy for Sensitive
             suggestions.append(
                 {
-                    "text": "Air quality moderate - sensitive folks be careful",
-                    "short_text": "Moderate air",
+                    "text": "Air quality moderate",
+                    "short_text": "Moderate AQ",
                     "priority": 7,
                 }
             )
@@ -449,7 +453,7 @@ def get_weather_suggestions(
             suggestions.append(
                 {
                     "text": "Air quality fair",
-                    "short_text": "Fair air",
+                    "short_text": "Fair AQ",
                     "priority": 4,
                 }
             )
@@ -459,32 +463,32 @@ def get_weather_suggestions(
         if uv_index >= 11:
             suggestions.append(
                 {
-                    "text": f"extreme UV ({uv_index})! avoid midday sun!",
-                    "short_text": f"extreme UV {uv_index}!",
+                    "text": f"Extreme UV ({uv_index})! avoid midday sun!",
+                    "short_text": f"XTREME UV {uv_index}!",
                     "priority": 9,
                 }
             )
         elif uv_index >= 8:
             suggestions.append(
                 {
-                    "text": f"very high UV ({uv_index}) - seek shade!",
-                    "short_text": f"high UV {uv_index}",
+                    "text": f"Very high UV ({uv_index})",
+                    "short_text": f"High UV {uv_index}",
                     "priority": 8,
                 }
             )
         elif uv_index >= 6:
             suggestions.append(
                 {
-                    "text": "high UV - sunscreen essential!",
-                    "short_text": "high UV!",
+                    "text": "High UV - sunscreen essential!",
+                    "short_text": "High UV!",
                     "priority": 7,
                 }
             )
         elif uv_index >= 3:
             suggestions.append(
                 {
-                    "text": "moderate UV - use protection",
-                    "short_text": "mod UV",
+                    "text": "Moderate UV",
+                    "short_text": "Mod UV",
                     "priority": 5,
                 }
             )
@@ -493,15 +497,15 @@ def get_weather_suggestions(
     if wind_speed >= 40:
         suggestions.append(
             {
-                "text": "very windy! hold onto hats!",
-                "short_text": "very windy!",
+                "text": "Very windy! Hold onto yr buttz!",
+                "short_text": "Very windy!",
                 "priority": 8,
             }
         )
     elif wind_speed >= 25:
         suggestions.append(
             {
-                "text": "windy conditions!",
+                "text": "Windy!",
                 "short_text": "windy!",
                 "priority": 6,
             }
@@ -509,8 +513,8 @@ def get_weather_suggestions(
     elif wind_speed >= 15:
         suggestions.append(
             {
-                "text": "breezy day!",
-                "short_text": "breezy!",
+                "text": "Breezy day!",
+                "short_text": "Breezy!",
                 "priority": 5,
             }
         )

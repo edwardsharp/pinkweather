@@ -665,8 +665,10 @@ def _explain_feels_like(actual_temp, feels_like, humidity, wind_speed, wind_gust
 
 def _get_temperature_context(temp):
     """Get contextual temperature description"""
-    if temp <= -10:
+    if temp <= -15:
         return "bitterly cold"
+    if temp <= -10:
+        return "very cold"
     elif temp <= 0:
         return "freezing"
     elif temp <= 5:
