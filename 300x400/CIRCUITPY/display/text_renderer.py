@@ -351,59 +351,15 @@ class TextRenderer:
 
         return group
 
-    def render_text_no_background(self, markup_text):
-        """Render marked-up text to a display group without white background"""
-        # Parse markup
-        segments = self.parse_markup(markup_text)
 
-        # Hard wrap the text
-        wrapped_lines = self.hard_wrap_text(segments)
-
-        # Create display group (no background)
-        group = displayio.Group()
-
-        # Use proper font-based line height
-        y_position = self.line_height  # Start at first line height
-
-        for line_segments in wrapped_lines:
-            if y_position > self.height - (self.line_height // 2):
-                break  # Don't render beyond screen with smaller margin
-
-            x_position = 0
-
-            for text_content, style, color in line_segments:
-                if (
-                    not text_content.strip()
-                ):  # Skip whitespace-only segments at line start
-                    if x_position == 0:
-                        continue
-
-                font = self.get_font_for_style(style)
-                text_label = label.Label(font, text=text_content, color=color)
-                text_label.x = x_position
-                text_label.y = y_position
-
-                group.append(text_label)
-
-                # Update x position for next segment
-                if text_label.bounding_box:
-                    x_position += text_label.bounding_box[2]
-                else:
-                    x_position += len(text_content) * self.char_width
-
-            y_position += self.line_height
-
-        return group
-
-
-def get_text_capacity():
-    """Get approximate text capacity for the display"""
-    renderer = TextRenderer()
-    return {
-        "chars_per_line": renderer.chars_per_line,
-        "lines_per_screen": renderer.lines_per_screen,
-        "total_capacity": renderer.total_char_capacity,
-        "char_width": renderer.char_width,
-        "char_height": renderer.char_height,
-        "line_height": renderer.line_height,
-    }
+# def get_text_capacity():
+#     """Get approximate text capacity for the display"""
+#     renderer = TextRenderer()
+#     return {
+#         "chars_per_line": renderer.chars_per_line,
+#         "lines_per_screen": renderer.lines_per_screen,
+#         "total_capacity": renderer.total_char_capacity,
+#         "char_width": renderer.char_width,
+#         "char_height": renderer.char_height,
+#         "line_height": renderer.line_height,
+#     }

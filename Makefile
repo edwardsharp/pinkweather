@@ -185,10 +185,9 @@ deploy:
 # Show activation instructions
 activate:
 	@if [ -f "venv/bin/activate" ]; then \
-		echo "Virtual environment exists. activating"; \
+		echo "Virtual environment exists. To activate, run:"; \
 		echo ""; \
-		echo "To deactivate later: deactivate"; \
-		. venv/bin/activate; \
+		echo "source venv/bin/activate"; \
 	else \
 		echo "No virtual environment found."; \
 		echo "Create one with: make venv"; \

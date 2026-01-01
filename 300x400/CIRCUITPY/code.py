@@ -27,7 +27,6 @@ from adafruit_display_text import label, wrap_text_to_pixels
 from digitalio import DigitalInOut
 
 # shared display functions
-from display.text_renderer import get_text_capacity
 from display.weather_display import create_weather_display_layout
 from filesystem.filesystem import FileSystem
 from utils.logger import log, log_error, set_log_level
@@ -278,16 +277,6 @@ def update_display_with_weather_layout(weather_data):
     # note: display.time_to_refresh is 180 when i looked, which is like way-too-long
     time.sleep(20)
     log("Refresh complete")
-
-
-# Function moved to display.weather_display module
-
-
-# Get text capacity information
-capacity = get_text_capacity()
-log(
-    f"Display: {capacity['chars_per_line']} chars/line, {capacity['lines_per_screen']} lines, {capacity['total_capacity']} total"
-)
 
 
 def connect_wifi():

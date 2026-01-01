@@ -3,17 +3,14 @@ Weather display module - reusable functions for weather data processing and disp
 Extracted from code.py to be shared between hardware and preview
 """
 
-import time
-
-import config
 from utils.logger import log, log_error
-from weather import weather_api
 from weather.narrative import get_weather_narrative
 
 from display.header import create_weather_layout
 from display.severe_alert import create_alert_overlay
 
 
+# note, preview server will use generate_weather_narrative
 def generate_weather_narrative(weather_data):
     """Generate rich weather narrative from weather data"""
     try:
@@ -47,59 +44,6 @@ def generate_weather_narrative(weather_data):
         log_error(f"Error generating weather narrative: {e}")
         # Use basic description instead
         return weather_data.get("weather_desc", "Weather information unavailable")
-
-
-def get_weather_display_data(http_client=None):
-    """Get weather data for display - fetch fresh data from API"""
-
-    # Build weather config from hardware config
-    WEATHER_CONFIG = (
-        {
-            "api_key": config.OPENWEATHER_API_KEY,
-            "latitude": config.LATITUDE,
-            "longitude": config.LONGITUDE,
-            "timezone_offset_hours": config.TIMEZONE_OFFSET_HOURS,
-            "units": "metric",
-        }
-        if config.OPENWEATHER_API_KEY and config.LATITUDE and config.LONGITUDE
-        else None
-    )
-
-    if WEATHER_CONFIG is None:
-        log("Weather API not configured")
-        return None
-
-    # Fetch weather data
-    for attempt in range(3):
-        log(f"Fetching fresh weather data from API (attempt {attempt + 1}/3)")
-        try:
-            forecast_data = weather_api.fetch_weather_data(WEATHER_CONFIG, http_client)
-            if forecast_data:
-                display_vars = weather_api.get_display_variables(forecast_data)
-
-                if display_vars:
-                    log("Weather data fetch successful")
-                    return display_vars
-                else:
-                    log("Weather data processing failed")
-            else:
-                log("Weather API returned no data")
-
-            if attempt < 2:
-                log("Retrying in 5 seconds...")
-                time.sleep(5)
-                continue
-            return None
-
-        except Exception as e:
-            log_error(f"Weather fetch error (attempt {attempt + 1}): {e}")
-            if attempt < 2 and "Name or service not known" in str(e):
-                log("DNS error detected, waiting 10 seconds before retry...")
-                time.sleep(10)
-                continue
-            return None
-
-    return None
 
 
 def create_weather_display_layout(

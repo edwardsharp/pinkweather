@@ -24,9 +24,6 @@ def format_temp(temp):
     return f"{rounded:.0f}"
 
 
-# Removed global icon loading state - now passed as parameter
-
-
 # Initialize fonts
 hyperl15_font = bitmap_font.load_font("fonts/hyperl15reg.pcf")
 terminal_font = terminalio.FONT
@@ -100,12 +97,7 @@ def create_forecast_row(forecast_data, y_position=50, icon_loader=None):
             icon_x = cell_x + (cell_width - 32) // 2 - 9
             icon_y = y_position + 14
 
-            if forecast_item.get("is_special", False):
-                icon_code = f"{forecast_item['icon']}"
-            else:
-                icon_code = f"{forecast_item['icon']}"
-
-            forecast_icon = icon_loader(f"{icon_code}.bmp")
+            forecast_icon = icon_loader(f"{forecast_item['icon']}.bmp")
             if forecast_icon:
                 forecast_icon.x = icon_x
                 forecast_icon.y = icon_y
@@ -117,9 +109,6 @@ def create_forecast_row(forecast_data, y_position=50, icon_loader=None):
         time_label.x = cell_x + (cell_width - text_width) // 2
         time_label.y = y_position + 8
         forecast_group.append(time_label)
-
-        # Temperature with precipitation chance if non-zero
-        temp_str = f"{format_temp(forecast_item['temp'])}°"
 
         # Add precipitation chance if it exists and is non-zero
         pop = forecast_item.get("pop", 0)
@@ -156,32 +145,12 @@ def create_forecast_row(forecast_data, y_position=50, icon_loader=None):
             pop_label.y = pop_bg_y + 3  # Vertically centered in background
             forecast_group.append(pop_label)
 
-        # TEST temp_str with max chars
-        # note: hardware doesn't seem to render ° symbol?
-        # temp_str = "30°99%"
-        temp_text_width = len(temp_str) * 6
+        # Temperature with precipitation chance if non-zero
+        temp_str = f"{format_temp(forecast_item['temp'])}°"
 
-        # temp_bg_bitmap = displayio.Bitmap(temp_text_width + 4, 12, 1)
-        # temp_bg_palette = displayio.Palette(1)
-        # temp_bg_palette[0] = WHITE
-        # temp_bg_grid = displayio.TileGrid(
-        #     temp_bg_bitmap,
-        #     pixel_shader=temp_bg_palette,
-        #     x=cell_x + (cell_width - temp_text_width) // 2 - 2,
-        #     y=y_position + 53,
-        # )
-        # forecast_group.append(temp_bg_grid)
-
-        # Temperature label
+        # Temperature label - centered using anchored_position
         temp_label = label.Label(hyperl15_font, text=temp_str, color=BLACK)
-        temp_label.x = (
-            cell_x + (cell_width - temp_text_width) // 2
-        )  # - 7  # -7 to nudge a bit left
-        temp_label.y = y_position + 72
+        temp_label.anchored_position = (cell_x + cell_width // 2, y_position + 75)
+        temp_label.anchor_point = (0.5, 0.5)
         forecast_group.append(temp_label)
     return forecast_group, max_cells
-
-
-def get_forecast_row_height():
-    """Get the total height needed for the forecast row"""
-    return 75
