@@ -282,7 +282,8 @@ def update_display_with_weather_layout(weather_data):
 def connect_wifi():
     """Connect to WiFi network with fresh connection and error screen logic"""
     if config.WIFI_SSID is None or config.WIFI_PASSWORD is None:
-        log("WiFi credentials not configured, skipping WiFi connection")
+        log("WiFi credentials not configured")
+        show_error_screen("WiFi Not Configured\nCheck config.py file")
         return False
 
     log("Connecting to WiFi...")
