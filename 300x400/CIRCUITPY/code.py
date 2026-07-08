@@ -31,9 +31,10 @@ from display.weather_display import create_weather_display_layout
 from filesystem.filesystem import FileSystem
 from utils.logger import log, log_error, set_log_level
 from utils.logger import set_filesystem as set_logger_filesystem
+from weather.date_utils import format_timestamp_to_date
 from weather import weather_api
 from weather.weather_history import set_filesystem as set_weather_history_filesystem
-from weather.weather_persistence import save_weather_data
+from weather.weather_persistence import load_weather_data, save_weather_data
 from weather.weather_persistence import (
     set_filesystem as set_weather_persistence_filesystem,
 )
@@ -105,7 +106,13 @@ try:
     set_weather_persistence_filesystem(filesystem)
     set_weather_history_filesystem(filesystem)
 
+    # Remove any .tmp files from a previously interrupted write before doing
+    # anything else on the SD card.
+    _cleaned = filesystem.cleanup_tmp_files()
+
     log("SD card ready and filesystem dependencies injected")
+    if _cleaned:
+        log(f"Cleaned up {_cleaned} leftover .tmp file(s) from interrupted write")
 
 except Exception as e:
     log_error(f"SD card failed: {e}")
@@ -215,7 +222,7 @@ def show_error_screen(message):
         )
     )
 
-    message = f"if this doesn't go away, connect pinkweather to yr computer via usb and fix config.py? check the wifi settings? \n{message}"
+    message = message or "an unexpected error occurred."
 
     text_area = label.Label(
         terminalio.FONT,
@@ -280,49 +287,155 @@ def update_display_with_weather_layout(weather_data):
 
 
 def connect_wifi():
-    """Connect to WiFi network with fresh connection and error screen logic"""
+    """Connect to WiFi with detailed diagnostics, optional static IP, and channel hint"""
     if config.WIFI_SSID is None or config.WIFI_PASSWORD is None:
         log("WiFi credentials not configured")
         show_error_screen("WiFi Not Configured\nCheck config.py file")
         return False
 
-    log("Connecting to WiFi...")
+    channel = getattr(config, "WIFI_CHANNEL", 0)
+    timeout = getattr(config, "WIFI_CONNECT_TIMEOUT", 20)
+    static_ip = getattr(config, "WIFI_STATIC_IP", None)
+    log(
+        f"Connecting to '{config.WIFI_SSID}' "
+        f"(channel={'auto' if channel == 0 else channel}, "
+        f"timeout={timeout}s, "
+        f"ip={'static' if static_ip else 'dhcp'})"
+    )
+
     try:
-        # Ensure clean state - stop any existing station connection
+        # Ensure clean state
         if wifi.radio.connected:
+            log("Stopping existing station connection...")
             wifi.radio.stop_station()
 
-        # Reset radio to ensure fresh state
         wifi.radio.enabled = False
         time.sleep(1)
         wifi.radio.enabled = True
         time.sleep(2)
 
-        wifi.radio.connect(config.WIFI_SSID, config.WIFI_PASSWORD)
-        log(f"Connected to {config.WIFI_SSID}")
-        log(f"IP address: {wifi.radio.ipv4_address}")
+        # Configure static IP *before* connecting to skip DHCP negotiation entirely.
+        # This is the most reliable fix for DHCP pool exhaustion or slow DHCP servers.
+        if static_ip:
+            try:
+                import ipaddress
+                netmask = getattr(config, "WIFI_STATIC_NETMASK", "255.255.255.0")
+                gateway = getattr(config, "WIFI_STATIC_GATEWAY", None)
+                dns = getattr(config, "WIFI_STATIC_DNS", None)
+                log(f"Static IP: {static_ip} / {netmask} gw {gateway} dns {dns}")
+                wifi.radio.set_ipv4_address(
+                    ipv4=ipaddress.IPv4Address(static_ip),
+                    netmask=ipaddress.IPv4Address(netmask),
+                    gateway=ipaddress.IPv4Address(gateway) if gateway else None,
+                    ipv4_dns=ipaddress.IPv4Address(dns) if dns else None,
+                )
+                log("Static IP configured")
+            except Exception as ip_err:
+                log_error(f"Static IP config failed ({type(ip_err).__name__}): {ip_err}")
+                log("Falling back to DHCP")
 
-        # Success! Reset failure count and mark success
+        # Connect — channel hint skips a full 13-channel scan when set
+        wifi.radio.connect(
+            config.WIFI_SSID,
+            config.WIFI_PASSWORD,
+            channel=channel,
+            timeout=timeout,
+        )
+
+        # Log connection details
+        log(f"Connected! IPv4: {wifi.radio.ipv4_address}")
+
+        # Log AP info: signal strength, actual channel, BSSID
+        try:
+            ap = wifi.radio.ap_info
+            if ap:
+                bssid_str = ":".join("{:02x}".format(b) for b in ap.bssid)
+                log(
+                    f"AP info: rssi={ap.rssi}dBm  "
+                    f"channel={ap.channel}  "
+                    f"bssid={bssid_str}"
+                )
+        except Exception as ap_err:
+            log(f"AP info unavailable: {ap_err}")
+
+        # Success — reset failure counter
         write_failure_state(0, True)
-
-        # Give a moment for network to be ready
         time.sleep(2)
         return True
-    except Exception as e:
-        log_error(f"Failed to connect to WiFi: {e}")
 
-        # Handle failure state
+    except Exception as e:
+        error_type = type(e).__name__
+        log_error(f"WiFi connect failed [{error_type}]: {e}")
+        log_error(
+            f"  ssid={config.WIFI_SSID}  channel={channel}  "
+            f"timeout={timeout}s  ip={'static' if static_ip else 'dhcp'}"
+        )
+
+        # Classify error and build a brief, human-readable display message
+        err_lower = str(e).lower()
+        if "timeout" in err_lower or "timed out" in err_lower:
+            diagnosis_log = (
+                "  Diagnosis: connection timed out. "
+                "Possible causes: DHCP pool exhausted, router busy, or weak signal. "
+                "Try: set WIFI_STATIC_IP to skip DHCP, increase WIFI_CONNECT_TIMEOUT, "
+                "or set WIFI_CHANNEL to your router's channel."
+            )
+            diagnosis_display = (
+                f"wifi timed out connecting to {config.WIFI_SSID}. "
+                "your router's dhcp pool may be full or signal is weak. "
+                "try setting wifi_static_ip in config.py, "
+                "or increase wifi_connect_timeout."
+            )
+        elif any(w in err_lower for w in ("auth", "password", "denied", "handshake")):
+            diagnosis_log = (
+                "  Diagnosis: authentication failed. "
+                "Check WIFI_SSID and WIFI_PASSWORD in config.py."
+            )
+            diagnosis_display = (
+                "wifi password was rejected. "
+                "check wifi_ssid and wifi_password in config.py."
+            )
+        elif any(w in err_lower for w in ("no ssid", "not found", "no ap")):
+            diagnosis_log = (
+                "  Diagnosis: network not found. "
+                "Check WIFI_SSID spelling, or try WIFI_CHANNEL=0 for a full scan."
+            )
+            diagnosis_display = (
+                f"wifi network '{config.WIFI_SSID}' not found. "
+                "check wifi_ssid in config.py, "
+                "or try moving closer to your router."
+            )
+        else:
+            diagnosis_log = (
+                "  Diagnosis: unknown error — try rebooting or checking router logs."
+            )
+            diagnosis_display = (
+                f"wifi failed ({error_type}). "
+                "check your router is on and config.py looks right."
+            )
+        log_error(diagnosis_log)
+
+        # Update failure state
         state = read_failure_state()
         new_failures = state["failures"] + 1
         ever_succeeded = state["ever_succeeded"]
-
         write_failure_state(new_failures, ever_succeeded)
 
-        # Show error screen if appropriate
-        if not ever_succeeded or new_failures >= 3:
-            show_error_screen(
-                f"{config.WIFI_SSID} wifi error (count #{new_failures}): {e}"
-            )
+        # Only show the sad-cloud error screen when:
+        # - device has never connected before (setup issue), OR
+        # - failures have exceeded the cache window (truly stuck)
+        cache_max = getattr(config, "WEATHER_CACHE_MAX_CYCLES", 6)
+        if not ever_succeeded or new_failures > cache_max:
+            if not ever_succeeded:
+                # First-time setup: give generic config guidance
+                display_msg = (
+                    f"can't connect to {config.WIFI_SSID}. "
+                    "check wifi_ssid and wifi_password in config.py "
+                    "(connect via usb to edit it)."
+                )
+            else:
+                display_msg = diagnosis_display
+            show_error_screen(display_msg)
 
         return False
 
@@ -369,6 +482,75 @@ def deep_sleep(minutes):
 
     log("Waking up from deep sleep...")
     return True
+
+
+def get_cached_weather_data():
+    """Load cached weather data from SD card if it is within the configured staleness window.
+
+    Staleness is measured in *consecutive failed update cycles* rather than wall-clock time
+    (we have no RTC). Each cycle is ~1 hour, so WEATHER_CACHE_MAX_CYCLES=6 means the cache
+    is trusted for up to ~6 consecutive hours of WiFi/API failures.
+
+    Returns the weather_data dict if the cache is valid, or None if unavailable/too old.
+    """
+    if not sd_available:
+        return None
+
+    cache_max = getattr(config, "WEATHER_CACHE_MAX_CYCLES", 6)
+    if cache_max <= 0:
+        log("Weather cache disabled (WEATHER_CACHE_MAX_CYCLES=0)")
+        return None
+
+    # Read how many consecutive failures we've accumulated
+    state = read_failure_state()
+    failures = state["failures"]
+
+    if failures > cache_max:
+        log(
+            f"Cache expired: {failures} consecutive failures "
+            f"exceeds limit of {cache_max} cycles"
+        )
+        return None
+
+    saved = load_weather_data()
+    if not saved:
+        log("No cached weather data on SD card")
+        return None
+
+    weather_data = saved.get("weather_data")
+    if not weather_data:
+        log("Cached data missing weather_data key")
+        return None
+
+    log(
+        f"Using cached weather data "
+        f"(failure cycle {failures}/{cache_max}, "
+        f"saved timestamp={saved.get('timestamp')})"
+    )
+
+    # Best-effort current time estimate.
+    # We have no RTC, but: saved_timestamp + (failed cycles * ~1hr) + seconds-since-boot
+    # gives a rough local unix time. This keeps the date header and moon phase
+    # approximately correct during WiFi outages.
+    try:
+        saved_ts = saved.get("timestamp")
+        if saved_ts:
+            estimated_ts = int(saved_ts) + (failures * 3600) + int(time.monotonic())
+            weather_data = dict(weather_data)  # shallow copy — don't mutate cached dict
+            weather_data["current_timestamp"] = estimated_ts
+            date_info = format_timestamp_to_date(estimated_ts)
+            weather_data["day_name"] = date_info["day_name"]
+            weather_data["day_num"] = date_info["day_num"]
+            weather_data["month_name"] = date_info["month_name"]
+            log(
+                f"Estimated time: {date_info['day_name']} "
+                f"{date_info['day_num']} {date_info['month_name']} "
+                f"(ts={estimated_ts})"
+            )
+    except Exception as te:
+        log(f"Could not estimate current time from cache: {te}")
+
+    return weather_data
 
 
 def get_weather_display_data():
@@ -446,11 +628,25 @@ def main():
                 last_successful_update = time.monotonic()
                 log("Initial weather fetch successful")
             else:
-                log("Initial weather fetch failed")
+                log("Initial weather fetch failed, checking cache...")
+                cached = get_cached_weather_data()
+                if cached:
+                    current_weather_data = cached
+                    update_display_with_weather_layout(current_weather_data)
+                    log("Showing cached weather data (initial boot)")
+                else:
+                    log("No cache available on boot")
         except Exception as e:
             log_error(f"Error in initial weather fetch: {e}")
     else:
-        log("WiFi connection failed on boot")
+        log("WiFi connection failed on boot, checking cache...")
+        cached = get_cached_weather_data()
+        if cached:
+            current_weather_data = cached
+            update_display_with_weather_layout(current_weather_data)
+            log("Showing cached weather data (WiFi failed on boot)")
+        else:
+            log("No cache available and WiFi failed on boot")
 
     log("pinkweather ready! Entering main polling loop...")
 
@@ -474,7 +670,12 @@ def main():
             try:
                 wifi_connected = connect_wifi()
                 if not wifi_connected:
-                    log("WiFi connection failed")
+                    log("WiFi connection failed, checking cache...")
+                    cached = get_cached_weather_data()
+                    if cached:
+                        current_weather_data = cached
+                        update_display_with_weather_layout(current_weather_data)
+                        log("Showing cached weather data (WiFi unavailable)")
                 else:
                     # Attempt weather data fetch
                     fresh_data = get_weather_display_data()
@@ -484,7 +685,14 @@ def main():
                         last_successful_update = current_time
                         log("Weather refresh completed successfully")
                     else:
-                        log("Weather fetch failed")
+                        log("Weather fetch failed, checking cache...")
+                        cached = get_cached_weather_data()
+                        if cached:
+                            current_weather_data = cached
+                            update_display_with_weather_layout(current_weather_data)
+                            log("Showing cached weather data (API unavailable)")
+                        else:
+                            log("Weather fetch failed and no cache available")
             except Exception as e:
                 log_error(f"Error during weather refresh: {e}")
 

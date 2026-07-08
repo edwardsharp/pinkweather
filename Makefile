@@ -1,7 +1,7 @@
 # Makefile for pinkweather project
 # Provides easy commands for setup, development, and deployment
 
-.PHONY: help install server preview deploy activate generate-dataset
+.PHONY: help install server preview deploy deploy-sd serial print-new-config activate generate-dataset
 
 # Default target
 help:
@@ -10,6 +10,9 @@ help:
 	@echo "  server       - Start development web server"
 	@echo "  preview      - Generate weather display preview"
 	@echo "  deploy       - Deploy code to CIRCUITPY device"
+	@echo "  deploy-sd    - Copy icons and scaffold directory structure onto the SD card"
+	@echo "  serial       - Attach a serial console to the connected Pico (115200 baud)"
+	@echo "  print-new-config - Print new config.py settings to copy-paste into your device"
 	@echo "  generate-dataset [DATASET] [csv-only] [COUNT] - Generate dataset (csv-only for fast iteration)"
 	@echo "    Available datasets: ny_2024 (default), toronto_2025"
 	@echo "    Examples: make generate-dataset toronto_2025 csv-only 50"
@@ -181,6 +184,183 @@ deploy:
 		--exclude='._*' --exclude='.Trashes' --exclude='.Trash-1000' --exclude='.fseventsd' --exclude='.fseventsd/fseventsd-uuid' \
 		300x400/CIRCUITPY/ "$$DEST/"; \
 	echo "Deployment complete!"
+
+# Deploy icons and scaffold SD card directory structure
+# This is meant to be run from the user's own computer after inserting the SD card.
+# Override the auto-detected path with: make deploy-sd SD_PATH=/path/to/sd
+deploy-sd:
+	@echo "=== pinkweather SD card setup ==="
+	@echo ""
+	@SD_PATH=""; \
+	if [ -n "$(SD_PATH)" ]; then \
+		SD_PATH="$(SD_PATH)"; \
+		echo "Using provided path: $$SD_PATH"; \
+	else \
+		if [ -d "/Volumes/CIRCUITPY" ]; then \
+			echo "Note: /Volumes/CIRCUITPY looks like the device flash, not the SD card."; \
+		fi; \
+		for label in PINKWEATHER SD; do \
+			if [ -d "/Volumes/$$label" ]; then SD_PATH="/Volumes/$$label"; break; fi; \
+			for base in /media /run/media; do \
+				if [ -d "$$base" ]; then \
+					found=$$(find "$$base" -maxdepth 2 -mindepth 1 -name "$$label" -type d 2>/dev/null | head -1); \
+					if [ -n "$$found" ]; then SD_PATH="$$found"; break; fi; \
+				fi; \
+			done; \
+			if [ -n "$$SD_PATH" ]; then break; fi; \
+		done; \
+		if [ -z "$$SD_PATH" ] && [ -d "/Volumes/NO NAME" ]; then \
+			SD_PATH="/Volumes/NO NAME"; \
+		fi; \
+		if [ -z "$$SD_PATH" ]; then \
+			found=$$(find /media /run/media -maxdepth 2 -mindepth 1 -name "NO NAME" -type d 2>/dev/null | head -1); \
+			if [ -n "$$found" ]; then SD_PATH="$$found"; fi; \
+		fi; \
+		if [ -z "$$SD_PATH" ]; then \
+			echo "Could not auto-detect SD card. Candidates:"; \
+			if [ -d "/Volumes" ]; then ls /Volumes/ 2>/dev/null; fi; \
+			for base in /media /run/media; do \
+				if [ -d "$$base" ]; then \
+					find "$$base" -maxdepth 2 -mindepth 2 -type d 2>/dev/null; \
+				fi; \
+			done; \
+			echo ""; \
+			printf "Enter the full path to your SD card: "; \
+			read SD_PATH; \
+		fi; \
+	fi; \
+	if [ -z "$$SD_PATH" ]; then \
+		echo "Error: No SD card path provided."; \
+		exit 1; \
+	fi; \
+	if [ ! -d "$$SD_PATH" ]; then \
+		echo "Error: Directory '$$SD_PATH' does not exist."; \
+		exit 1; \
+	fi; \
+	echo ""; \
+	echo "SD card path: $$SD_PATH"; \
+	echo ""; \
+	printf "Is this the correct SD card? [y/N] "; \
+	read CONFIRM; \
+	case "$$CONFIRM" in \
+		[yY]|[yY][eE][sS]) ;; \
+		*) echo "Aborted."; exit 1 ;; \
+	esac; \
+	echo ""; \
+	echo "--- Scaffolding directory structure ---"; \
+	mkdir -p "$$SD_PATH/bmp"; \
+	echo "  created: bmp/"; \
+	echo ""; \
+	echo "--- Copying weather icons (iconz/bmp/ -> SD:bmp/) ---"; \
+	echo "  Source: iconz/bmp/ ($(shell ls iconz/bmp/ 2>/dev/null | wc -l | tr -d ' ') files)"; \
+	echo ""; \
+	rsync -av --checksum --modify-window=1 \
+		--exclude='.DS_Store' --exclude='._*' \
+		iconz/bmp/ "$$SD_PATH/bmp/"; \
+	echo ""; \
+	echo "=== SD card setup complete! ==="; \
+	echo ""; \
+	echo "eject the SD card (safely!) and put it back into pinkweather";
+# Attach a serial console to the connected Pico 2W (115200 baud)
+# Override auto-detection with: make serial PORT=/dev/cu.usbmodemXXXX
+serial:
+	@echo "=== pinkweather serial console ==="
+	@echo ""
+	@PORT=""; \
+	PORTS=""; \
+	if [ -n "$(PORT)" ]; then \
+		PORT="$(PORT)"; \
+		echo "Using provided port: $$PORT"; \
+	else \
+		if [ "$$(uname)" = "Darwin" ]; then \
+			PORTS=$$(ls /dev/cu.usbmodem* 2>/dev/null); \
+		else \
+			PORTS=$$(ls /dev/ttyACM* /dev/ttyUSB* 2>/dev/null); \
+		fi; \
+		if [ -z "$$PORTS" ]; then \
+			echo "No serial port found. Check:"; \
+			echo "  - USB cable is connected and the Pico is powered"; \
+			echo "  - CircuitPython is installed (CIRCUITPY drive should appear)"; \
+			echo "  - Try: make serial PORT=/dev/cu.usbmodemXXXX"; \
+			exit 1; \
+		fi; \
+		COUNT=$$(echo "$$PORTS" | wc -l | tr -d ' '); \
+		if [ "$$COUNT" -eq 1 ]; then \
+			PORT="$$PORTS"; \
+			echo "Found: $$PORT"; \
+		else \
+			echo "Multiple serial ports found:"; \
+			echo "$$PORTS"; \
+			echo ""; \
+			printf "Enter the full port path: "; \
+			read PORT; \
+		fi; \
+	fi; \
+	if [ ! -e "$$PORT" ]; then \
+		echo "Error: $$PORT does not exist"; \
+		exit 1; \
+	fi; \
+	echo ""; \
+	if command -v screen >/dev/null 2>&1; then \
+		echo "Connecting via screen  |  to exit: Ctrl+A then K then Y"; \
+		echo ""; \
+		screen "$$PORT" 115200; \
+	elif command -v picocom >/dev/null 2>&1; then \
+		echo "Connecting via picocom  |  to exit: Ctrl+A then Ctrl+X"; \
+		echo ""; \
+		picocom -b 115200 "$$PORT"; \
+	elif command -v tio >/dev/null 2>&1; then \
+		echo "Connecting via tio  |  to exit: Ctrl+T then Q"; \
+		echo ""; \
+		tio -b 115200 "$$PORT"; \
+	else \
+		echo "No serial terminal found. Install one:"; \
+		echo "  macOS:  brew install picocom"; \
+		echo "  Linux:  sudo apt install screen"; \
+		exit 1; \
+	fi
+
+# Print new config settings for users updating an existing config.py
+print-new-config:
+	@echo ""
+	@echo "=================================================================="
+	@echo " pinkweather: new config.py settings"
+	@echo "=================================================================="
+	@echo ""
+	@echo "Add these to your config.py on the CIRCUITPY device if they are"
+	@echo "missing. All values shown are the defaults - safe to add as-is."
+	@echo "Your existing settings will not be affected."
+	@echo ""
+	@echo "------------------------------------------------------------------"
+	@echo ""
+	@printf '# WiFi Advanced Configuration\n'
+	@printf '# Set to your router channel (1-13) for faster connect, or 0 to scan all.\n'
+	@printf 'WIFI_CHANNEL = 0\n'
+	@printf '\n'
+	@printf '# Seconds to wait for WiFi. Increase (e.g. 30) if DHCP is slow.\n'
+	@printf 'WIFI_CONNECT_TIMEOUT = 20\n'
+	@printf '\n'
+	@printf '# Static IP (leave as None to use DHCP).\n'
+	@printf '# Set all four to skip DHCP entirely - helps with lease-pool issues.\n'
+	@printf '#   WIFI_STATIC_IP      = "192.168.1.100"\n'
+	@printf '#   WIFI_STATIC_NETMASK = "255.255.255.0"\n'
+	@printf '#   WIFI_STATIC_GATEWAY = "192.168.1.1"\n'
+	@printf '#   WIFI_STATIC_DNS     = "8.8.8.8"\n'
+	@printf 'WIFI_STATIC_IP      = None\n'
+	@printf 'WIFI_STATIC_NETMASK = None\n'
+	@printf 'WIFI_STATIC_GATEWAY = None\n'
+	@printf 'WIFI_STATIC_DNS     = None\n'
+	@printf '\n'
+	@printf '# Weather cache: show last known weather for up to this many\n'
+	@printf '# consecutive failed hourly cycles before showing the error screen.\n'
+	@printf '# Set to 0 to disable. Each cycle is roughly 1 hour.\n'
+	@printf 'WEATHER_CACHE_MAX_CYCLES = 6\n'
+	@echo ""
+	@echo "------------------------------------------------------------------"
+	@echo ""
+	@echo "To edit config.py: connect pinkweather via USB, then open"
+	@echo "/Volumes/CIRCUITPY/config.py (macOS) or /media/.../config.py (Linux)."
+	@echo ""
 
 # Show activation instructions
 activate:
